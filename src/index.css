@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  /* Habilita o ambiente 3D para a caixa da mídia */
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+  
+  /* Efeito de prensa tipográfica (Debossed Text) */
+  .debossed-text {
+    text-shadow: 0px -1px 1px rgba(0,0,0,0.8), 0px 1px 1px rgba(255,255,255,0.1);
+  }
+}
+
+/* Customização da Barra de Rolagem (Scrollbar) para não quebrar a estética */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.2); /* Usa nosso tom de ouro com opacidade */
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.5);
+}
