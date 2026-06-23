@@ -1,4 +1,4 @@
-import { BookOpen, Film, Gamepad2, Printer } from 'lucide-react';
+import { BookOpen, Film, Gamepad2 } from 'lucide-react';
 import type { CategoryDef } from "../../components/Sidebar/types";
 
 export const CATEGORIES: CategoryDef[] = [
@@ -20,11 +20,5 @@ export const CATEGORIES: CategoryDef[] = [
     plural: 'Livros',
     singular: 'Livro',
     icon: <BookOpen size={15} strokeWidth={2.2} />,
-  },
-  {
-    id: 'prints',
-    plural: 'Impressão 3D',
-    singular: 'Projeto 3D',
-    icon: <Printer size={15} strokeWidth={2.2} />,
   },
 ];
