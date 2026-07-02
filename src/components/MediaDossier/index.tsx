@@ -10,6 +10,8 @@ export function MediaDossier({
   onComplete,
   onDelete,
   onSaveTicket,
+  onSaveBookCompletion,
+  onSaveGameCompletion,
 }: MediaDossierProps) {
   const category = item.category || item.meta || typeLabels[item.type];
   const status = statusLabels[item.status];
@@ -112,7 +114,12 @@ export function MediaDossier({
             </section>
           )}
 
-          <CompletionArtifacts item={item} onSaveTicket={onSaveTicket} />
+          <CompletionArtifacts
+            item={item}
+            onSaveTicket={onSaveTicket}
+            onSaveBookCompletion={onSaveBookCompletion}
+            onSaveGameCompletion={onSaveGameCompletion}
+          />
         </div>
 
         <footer className="flex items-center gap-3 border-t border-white/10 p-5">

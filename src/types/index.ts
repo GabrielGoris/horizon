@@ -16,6 +16,9 @@ export interface MediaItem {
   description: string;
   watched_at?: string;
   completed_at?: string;
+  pages?: number | string;
+  hours_played?: number | string;
+  completion_type?: string;
   progress?: {
     current: number;
     total: number;

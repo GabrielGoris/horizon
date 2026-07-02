@@ -5,15 +5,19 @@ import { Sidebar } from "../../components/Sidebar";
 import { MediaCard } from "../../components/MediaCard";
 import { MediaDossier } from "../../components/MediaDossier";
 import { CATEGORIES } from "./consts";
-import type { MovieTicketDTO } from "../../schemas/media";
+import type { BookCompletionDTO, GameCompletionDTO, MovieTicketDTO } from "../../schemas/media";
 import type { MediaItem } from "../../types";
 import { AddMediaDialog } from "../../components/AddMediaDialog";
 import {
+  applyBookCompletion,
+  applyGameCompletion,
   applyMovieTicket,
   completeMedia,
   deleteMedia,
   fetchMedia,
   markMediaAsComplete,
+  saveBookCompletion,
+  saveGameCompletion,
   saveMovieTicket,
 } from "../../services/mediaService";
 
@@ -71,12 +75,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
       currentCollection.map((media) => (media.id === item.id ? completedMedia : media))
     );
 
-    if (item.type === 'movies') {
-      setSelectedMedia(completedMedia);
-      return;
-    }
-
-    setSelectedMedia(null);
+    setSelectedMedia(completedMedia);
   }, []);
 
   const handleSaveMovieTicket = useCallback(async (item: MediaItem, ticket: MovieTicketDTO) => {
@@ -89,6 +88,40 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
     }
 
     const updatedMedia = applyMovieTicket(item, ticket);
+
+    setCollection((currentCollection) =>
+      currentCollection.map((media) => (media.id === item.id ? updatedMedia : media))
+    );
+    setSelectedMedia(updatedMedia);
+  }, []);
+
+  const handleSaveBookCompletion = useCallback(async (item: MediaItem, completion: BookCompletionDTO) => {
+    try {
+      await saveBookCompletion(item.id, completion);
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao salvar a leitura.');
+      return;
+    }
+
+    const updatedMedia = applyBookCompletion(item, completion);
+
+    setCollection((currentCollection) =>
+      currentCollection.map((media) => (media.id === item.id ? updatedMedia : media))
+    );
+    setSelectedMedia(updatedMedia);
+  }, []);
+
+  const handleSaveGameCompletion = useCallback(async (item: MediaItem, completion: GameCompletionDTO) => {
+    try {
+      await saveGameCompletion(item.id, completion);
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao salvar o save.');
+      return;
+    }
+
+    const updatedMedia = applyGameCompletion(item, completion);
 
     setCollection((currentCollection) =>
       currentCollection.map((media) => (media.id === item.id ? updatedMedia : media))
@@ -230,6 +263,8 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
           onComplete={handleCompleteMedia}
           onDelete={handleDeleteMedia}
           onSaveTicket={handleSaveMovieTicket}
+          onSaveBookCompletion={handleSaveBookCompletion}
+          onSaveGameCompletion={handleSaveGameCompletion}
         />
       )}
     </div>
