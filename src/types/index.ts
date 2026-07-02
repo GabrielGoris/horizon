@@ -25,3 +25,30 @@ export interface MediaItem {
     unit: string;
   };
 }
+
+export type CompletionRow = {
+  rating?: number | string | null;
+};
+
+export type MovieCompletionRow = CompletionRow & {
+  watched_at?: string | null;
+};
+
+export type BookCompletionRow = CompletionRow & {
+  finished_at?: string | null;
+  pages?: number | string | null;
+};
+
+export type GameCompletionRow = CompletionRow & {
+  finished_at?: string | null;
+  hours_played?: number | string | null;
+  completion_type?: string | null;
+};
+
+export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating"> & {
+  release_year?: string | null;
+  rating?: string | number | null;
+  movie_completions?: MovieCompletionRow[] | MovieCompletionRow | null;
+  book_completions?: BookCompletionRow[] | BookCompletionRow | null;
+  game_completions?: GameCompletionRow[] | GameCompletionRow | null;
+};

@@ -31,6 +31,10 @@
   .animate-dossier-content-in {
     animation: dossier-content-in 420ms ease-out 90ms both;
   }
+
+  .animate-media-object-float {
+    animation: media-object-float 12s ease-in-out infinite;
+  }
 }
 
 @keyframes dossier-overlay-in {
@@ -66,6 +70,20 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes media-object-float {
+  0% {
+    transform: rotateY(-34deg) rotateX(5deg) translateY(0);
+  }
+
+  50% {
+    transform: rotateY(34deg) rotateX(8deg) translateY(-8px);
+  }
+
+  100% {
+    transform: rotateY(-34deg) rotateX(5deg) translateY(0);
   }
 }
 

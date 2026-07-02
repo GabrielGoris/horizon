@@ -1,5 +1,6 @@
 import { Check, Trash2, X } from "lucide-react";
 import { CompletionArtifacts } from "./CompletionArtifacts";
+import { MediaObjectPreview } from "./MediaObjectPreview";
 import { statusLabels, typeLabels } from "./consts";
 import type { MediaDossierProps } from "./types";
 import { formatAuthorLine } from "./utils";
@@ -49,13 +50,7 @@ export function MediaDossier({
         </header>
 
         <div className="animate-dossier-content-in flex-1 overflow-y-auto px-7 py-7">
-          <div className="mx-auto mb-8 h-[210px] w-[174px] overflow-hidden rounded-md border border-white/10 bg-white/[0.03] shadow-2xl shadow-black/40">
-            <img
-              src={item.cover}
-              alt={`Capa de ${item.title}`}
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <MediaObjectPreview item={item} />
 
           <div className="text-center">
             <h2 className="font-serif text-3xl font-extrabold leading-[1.05] text-white">
