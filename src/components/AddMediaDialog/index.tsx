@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
-import { supabase } from "../../lib/supabase";
-import { mediaSchemaValidator, type MediaDTO } from "../../schemas/media.dto";
+import { createMedia } from "../../services/mediaService";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 
 interface AddMediaDialogProps {
   isOpen: boolean;
@@ -15,11 +15,12 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess }: AddMediaDialogPro
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<MediaDTO>({
-    resolver: zodResolver(mediaSchemaValidator),
+  } = useForm<CreateMediaDTO>({
+    resolver: zodResolver(createMediaSchema),
     defaultValues: {
       title: "",
       creator: "",
+      director: "",
       type: "games",
       category: "",
       cover: "",
@@ -30,16 +31,15 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess }: AddMediaDialogPro
 
   if (!isOpen) return null;
 
-  const onSubmit = async (data: MediaDTO) => {
-    const { error } = await supabase.from("media_items").insert([data]);
-
-    if (error) {
-      console.error("Erro ao guardar:", error);
-      alert("Erro ao guardar a obra.");
-    } else {
-      await onSuccess(); 
-      reset();     
-      onClose();   
+  const onSubmit = async (data: CreateMediaDTO) => {
+    try {
+      await createMedia(data);
+      await onSuccess();
+      reset();
+      onClose();
+    } catch (error) {
+        console.error("Erro ao guardar:", error);
+        alert("Erro ao guardar a obra.");
     }
   };
 
@@ -75,7 +75,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess }: AddMediaDialogPro
             </label>
             
             <label className={labelClass}>
-              Criador / Estúdio
+              Estúdio
               <input 
                 placeholder="Ex: FromSoftware"
                 {...register("creator")} 
@@ -83,6 +83,15 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess }: AddMediaDialogPro
               />
             </label>
           </div>
+
+          <label className={labelClass}>
+            Diretor
+            <input
+              placeholder="Ex: Denis Villeneuve"
+              {...register("director")}
+              className={inputClass}
+            />
+          </label>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <label className={labelClass}>

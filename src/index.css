@@ -19,6 +19,54 @@
   .debossed-text {
     text-shadow: 0px -1px 1px rgba(0,0,0,0.8), 0px 1px 1px rgba(255,255,255,0.1);
   }
+
+  .animate-dossier-overlay-in {
+    animation: dossier-overlay-in 220ms ease-out both;
+  }
+
+  .animate-dossier-panel-in {
+    animation: dossier-panel-in 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-dossier-content-in {
+    animation: dossier-content-in 420ms ease-out 90ms both;
+  }
+}
+
+@keyframes dossier-overlay-in {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0);
+  }
+
+  to {
+    opacity: 1;
+    backdrop-filter: blur(6px);
+  }
+}
+
+@keyframes dossier-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(42px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes dossier-content-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 ::-webkit-scrollbar {

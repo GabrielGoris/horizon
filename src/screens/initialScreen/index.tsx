@@ -3,10 +3,19 @@ import { Link } from "react-router-dom";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
 import { MediaCard } from "../../components/MediaCard";
+import { MediaDossier } from "../../components/MediaDossier";
 import { CATEGORIES } from "./consts";
+import type { MovieTicketDTO } from "../../schemas/media";
 import type { MediaItem } from "../../types";
-import { supabase } from "../../lib/supabase";
 import { AddMediaDialog } from "../../components/AddMediaDialog";
+import {
+  applyMovieTicket,
+  completeMedia,
+  deleteMedia,
+  fetchMedia,
+  markMediaAsComplete,
+  saveMovieTicket,
+} from "../../services/mediaService";
 
 
 interface InitialScreenProps {
@@ -18,43 +27,91 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   const [collection, setCollection] = useState<MediaItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
   const activeLabel = activeTab === 'overview' ? 'Visão Geral' : activeCategory?.plural ?? 'Nova Categoria';
 
-  const fetchMedia = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('media_items')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error(error);
-      return [];
-    }
-
-    return data ?? [];
-  }, []); 
-
   useEffect(() => {
     let isMounted = true;
 
-    fetchMedia().then((media) => {
-      if (isMounted) {
-        setCollection(media);
-      }
-    });
+    fetchMedia()
+      .then((media) => {
+        if (isMounted) {
+          setCollection(media);
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+      });
 
     return () => {
       isMounted = false;
     };
-  }, [fetchMedia]); 
+  }, []); 
 
   const refreshMedia = useCallback(async () => {
     const media = await fetchMedia();
 
     setCollection(media);
-  }, [fetchMedia]);
+  }, []);
+
+  const handleCompleteMedia = useCallback(async (item: MediaItem) => {
+    try {
+      await completeMedia(item.id);
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao concluir a obra.');
+      return;
+    }
+
+    const completedMedia = markMediaAsComplete(item);
+
+    setCollection((currentCollection) =>
+      currentCollection.map((media) => (media.id === item.id ? completedMedia : media))
+    );
+
+    if (item.type === 'movies') {
+      setSelectedMedia(completedMedia);
+      return;
+    }
+
+    setSelectedMedia(null);
+  }, []);
+
+  const handleSaveMovieTicket = useCallback(async (item: MediaItem, ticket: MovieTicketDTO) => {
+    try {
+      await saveMovieTicket(item.id, ticket);
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao salvar o ticket.');
+      return;
+    }
+
+    const updatedMedia = applyMovieTicket(item, ticket);
+
+    setCollection((currentCollection) =>
+      currentCollection.map((media) => (media.id === item.id ? updatedMedia : media))
+    );
+    setSelectedMedia(updatedMedia);
+  }, []);
+
+  const handleDeleteMedia = useCallback(async (item: MediaItem) => {
+    const shouldDelete = window.confirm(`Excluir "${item.title}" da biblioteca?`);
+
+    if (!shouldDelete) return;
+
+    try {
+      await deleteMedia(item.id);
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao excluir a obra.');
+      return;
+    }
+
+    setSelectedMedia(null);
+    await refreshMedia();
+  }, [refreshMedia]);
 
   const filteredCollection = useMemo(() => {
     return collection.filter((item) => {
@@ -125,7 +182,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
                             key={item.id} 
                             item={item} 
                             rank={index + 1} 
-                            onClick={(clickedItem) => console.log("Obra clicada:", clickedItem.title)} 
+                            onClick={setSelectedMedia} 
                           />
                         ))}
                       </div>
@@ -151,7 +208,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
                     <MediaCard 
                       key={item.id}
                       item={item} 
-                      onClick={(clickedItem) => console.log("Obra clicada:", clickedItem.title)} 
+                      onClick={setSelectedMedia} 
                     />
                   ))}
                 </div>
@@ -166,6 +223,15 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
         onClose={() => setIsAddMediaModalOpen(false)}
         onSuccess={refreshMedia}
       />
+      {selectedMedia && (
+        <MediaDossier
+          item={selectedMedia}
+          onClose={() => setSelectedMedia(null)}
+          onComplete={handleCompleteMedia}
+          onDelete={handleDeleteMedia}
+          onSaveTicket={handleSaveMovieTicket}
+        />
+      )}
     </div>
   );
 }

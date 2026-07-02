@@ -5,6 +5,7 @@ export interface MediaItem {
   id: string;
   title: string;
   creator: string;
+  director?: string;
   category: string;
   cover: string;
   type: MediaType;
@@ -13,6 +14,8 @@ export interface MediaItem {
   meta: string;
   rating: string;
   description: string;
+  watched_at?: string;
+  completed_at?: string;
   progress?: {
     current: number;
     total: number;
