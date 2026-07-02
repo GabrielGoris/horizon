@@ -1,8 +1,8 @@
-import { LayoutGrid, Plus } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
 import { SidebarItem } from './SideBarItem';
 import type { SidebarProps } from './types';
 
-export function Sidebar({ categories, activeTab, setActiveTab, onAddCategory }: SidebarProps) {
+export function Sidebar({ categories, activeTab, setActiveTab }: SidebarProps) {
   return (
     <aside className="flex h-screen w-[324px] shrink-0 flex-col justify-between border-r border-white/5 bg-noir-base px-[34px] py-9">
       <div className="flex flex-col gap-[66px]">
@@ -37,17 +37,6 @@ export function Sidebar({ categories, activeTab, setActiveTab, onAddCategory }: 
               onClick={() => setActiveTab(category.id)}
             />
           ))}
-
-          {onAddCategory && (
-            <button
-              type="button"
-              onClick={onAddCategory}
-              className="mt-6 flex h-[52px] w-full items-center gap-3 rounded-lg border border-dashed border-white/10 px-[18px] text-[12px] font-bold uppercase tracking-[0.07em] text-noir-gold/70 transition-all hover:border-noir-gold/30 hover:bg-noir-gold/5 hover:text-noir-gold"
-            >
-              <Plus size={15} />
-              <span>Nova Categoria</span>
-            </button>
-          )}
         </nav>
       </div>
     </aside>

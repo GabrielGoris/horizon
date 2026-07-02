@@ -1,47 +1,66 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
 import { MediaCard } from "../../components/MediaCard";
 import { CATEGORIES } from "./consts";
 import type { MediaItem } from "../../types";
+import { supabase } from "../../lib/supabase";
+import { AddMediaDialog } from "../../components/AddMediaDialog";
 
-const COLLECTION: MediaItem[] = [
-  {
-    id: '1', title: 'Elden Ring: Shadow of the Erdtree', creator: 'FromSoftware', category: 'Action RPG',
-    cover: 'https://cdng.europosters.eu/pod_public/1300/230646.jpg',
-    type: 'games', status: 'new', releaseYear: '2024', meta: 'Souls-like', rating: '98',
-    description: 'Erga-se, Maculado, nas Terras das Sombras. Uma expansão monumental que redefine o desafio brutal.',
-    progress: { current: 48, total: 120, unit: 'horas' }
-  },
-  {
-    id: '2', title: 'Duna: Parte Dois', creator: 'Denis Villeneuve', category: 'Ficção Científica',
-    cover: 'https://br.web.img3.acsta.net/c_310_420/pictures/23/05/26/17/47/1900372.jpg',
-    type: 'movies', status: 'complete', releaseYear: '2024', meta: 'Épico', rating: '8.8',
-    description: 'A jornada mística de Paul Atreides no planeta desértico de Arrakis.'
-  },
-  {
-    id: '3', title: 'Neuromancer', creator: 'William Gibson', category: 'Cyberpunk',
-    cover: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ-dxQUCPzivqlbDtds4Mo0R8iDcKAKKq5zKXFeHEIC5PrvjO2Hdblb-xB2asumZk8pZF3tgX7EMZXAb21nJdIWilkT7KQNhOAEoGyrKw&s=10',
-    type: 'books', status: 'reading', releaseYear: '1984', meta: 'Clássico', rating: '5.0',
-    description: 'O hacker Case navega pela inteligência artificial e os submundos do ciberespaço.',
-    progress: { current: 150, total: 300, unit: 'páginas' }
-  }
-];
+
 
 export function InitialScreen() {
+  const [collection, setCollection] = useState<MediaItem[]>([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
   const activeLabel = activeTab === 'overview' ? 'Visão Geral' : activeCategory?.plural ?? 'Nova Categoria';
 
+  const fetchMedia = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('media_items')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return [];
+    }
+
+    return data ?? [];
+  }, []); 
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchMedia().then((media) => {
+      if (isMounted) {
+        setCollection(media);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchMedia]); 
+
+  const refreshMedia = useCallback(async () => {
+    const media = await fetchMedia();
+
+    setCollection(media);
+  }, [fetchMedia]);
+
   const filteredCollection = useMemo(() => {
-    return COLLECTION.filter(item => {
+    return collection.filter((item) => {
       const matchesTab = activeTab === 'overview' || item.type === activeTab;
       const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
+
       return matchesTab && matchesSearch;
     });
-  }, [activeTab, searchQuery]);
+  }, [collection, activeTab, searchQuery]);
+
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-noir-base font-sans text-white">
@@ -49,14 +68,13 @@ export function InitialScreen() {
         categories={CATEGORIES}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onAddCategory={() => setActiveTab('new-category')}
       />
 
       <div className="relative flex h-screen flex-1 flex-col">
         <Header
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onAddClick={() => setActiveTab('new-item')}
+          onAddClick={() => setIsAddMediaModalOpen(true)}
         />
 
         <main className="flex-1 overflow-y-auto p-8 lg:p-12">
@@ -71,11 +89,9 @@ export function InitialScreen() {
               <p className="mt-1 text-sm text-neutral-500">O que está no seu radar no momento.</p>
             </div>
 
-            {/* AVISO DE DEBUG SE TUDO ESTIVER VAZIO */}
             {filteredCollection.length === 0 && (
                <div className="flex flex-col items-center justify-center py-20 text-neutral-500">
                  <p>Nenhuma obra encontrada.</p>
-                 <p className="text-xs">Verifique se os IDs do CATEGORIES batem com os types do MOCK.</p>
                </div>
             )}
 
@@ -143,6 +159,11 @@ export function InitialScreen() {
           </div>
         </main>
       </div>
+      <AddMediaDialog
+        isOpen={isAddMediaModalOpen}
+        onClose={() => setIsAddMediaModalOpen(false)}
+        onSuccess={refreshMedia}
+      />
     </div>
   );
 }

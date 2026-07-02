@@ -12,7 +12,6 @@ export interface SidebarProps {
   categories: CategoryDef[];
   activeTab: string;
   setActiveTab: (id: string) => void;
-  onAddCategory?: () => void;
 }
 
 export interface SidebarItemProps {
