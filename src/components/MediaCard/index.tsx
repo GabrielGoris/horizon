@@ -13,7 +13,7 @@ export function MediaCard({ item, onClick, rank }: MediaCardProps) {
       <img 
         src={item.cover} 
         alt={item.title} 
-        className="w-full h-full object-cover filter grayscale sepia-[0.2] contrast-[1.1] brightness-[0.7] transition-all duration-600 group-hover:grayscale-0 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105" 
+        className="w-full h-full object-cover filter saturate-[0.65] sepia-[0.18] contrast-[1.08] brightness-[0.82] transition-all duration-600 group-hover:saturate-100 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105" 
       />
 
       {isBook && (

@@ -2,7 +2,7 @@ import { LayoutGrid } from 'lucide-react';
 import { SidebarItem } from './SideBarItem';
 import type { SidebarProps } from './types';
 
-export function Sidebar({ categories, activeTab, setActiveTab }: SidebarProps) {
+export function Sidebar({ categories }: SidebarProps) {
   return (
     <aside className="flex h-screen w-[324px] shrink-0 flex-col justify-between border-r border-white/5 bg-noir-base px-[34px] py-9">
       <div className="flex flex-col gap-[66px]">
@@ -23,8 +23,8 @@ export function Sidebar({ categories, activeTab, setActiveTab }: SidebarProps) {
           <SidebarItem
             label="Visão Geral"
             icon={<LayoutGrid size={15} strokeWidth={2.3} />}
-            isActive={activeTab === 'overview'}
-            onClick={() => setActiveTab('overview')}
+            to="/"
+            end
             activeVariant="primary"
           />
 
@@ -33,8 +33,7 @@ export function Sidebar({ categories, activeTab, setActiveTab }: SidebarProps) {
               key={category.id}
               label={category.plural}
               icon={category.icon}
-              isActive={activeTab === category.id}
-              onClick={() => setActiveTab(category.id)}
+              to={`/${category.id}`}
             />
           ))}
         </nav>

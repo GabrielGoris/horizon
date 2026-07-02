@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
 import { MediaCard } from "../../components/MediaCard";
@@ -8,10 +9,13 @@ import { supabase } from "../../lib/supabase";
 import { AddMediaDialog } from "../../components/AddMediaDialog";
 
 
+interface InitialScreenProps {
+  activeTab: string;
+}
 
-export function InitialScreen() {
+
+export function InitialScreen({ activeTab }: InitialScreenProps) {
   const [collection, setCollection] = useState<MediaItem[]>([]);
-  const [activeTab, setActiveTab] = useState('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
 
@@ -66,8 +70,6 @@ export function InitialScreen() {
     <div className="flex h-screen w-full overflow-hidden bg-noir-base font-sans text-white">
       <Sidebar
         categories={CATEGORIES}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
       />
 
       <div className="relative flex h-screen flex-1 flex-col">
@@ -109,12 +111,12 @@ export function InitialScreen() {
                         <h3 className="flex items-center gap-2 font-serif text-xl font-bold text-[#ebdcb9]">
                           Top 5 {category.plural}
                         </h3>
-                        <button 
-                          onClick={() => setActiveTab(category.id)} 
+                        <Link 
+                          to={`/${category.id}`}
                           className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 transition-colors hover:text-noir-gold"
                         >
                           Ver Tudo →
-                        </button>
+                        </Link>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">

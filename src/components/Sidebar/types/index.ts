@@ -10,14 +10,12 @@ export interface CategoryDef {
 
 export interface SidebarProps {
   categories: CategoryDef[];
-  activeTab: string;
-  setActiveTab: (id: string) => void;
 }
 
 export interface SidebarItemProps {
   label: string;
   icon: ReactNode;
-  isActive: boolean;
-  onClick: () => void;
+  to: string;
+  end?: boolean;
   activeVariant?: 'primary' | 'secondary';
 }
