@@ -8,6 +8,8 @@ export const createMediaSchema = z.object({
   category: z.string().optional(),
   cover: z.string().url("Insira uma URL valida (http://...)").or(z.literal("")).optional(),
   status: z.enum(["queue", "reading", "new", "complete"] as const),
+  release_year: z.string().optional(),
+  meta: z.string().optional(),
   description: z.string().optional(),
 });
 

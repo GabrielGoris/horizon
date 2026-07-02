@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
+import type { MediaType } from '../../../types';
 
 export interface CategoryDef {
-  id: string;
+  id: MediaType;
   plural: string;
   singular: string;
   icon: ReactNode;

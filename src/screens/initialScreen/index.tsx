@@ -35,6 +35,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
   const activeLabel = activeTab === 'overview' ? 'Visão Geral' : activeCategory?.plural ?? 'Nova Categoria';
+  const addMediaInitialType = activeTab === 'overview' ? null : activeCategory?.id;
 
   useEffect(() => {
     let isMounted = true;
@@ -255,6 +256,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
         isOpen={isAddMediaModalOpen}
         onClose={() => setIsAddMediaModalOpen(false)}
         onSuccess={refreshMedia}
+        initialType={addMediaInitialType}
       />
       {selectedMedia && (
         <MediaDossier
