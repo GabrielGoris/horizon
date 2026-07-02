@@ -1,3 +1,4 @@
+import { useState, type MouseEvent } from "react";
 import { Star, X } from "lucide-react";
 import type { MovieTicketEditorProps } from "../types";
 
@@ -11,6 +12,17 @@ export function MovieTicketEditor({
   onClose,
   onSave,
 }: MovieTicketEditorProps) {
+  const [previewRating, setPreviewRating] = useState<number | null>(null);
+  const visibleRating = previewRating ?? rating;
+
+  const getRatingFromMouse = (event: MouseEvent<HTMLButtonElement>, star: number) => {
+    const { left, width } = event.currentTarget.getBoundingClientRect();
+    const clickOffset = event.clientX - left;
+    const isLeftHalf = clickOffset <= width / 2;
+
+    return isLeftHalf ? star - 0.5 : star;
+  };
+
   return (
     <div className="absolute inset-0 z-20 flex items-end bg-black/60 p-5 backdrop-blur-sm">
       <div className="w-full rounded-xl border border-white/10 bg-[#202024] p-5 shadow-2xl">
@@ -46,24 +58,33 @@ export function MovieTicketEditor({
           <p className="mb-3 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">
             Nota em estrelas
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" onMouseLeave={() => setPreviewRating(null)}>
             {stars.map((star) => (
               <button
                 key={star}
                 type="button"
-                onClick={() => onRatingChange(star)}
-                aria-label={`Dar nota ${star}`}
-                className="text-noir-gold transition-transform hover:scale-110"
+                onClick={(event) => onRatingChange(getRatingFromMouse(event, star))}
+                onMouseMove={(event) => setPreviewRating(getRatingFromMouse(event, star))}
+                aria-label={`Dar nota ate ${star}`}
+                className="transition-transform hover:scale-110"
               >
-                <Star
-                  size={26}
-                  className={star <= rating ? "fill-current" : "text-neutral-600"}
-                />
+                <span className="relative inline-flex">
+                  <Star size={26} className="text-neutral-600" />
+                  {visibleRating > star - 1 && (
+                    <span
+                      className="absolute inset-0 overflow-hidden"
+                      style={{ width: `${Math.min(1, visibleRating - (star - 1)) * 100}%` }}
+                    >
+                      <Star size={26} className="fill-current text-noir-gold" />
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
             <button
               type="button"
               onClick={() => onRatingChange(0)}
+              onMouseEnter={() => setPreviewRating(null)}
               className="ml-auto font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500 hover:text-white"
             >
               Limpar

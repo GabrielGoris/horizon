@@ -1,3 +1,3 @@
-export * from "./create-media.dto";
-export * from "./movie-ticket.dto";
-export * from "./update-media.dto";
+export * from "./dto/create-media.dto";
+export * from "./dto/movie-ticket.dto";
+export * from "./dto/update-media.dto";

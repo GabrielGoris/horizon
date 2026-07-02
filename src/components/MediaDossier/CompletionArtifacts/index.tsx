@@ -28,7 +28,6 @@ export function CompletionArtifacts({ item, onSaveTicket }: CompletionArtifactPr
           item={item}
           watchedAt={watchedAt}
           rating={ticketRating}
-          stars={stars}
           onClick={() => setIsTicketEditorOpen(true)}
         />
 

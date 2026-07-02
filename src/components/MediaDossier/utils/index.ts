@@ -31,6 +31,9 @@ export function getInitialWatchedDate(item: MediaItem) {
 export function getNumericRating(rating: string) {
   const value = Number.parseFloat(rating);
 
-  return Number.isFinite(value) ? Math.min(5, Math.max(0, Math.round(value))) : 0;
-}
+  if (!Number.isFinite(value)) return 0;
 
+  const clampedValue = Math.min(5, Math.max(0, value));
+
+  return Math.round(clampedValue * 2) / 2;
+}

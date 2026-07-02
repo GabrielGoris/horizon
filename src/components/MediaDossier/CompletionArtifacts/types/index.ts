@@ -10,7 +10,6 @@ export interface MovieTicketProps {
   item: MediaItem;
   watchedAt: string;
   rating: number;
-  stars: number[];
   onClick: () => void;
 }
 

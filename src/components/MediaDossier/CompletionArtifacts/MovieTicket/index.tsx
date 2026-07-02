@@ -2,7 +2,24 @@ import { Star } from "lucide-react";
 import type { MovieTicketProps } from "../types";
 import { formatTicketDate } from "../../utils";
 
-export function MovieTicket({ item, watchedAt, rating, stars, onClick }: MovieTicketProps) {
+function renderStars(rating: number) {
+  return Array.from({ length: 5 }, (_, index) => {
+    const fillPercentage = Math.max(0, Math.min(1, rating - index)) * 100;
+
+    return (
+      <span key={index} className="relative inline-flex">
+        <Star size={15} className="text-black/25" />
+        {fillPercentage > 0 && (
+          <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercentage}%` }}>
+            <Star size={15} className="fill-black text-black" />
+          </span>
+        )}
+      </span>
+    );
+  });
+}
+
+export function MovieTicket({ item, watchedAt, rating, onClick }: MovieTicketProps) {
   const hasRating = rating > 0;
   const director = item.director || "Diretor nao informado";
 
@@ -28,13 +45,7 @@ export function MovieTicket({ item, watchedAt, rating, stars, onClick }: MovieTi
               {item.title}
             </h3>
             <div className="mt-3 flex items-center gap-1">
-              {stars.map((star) => (
-                <Star
-                  key={star}
-                  size={15}
-                  className={star <= rating ? "fill-black text-black" : "text-black/25"}
-                />
-              ))}
+              {renderStars(rating)}
             </div>
           </div>
         </div>
