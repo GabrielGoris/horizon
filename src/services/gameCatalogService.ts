@@ -1,5 +1,5 @@
 import type { CreateMediaDTO } from "../schemas/media";
-import type { GameCatalogDetails, GameCatalogResult, IgdbGame, IgdbGenre, IgdbInvolvedCompany, IgdbPlatform, IgdbSearchResult, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "./types";
+import type { GameCatalogDetails, GameCatalogResult, IgdbGame, IgdbGameTimeToBeat, IgdbGenre, IgdbInvolvedCompany, IgdbPlatform, IgdbSearchResult, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "./types";
 
 const igdbBaseUrl = "/igdb-api";
 const steamBaseUrl = "/steam-api";
@@ -211,6 +211,7 @@ function mapSteamDetails(details: SteamAppDetails, appId: number): GameCatalogDe
     platform: getSteamPlatform(details.platforms),
     creator: details.developers?.slice(0, 2).join(", ") || details.publishers?.slice(0, 2).join(", ") || "",
     description: stripHtml(details.short_description || details.about_the_game || details.detailed_description),
+    campaignHours: "",
   };
 }
 
@@ -241,7 +242,25 @@ function mapIgdbDetails(game: IgdbGame): GameCatalogDetails {
     ...mapIgdbGame(game),
     creator: getDevelopers(game.involved_companies),
     description: game.summary ?? game.storyline ?? "",
+    campaignHours: "",
   };
+}
+
+function secondsToDuration(value?: number) {
+  if (!value) return "";
+
+  const totalMinutes = Math.round(value / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (!hours) return `${minutes} min`;
+  if (!minutes) return `${hours}h`;
+
+  return `${hours}h ${minutes} min`;
+}
+
+function getCampaignHoursFromTimeToBeat(timeToBeat?: IgdbGameTimeToBeat) {
+  return secondsToDuration(timeToBeat?.hastily || timeToBeat?.normally || timeToBeat?.completely);
 }
 
 async function requestIgdb<T>(endpoint: string, query: string) {
@@ -303,6 +322,35 @@ async function getSteamAppDetails(appId: number, language: "brazilian" | "portug
   if (!result?.success || !result.data) return null;
 
   return result.data;
+}
+
+async function getIgdbTimeToBeat(gameId: number) {
+  const results = await requestIgdb<IgdbGameTimeToBeat[]>(
+    "game_time_to_beats",
+    `
+      fields game_id, hastily, normally, completely, count;
+      where game_id = ${gameId};
+      limit 1;
+    `
+  ).catch(() => []);
+
+  return getCampaignHoursFromTimeToBeat(results[0]);
+}
+
+async function getIgdbGameIdByTitle(title: string) {
+  const games = await requestIgdb<IgdbGame[]>(
+    "games",
+    `
+      search "${escapeIgdbSearch(title)}";
+      fields name, total_rating_count, version_parent;
+      where version_parent = null;
+      limit 5;
+    `
+  ).catch(() => []);
+
+  return games
+    .sort((firstGame, secondGame) => scoreGameSearchResult(secondGame, title) - scoreGameSearchResult(firstGame, title))[0]
+    ?.id;
 }
 
 export async function searchGames(query: string): Promise<GameCatalogResult[]> {
@@ -417,14 +465,22 @@ export async function getGameDetails(gameResult: GameCatalogResult): Promise<Gam
     const mappedPortugueseDetails = portugueseDetails ? mapSteamDetails(portugueseDetails, gameResult.id) : null;
 
     if (mappedBrazilianDetails) {
+      const igdbGameId = await getIgdbGameIdByTitle(mappedBrazilianDetails.title);
+
       return {
         ...mappedBrazilianDetails,
         description: mappedBrazilianDetails.description || mappedPortugueseDetails?.description || "",
+        campaignHours: igdbGameId ? await getIgdbTimeToBeat(igdbGameId) : "",
       };
     }
 
     if (mappedPortugueseDetails) {
-      return mappedPortugueseDetails;
+      const igdbGameId = await getIgdbGameIdByTitle(mappedPortugueseDetails.title);
+
+      return {
+        ...mappedPortugueseDetails,
+        campaignHours: igdbGameId ? await getIgdbTimeToBeat(igdbGameId) : "",
+      };
     }
 
     throw new Error("Nao foi possivel carregar os detalhes do jogo na Steam.");
@@ -445,7 +501,10 @@ export async function getGameDetails(gameResult: GameCatalogResult): Promise<Gam
     throw new Error("Nao foi possivel carregar os detalhes do jogo.");
   }
 
-  return mapIgdbDetails(igdbGame);
+  return {
+    ...mapIgdbDetails(igdbGame),
+    campaignHours: await getIgdbTimeToBeat(igdbGame.id),
+  };
 }
 
 export function applyGameCatalogDetails(game: GameCatalogDetails): Partial<CreateMediaDTO> {
@@ -456,6 +515,7 @@ export function applyGameCatalogDetails(game: GameCatalogDetails): Partial<Creat
     cover: game.cover,
     backdrop: game.backdrop ?? "",
     release_year: game.releaseYear,
+    campaign_hours: game.campaignHours,
     meta: game.platform,
     description: game.description,
   };

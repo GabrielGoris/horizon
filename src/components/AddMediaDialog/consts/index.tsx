@@ -39,8 +39,8 @@ export const fieldCopy = {
     metaPlaceholder: "Ex: PS5, PC, Switch...",
     categoryPlaceholder: "Ex: RPG, Soulslike...",
     coverLabel: "URL da Capa",
-    descriptionLabel: "Resumo / Observacoes",
-    descriptionPlaceholder: "Sobre o que e este jogo?",
+    descriptionLabel: "Resumo / Observações",
+    descriptionPlaceholder: "Sobre o que é este jogo?",
     statusOptions: {
       queue: "Na Fila (Quero jogar)",
       reading: "Jogando",
@@ -57,7 +57,7 @@ export const fieldCopy = {
     directorLabel: "Diretor / Criador",
     directorPlaceholder: "Ex: Denis Villeneuve, Vince Gilligan...",
     metaLabel: "Origem / Idioma",
-    metaPlaceholder: "Ex: Estados Unidos, Franca...",
+    metaPlaceholder: "Ex: Estados Unidos, França...",
     categoryPlaceholder: "Ex: Ficcao Cientifica, Drama...",
     coverLabel: "URL do Poster",
     descriptionLabel: "Sinopse",
@@ -79,7 +79,7 @@ export const fieldCopy = {
     metaPlaceholder: "Ex: Arqueiro",
     categoryPlaceholder: "Ex: Fantasia, Romance...",
     coverLabel: "URL da Capa",
-    descriptionLabel: "Sinopse / Comentario",
+    descriptionLabel: "Sinopse / Comentário",
     descriptionPlaceholder: "Sobre o que e este livro?",
     statusOptions: {
       queue: "Na Fila (Quero ler)",
@@ -101,6 +101,9 @@ export function getDefaultValues(type: MediaType): CreateMediaDTO {
     backdrop: "",
     status: "queue",
     release_year: "",
+    page_count: "",
+    runtime_minutes: "",
+    campaign_hours: "",
     meta: "",
     description: "",
   };

@@ -10,6 +10,9 @@ export const createMediaSchema = z.object({
   backdrop: z.string().url("Insira uma URL valida (http://...)").or(z.literal("")).optional(),
   status: z.enum(["queue", "reading", "new", "complete"] as const),
   release_year: z.string().optional(),
+  page_count: z.string().optional(),
+  runtime_minutes: z.string().optional(),
+  campaign_hours: z.string().optional(),
   meta: z.string().optional(),
   description: z.string().optional(),
 });

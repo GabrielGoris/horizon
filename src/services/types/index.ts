@@ -40,6 +40,14 @@ export type IgdbSearchResult = {
   name?: string;
 };
 
+export type IgdbGameTimeToBeat = {
+  game_id?: number;
+  hastily?: number;
+  normally?: number;
+  completely?: number;
+  count?: number;
+};
+
 export type SteamSearchItem = {
   id: number;
   name: string;
@@ -91,6 +99,7 @@ export type GameCatalogResult = {
 export type GameCatalogDetails = GameCatalogResult & {
   creator: string;
   description: string;
+  campaignHours: string;
 };
 
 export type TmdbMediaType = "movie" | "tv";
@@ -136,6 +145,8 @@ export type TmdbDetails = {
   poster_path?: string | null;
   backdrop_path?: string | null;
   overview?: string;
+  runtime?: number;
+  episode_run_time?: number[];
   genres?: TmdbGenre[];
   production_companies?: TmdbCompany[];
   networks?: TmdbCompany[];
@@ -167,6 +178,7 @@ export type MovieCatalogDetails = MovieCatalogResult & {
   creator: string;
   director: string;
   description: string;
+  runtimeMinutes: string;
 };
 
 export type OpenLibrarySearchItem = {
@@ -175,6 +187,7 @@ export type OpenLibrarySearchItem = {
   author_name?: string[];
   publisher?: string[];
   first_publish_year?: number;
+  number_of_pages_median?: number;
   subject?: string[];
   cover_i?: number;
   edition_count?: number;
@@ -191,6 +204,18 @@ export type OpenLibraryWork = {
   subjects?: string[];
 };
 
+export type OpenLibraryEdition = {
+  title?: string;
+  number_of_pages?: number;
+  publishers?: string[];
+  publish_date?: string;
+  covers?: number[];
+};
+
+export type OpenLibraryEditionsResponse = {
+  entries?: OpenLibraryEdition[];
+};
+
 export type BookCatalogResult = {
   id: string;
   source: "open-library";
@@ -201,6 +226,7 @@ export type BookCatalogResult = {
   category: string;
   author: string;
   publisher: string;
+  pageCount: string;
 };
 
 export type BookCatalogDetails = BookCatalogResult & {

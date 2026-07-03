@@ -11,8 +11,8 @@ export const CATEGORIES: CategoryDef[] = [
   },
   {
     id: 'movies',
-    plural: 'Filmes',
-    singular: 'Filme',
+    plural: 'Filmes e séries',
+    singular: 'Filme e série',
     icon: <Film size={15} strokeWidth={2.2} />,
   },
   {

@@ -22,7 +22,42 @@ function formatRating(rating: number | string | null | undefined) {
 function toNullableNumber(value: string | number | undefined) {
   if (value === undefined || value === "") return null;
 
-  return Number(value);
+  const numberValue = Number(value);
+
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function parseDurationMinutes(value: string | number | undefined) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (!value?.trim()) return null;
+
+  const normalizedValue = value.toLowerCase().replace(",", ".").trim();
+  const hourMatch = normalizedValue.match(/(\d+(?:\.\d+)?)\s*h/);
+  const minuteMatch = normalizedValue.match(/(\d+(?:\.\d+)?)\s*(?:m|min)/);
+
+  if (hourMatch || minuteMatch) {
+    const hours = hourMatch ? Number(hourMatch[1]) : 0;
+    const minutes = minuteMatch ? Number(minuteMatch[1]) : 0;
+    const totalMinutes = hours * 60 + minutes;
+
+    return Number.isFinite(totalMinutes) ? Math.round(totalMinutes) : null;
+  }
+
+  return toNullableNumber(normalizedValue);
+}
+
+function parseDurationHours(value: string | number | undefined) {
+  const totalMinutes = parseDurationMinutes(value);
+
+  if (totalMinutes === null) return null;
+
+  if (typeof value === "string" && /(?:h|m|min)/i.test(value)) {
+    const hours = totalMinutes / 60;
+
+    return Number.isFinite(hours) ? Number(hours.toFixed(2)) : null;
+  }
+
+  return totalMinutes;
 }
 
 function toNullableText(value: string | undefined) {
@@ -40,6 +75,9 @@ function getCreateMediaPayload(data: CreateMediaDTO) {
     cover: toNullableText(data.cover),
     backdrop: toNullableText(data.backdrop),
     release_year: toNullableText(data.release_year),
+    page_count: toNullableNumber(data.page_count),
+    runtime_minutes: parseDurationMinutes(data.runtime_minutes),
+    campaign_hours: parseDurationHours(data.campaign_hours),
     meta: toNullableText(data.meta),
     description: toNullableText(data.description),
   };
@@ -67,6 +105,9 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     description: item.description ?? "",
     watched_at: movieCompletion?.watched_at ?? undefined,
     completed_at: bookCompletion?.finished_at ?? gameCompletion?.finished_at ?? undefined,
+    page_count: item.page_count ?? undefined,
+    runtime_minutes: item.runtime_minutes ?? undefined,
+    campaign_hours: item.campaign_hours ?? undefined,
     pages: bookCompletion?.pages ?? undefined,
     hours_played: gameCompletion?.hours_played ?? undefined,
     completion_type: gameCompletion?.completion_type ?? undefined,

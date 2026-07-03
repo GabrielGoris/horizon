@@ -77,6 +77,26 @@ function getCreator(details: TmdbDetails, mediaType: TmdbMediaType) {
   return companies?.map((company) => company.name).filter(Boolean).slice(0, 2).join(", ") ?? "";
 }
 
+function getRuntimeMinutes(details: TmdbDetails, mediaType: TmdbMediaType) {
+  if (mediaType === "movie") {
+    return formatMinutes(details.runtime);
+  }
+
+  return formatMinutes(details.episode_run_time?.[0]);
+}
+
+function formatMinutes(totalMinutes?: number) {
+  if (!totalMinutes) return "";
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (!hours) return `${minutes} min`;
+  if (!minutes) return `${hours}h`;
+
+  return `${hours}h ${minutes} min`;
+}
+
 async function requestTmdb<T>(endpoint: string, searchParams?: URLSearchParams) {
   const query = searchParams?.toString();
   const response = await fetch(`${tmdbBaseUrl}/${endpoint}${query ? `?${query}` : ""}`);
@@ -146,6 +166,7 @@ function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCa
     creator: getCreator(details, mediaType),
     director: getDirector(details, mediaType),
     description: details.overview ?? "",
+    runtimeMinutes: getRuntimeMinutes(details, mediaType),
   };
 }
 
@@ -200,6 +221,7 @@ export function applyMovieCatalogDetails(movie: MovieCatalogDetails): Partial<Cr
     cover: movie.cover,
     backdrop: movie.backdrop ?? "",
     release_year: movie.releaseYear,
+    runtime_minutes: movie.runtimeMinutes,
     meta: movie.meta,
     description: movie.description,
   };

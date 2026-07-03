@@ -5,7 +5,7 @@ interface MediaObjectPreviewProps {
 }
 
 function getBookDepth(item: MediaItem) {
-  const pageCount = Number(item.pages ?? item.progress?.total);
+  const pageCount = Number(item.page_count ?? item.pages ?? item.progress?.total);
 
   if (!Number.isFinite(pageCount) || pageCount <= 0) {
     return 44;

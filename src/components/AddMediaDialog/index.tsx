@@ -315,7 +315,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       console.error(error);
       const backdrop = game.backdrop || game.cover;
 
-      fillMediaFields(applyGameCatalogDetails({ ...game, creator: "", description: "" }));
+      fillMediaFields(applyGameCatalogDetails({ ...game, creator: "", description: "", campaignHours: "" }));
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
       setGameSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
@@ -340,7 +340,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       console.error(error);
       const backdrop = movie.backdrop || movie.cover;
 
-      fillMediaFields(applyMovieCatalogDetails({ ...movie, creator: "", director: "", description: "" }));
+      fillMediaFields(applyMovieCatalogDetails({ ...movie, creator: "", director: "", description: "", runtimeMinutes: "" }));
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
       setMovieSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
@@ -389,6 +389,21 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
 
       if (isMissingColumnError(error, "backdrop")) {
         alert("Falta adicionar a coluna backdrop no Supabase para salvar o fundo/banner da obra.");
+        return;
+      }
+
+      if (isMissingColumnError(error, "page_count")) {
+        alert("Falta adicionar a coluna page_count no Supabase para salvar a quantidade de paginas do livro.");
+        return;
+      }
+
+      if (isMissingColumnError(error, "runtime_minutes")) {
+        alert("Falta adicionar a coluna runtime_minutes no Supabase para salvar a duracao de filmes e series.");
+        return;
+      }
+
+      if (isMissingColumnError(error, "campaign_hours")) {
+        alert("Falta adicionar a coluna campaign_hours no Supabase para salvar o tempo medio da campanha.");
         return;
       }
 
@@ -606,7 +621,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                             {book.title}
                           </strong>
                           <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wider text-neutral-500">
-                            {[book.author, book.releaseYear, book.category].filter(Boolean).join(" - ") || "Sem detalhes"}
+                            {[book.author, book.releaseYear, book.pageCount ? `${book.pageCount} PAG` : "", book.category].filter(Boolean).join(" - ") || "Sem detalhes"}
                           </span>
                         </div>
                       </button>
@@ -698,16 +713,52 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                 {errors.cover && <span className={errorClass}>{errors.cover.message}</span>}
               </label>
 
-              <label className={labelClass}>
-                Estado na Biblioteca *
-                <select {...register("status")} className={inputClass}>
-                  <option value="queue">{copy.statusOptions.queue}</option>
-                  <option value="reading">{copy.statusOptions.reading}</option>
-                  <option value="new">{copy.statusOptions.new}</option>
-                  <option value="complete">{copy.statusOptions.complete}</option>
-                </select>
-                {errors.status && <span className={errorClass}>{errors.status.message}</span>}
-              </label>
+              <div className="flex flex-col gap-6">
+                {selectedType === "books" && (
+                  <label className={labelClass}>
+                    Paginas da edicao
+                    <input
+                      placeholder="Ex: 416"
+                      inputMode="numeric"
+                      {...register("page_count")}
+                      className={inputClass}
+                    />
+                  </label>
+                )}
+
+                {selectedType === "movies" && (
+                  <label className={labelClass}>
+                    Duracao
+                    <input
+                      placeholder="Ex: 2h 28 min"
+                      {...register("runtime_minutes")}
+                      className={inputClass}
+                    />
+                  </label>
+                )}
+
+                {selectedType === "games" && (
+                  <label className={labelClass}>
+                    Tempo da campanha
+                    <input
+                      placeholder="Ex: 48h 30 min"
+                      {...register("campaign_hours")}
+                      className={inputClass}
+                    />
+                  </label>
+                )}
+
+                <label className={labelClass}>
+                  Estado na Biblioteca *
+                  <select {...register("status")} className={inputClass}>
+                    <option value="queue">{copy.statusOptions.queue}</option>
+                    <option value="reading">{copy.statusOptions.reading}</option>
+                    <option value="new">{copy.statusOptions.new}</option>
+                    <option value="complete">{copy.statusOptions.complete}</option>
+                  </select>
+                  {errors.status && <span className={errorClass}>{errors.status.message}</span>}
+                </label>
+              </div>
             </div>
 
             <label className={labelClass}>

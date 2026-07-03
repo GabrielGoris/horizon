@@ -17,6 +17,9 @@ export interface MediaItem {
   description: string;
   watched_at?: string;
   completed_at?: string;
+  page_count?: number | string;
+  runtime_minutes?: number | string;
+  campaign_hours?: number | string;
   pages?: number | string;
   hours_played?: number | string;
   completion_type?: string;
@@ -48,6 +51,9 @@ export type GameCompletionRow = CompletionRow & {
 
 export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating"> & {
   release_year?: string | null;
+  page_count?: number | string | null;
+  runtime_minutes?: number | string | null;
+  campaign_hours?: number | string | null;
   rating?: string | number | null;
   movie_completions?: MovieCompletionRow[] | MovieCompletionRow | null;
   book_completions?: BookCompletionRow[] | BookCompletionRow | null;
