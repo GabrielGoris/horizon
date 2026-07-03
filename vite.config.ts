@@ -17,6 +17,8 @@ function createIgdbProxyPlugin(): Plugin {
       const env = loadEnv(server.config.mode, process.cwd(), '')
       const clientId = env.IGDB_CLIENT_ID
       const clientSecret = env.IGDB_CLIENT_SECRET
+      const tmdbAccessToken = env.TMDB_ACCESS_TOKEN
+      const tmdbApiKey = env.TMDB_API_KEY
 
       async function getAccessToken() {
         if (igdbAccessToken && Date.now() < igdbTokenExpiresAt) {
@@ -117,6 +119,71 @@ function createIgdbProxyPlugin(): Plugin {
           console.error(error)
           res.statusCode = 500
           res.end(error instanceof Error ? error.message : 'Erro ao consultar Steam.')
+        }
+      })
+
+      server.middlewares.use('/tmdb-api', async (req, res) => {
+        try {
+          if (req.method !== 'GET') {
+            res.statusCode = 405
+            res.end('Method not allowed')
+            return
+          }
+
+          if (!tmdbAccessToken && !tmdbApiKey) {
+            res.statusCode = 500
+            res.end('Configure TMDB_ACCESS_TOKEN ou TMDB_API_KEY no .env.local.')
+            return
+          }
+
+          const endpoint = req.url?.replace(/^\//, '') || ''
+          const url = new URL(endpoint, 'https://api.themoviedb.org/3/')
+
+          if (!tmdbAccessToken && tmdbApiKey) {
+            url.searchParams.set('api_key', tmdbApiKey)
+          }
+
+          const response = await fetch(url, {
+            headers: tmdbAccessToken
+              ? {
+                  Authorization: `Bearer ${tmdbAccessToken}`,
+                  Accept: 'application/json',
+                }
+              : {
+                  Accept: 'application/json',
+                },
+          })
+          const content = await response.text()
+
+          res.statusCode = response.status
+          res.setHeader('Content-Type', response.headers.get('content-type') ?? 'application/json')
+          res.end(content)
+        } catch (error) {
+          console.error(error)
+          res.statusCode = 500
+          res.end(error instanceof Error ? error.message : 'Erro ao consultar TMDB.')
+        }
+      })
+
+      server.middlewares.use('/books-api', async (req, res) => {
+        try {
+          if (req.method !== 'GET') {
+            res.statusCode = 405
+            res.end('Method not allowed')
+            return
+          }
+
+          const endpoint = req.url?.replace(/^\//, '') || ''
+          const response = await fetch(`https://openlibrary.org/${endpoint}`)
+          const content = await response.text()
+
+          res.statusCode = response.status
+          res.setHeader('Content-Type', response.headers.get('content-type') ?? 'application/json')
+          res.end(content)
+        } catch (error) {
+          console.error(error)
+          res.statusCode = 500
+          res.end(error instanceof Error ? error.message : 'Erro ao consultar Open Library.')
         }
       })
     },

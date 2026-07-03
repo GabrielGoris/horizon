@@ -4,12 +4,22 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import {
+  applyBookCatalogDetails,
+  getBookDetails,
+  searchBooks,
+} from "../../services/bookCatalogService";
+import {
   applyGameCatalogDetails,
   getGameDetails,
-  searchGames,
-  type GameCatalogResult,
+  searchGames
 } from "../../services/gameCatalogService";
 import { createMedia } from "../../services/mediaService";
+import {
+  applyMovieCatalogDetails,
+  getMovieDetails,
+  searchMovies,
+} from "../../services/movieCatalogService";
+import type { BookCatalogResult, GameCatalogResult, MovieCatalogResult } from "../../services/types";
 import type { MediaType } from "../../types";
 import { fieldCopy, getDefaultValues, typeOptions } from "./consts";
 
@@ -31,11 +41,21 @@ interface AddMediaDialogProps {
 export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddMediaDialogProps) {
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
   const [gameSearchResults, setGameSearchResults] = useState<GameCatalogResult[]>([]);
+  const [movieSearchResults, setMovieSearchResults] = useState<MovieCatalogResult[]>([]);
+  const [bookSearchResults, setBookSearchResults] = useState<BookCatalogResult[]>([]);
   const [gameSearchError, setGameSearchError] = useState("");
+  const [movieSearchError, setMovieSearchError] = useState("");
+  const [bookSearchError, setBookSearchError] = useState("");
   const [coverBackdrop, setCoverBackdrop] = useState("");
   const [isGameSearchLoading, setIsGameSearchLoading] = useState(false);
+  const [isMovieSearchLoading, setIsMovieSearchLoading] = useState(false);
+  const [isBookSearchLoading, setIsBookSearchLoading] = useState(false);
   const gameSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const movieSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bookSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gameSearchRequestRef = useRef(0);
+  const movieSearchRequestRef = useRef(0);
+  const bookSearchRequestRef = useRef(0);
   const {
     register,
     handleSubmit,
@@ -71,15 +91,31 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       clearTimeout(gameSearchTimeoutRef.current);
     }
 
+    if (movieSearchTimeoutRef.current) {
+      clearTimeout(movieSearchTimeoutRef.current);
+    }
+
+    if (bookSearchTimeoutRef.current) {
+      clearTimeout(bookSearchTimeoutRef.current);
+    }
+
     gameSearchRequestRef.current += 1;
+    movieSearchRequestRef.current += 1;
+    bookSearchRequestRef.current += 1;
     setGameSearchResults([]);
+    setMovieSearchResults([]);
+    setBookSearchResults([]);
     setGameSearchError("");
+    setMovieSearchError("");
+    setBookSearchError("");
     setCoverBackdrop("");
     setIsGameSearchLoading(false);
+    setIsMovieSearchLoading(false);
+    setIsBookSearchLoading(false);
   };
 
-  const fillGameFields = (game: Partial<CreateMediaDTO>) => {
-    Object.entries(game).forEach(([key, value]) => {
+  const fillMediaFields = (media: Partial<CreateMediaDTO>) => {
+    Object.entries(media).forEach(([key, value]) => {
       setValue(key as keyof CreateMediaDTO, value ?? "", { shouldDirty: true, shouldValidate: true });
     });
   };
@@ -128,9 +164,99 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
     }, 250);
   };
 
+  const scheduleMovieSearch = (query: string) => {
+    const trimmedQuery = query.trim();
+
+    if (movieSearchTimeoutRef.current) {
+      clearTimeout(movieSearchTimeoutRef.current);
+    }
+
+    movieSearchRequestRef.current += 1;
+
+    setMovieSearchError("");
+
+    if (selectedType !== "movies" || trimmedQuery.length < 2) {
+      setMovieSearchResults([]);
+      setIsMovieSearchLoading(false);
+      return;
+    }
+
+    setIsMovieSearchLoading(true);
+
+    const requestId = movieSearchRequestRef.current;
+
+    movieSearchTimeoutRef.current = setTimeout(() => {
+      searchMovies(trimmedQuery)
+        .then((results) => {
+          if (requestId !== movieSearchRequestRef.current) return;
+
+          setMovieSearchResults(results);
+          setMovieSearchError(results.length === 0 ? "Nenhum filme ou serie encontrado." : "");
+        })
+        .catch((error) => {
+          if (requestId !== movieSearchRequestRef.current) return;
+
+          console.error(error);
+          setMovieSearchResults([]);
+          setMovieSearchError(error instanceof Error ? error.message : "Erro ao buscar filmes e series.");
+        })
+        .finally(() => {
+          if (requestId === movieSearchRequestRef.current) {
+            setIsMovieSearchLoading(false);
+          }
+        });
+    }, 250);
+  };
+
+  const scheduleBookSearch = (query: string) => {
+    const trimmedQuery = query.trim();
+
+    if (bookSearchTimeoutRef.current) {
+      clearTimeout(bookSearchTimeoutRef.current);
+    }
+
+    bookSearchRequestRef.current += 1;
+
+    setBookSearchError("");
+
+    if (selectedType !== "books" || trimmedQuery.length < 2) {
+      setBookSearchResults([]);
+      setIsBookSearchLoading(false);
+      return;
+    }
+
+    setIsBookSearchLoading(true);
+
+    const requestId = bookSearchRequestRef.current;
+
+    bookSearchTimeoutRef.current = setTimeout(() => {
+      searchBooks(trimmedQuery)
+        .then((results) => {
+          if (requestId !== bookSearchRequestRef.current) return;
+
+          setBookSearchResults(results);
+          setBookSearchError(results.length === 0 ? "Nenhum livro encontrado." : "");
+        })
+        .catch((error) => {
+          if (requestId !== bookSearchRequestRef.current) return;
+
+          console.error(error);
+          setBookSearchResults([]);
+          setBookSearchError(error instanceof Error ? error.message : "Erro ao buscar livros.");
+        })
+        .finally(() => {
+          if (requestId === bookSearchRequestRef.current) {
+            setIsBookSearchLoading(false);
+          }
+        });
+    }, 250);
+  };
+
   const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
     void titleInput.onChange(event);
     scheduleGameSearch(event.target.value);
+    scheduleMovieSearch(event.target.value);
+    scheduleBookSearch(event.target.value);
   };
 
   const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -143,6 +269,14 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
     if (selectedType === "games" && currentTitle.trim().length >= 2 && gameSearchResults.length === 0) {
       scheduleGameSearch(currentTitle);
     }
+
+    if (selectedType === "movies" && currentTitle.trim().length >= 2 && movieSearchResults.length === 0) {
+      scheduleMovieSearch(currentTitle);
+    }
+
+    if (selectedType === "books" && currentTitle.trim().length >= 2 && bookSearchResults.length === 0) {
+      scheduleBookSearch(currentTitle);
+    }
   };
 
   const handleTitleBlur = () => {
@@ -151,7 +285,17 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
         return;
       }
 
+      if (document.activeElement?.closest("[data-movie-search-results]")) {
+        return;
+      }
+
+      if (document.activeElement?.closest("[data-book-search-results]")) {
+        return;
+      }
+
       setGameSearchResults([]);
+      setMovieSearchResults([]);
+      setBookSearchResults([]);
     }, 120);
   };
 
@@ -163,7 +307,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       const details = await getGameDetails(game);
       const backdrop = details.backdrop || game.backdrop || details.cover || game.cover;
 
-      fillGameFields(applyGameCatalogDetails(details));
+      fillMediaFields(applyGameCatalogDetails(details));
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
       setGameSearchResults([]);
@@ -171,12 +315,62 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       console.error(error);
       const backdrop = game.backdrop || game.cover;
 
-      fillGameFields(applyGameCatalogDetails({ ...game, creator: "", description: "" }));
+      fillMediaFields(applyGameCatalogDetails({ ...game, creator: "", description: "" }));
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
       setGameSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
     } finally {
       setIsGameSearchLoading(false);
+    }
+  };
+
+  const handleSelectMovie = async (movie: MovieCatalogResult) => {
+    setMovieSearchError("");
+    setIsMovieSearchLoading(true);
+
+    try {
+      const details = await getMovieDetails(movie);
+      const backdrop = details.backdrop || movie.backdrop || details.cover || movie.cover;
+
+      fillMediaFields(applyMovieCatalogDetails(details));
+      setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+      setCoverBackdrop(backdrop);
+      setMovieSearchResults([]);
+    } catch (error) {
+      console.error(error);
+      const backdrop = movie.backdrop || movie.cover;
+
+      fillMediaFields(applyMovieCatalogDetails({ ...movie, creator: "", director: "", description: "" }));
+      setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+      setCoverBackdrop(backdrop);
+      setMovieSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
+    } finally {
+      setIsMovieSearchLoading(false);
+    }
+  };
+
+  const handleSelectBook = async (book: BookCatalogResult) => {
+    setBookSearchError("");
+    setIsBookSearchLoading(true);
+
+    try {
+      const details = await getBookDetails(book);
+      const backdrop = details.backdrop || book.backdrop || details.cover || book.cover;
+
+      fillMediaFields(applyBookCatalogDetails(details));
+      setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+      setCoverBackdrop(backdrop);
+      setBookSearchResults([]);
+    } catch (error) {
+      console.error(error);
+      const backdrop = book.backdrop || book.cover;
+
+      fillMediaFields(applyBookCatalogDetails({ ...book, description: "" }));
+      setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+      setCoverBackdrop(backdrop);
+      setBookSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
+    } finally {
+      setIsBookSearchLoading(false);
     }
   };
 
@@ -292,9 +486,29 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                     Buscando
                   </span>
                 )}
+                {selectedType === "movies" && isMovieSearchLoading && (
+                  <span className="absolute right-3 top-[35px] font-mono text-[9px] uppercase tracking-widest text-neutral-500">
+                    Buscando
+                  </span>
+                )}
+                {selectedType === "books" && isBookSearchLoading && (
+                  <span className="absolute right-3 top-[35px] font-mono text-[9px] uppercase tracking-widest text-neutral-500">
+                    Buscando
+                  </span>
+                )}
                 {selectedType === "games" && gameSearchError && (
                   <span className="text-[10px] text-red-300 normal-case tracking-normal">
                     {gameSearchError}
+                  </span>
+                )}
+                {selectedType === "movies" && movieSearchError && (
+                  <span className="text-[10px] text-red-300 normal-case tracking-normal">
+                    {movieSearchError}
+                  </span>
+                )}
+                {selectedType === "books" && bookSearchError && (
+                  <span className="text-[10px] text-red-300 normal-case tracking-normal">
+                    {bookSearchError}
                   </span>
                 )}
                 {selectedType === "games" && gameSearchResults.length > 0 && (
@@ -325,6 +539,74 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                           </strong>
                           <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wider text-neutral-500">
                             {[game.source.toUpperCase(), game.releaseYear, game.category].filter(Boolean).join(" - ") || "Sem detalhes"}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedType === "movies" && movieSearchResults.length > 0 && (
+                  <div
+                    data-movie-search-results
+                    className="absolute left-0 right-0 top-[74px] z-20 max-h-[28rem] overflow-y-auto rounded-xl border border-white/10 bg-[#111114] p-2 shadow-2xl shadow-black/50"
+                  >
+                    {movieSearchResults.map((movie) => (
+                      <button
+                        key={`${movie.source}-${movie.mediaType}-${movie.id}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => void handleSelectMovie(movie)}
+                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-white/[0.055]"
+                      >
+                        <div className="h-14 w-10 shrink-0 overflow-hidden rounded bg-white/5">
+                          {movie.cover && (
+                            <img
+                              src={movie.cover}
+                              alt={movie.title}
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <strong className="block truncate text-sm text-white">
+                            {movie.title}
+                          </strong>
+                          <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wider text-neutral-500">
+                            {[movie.mediaType === "movie" ? "FILME" : "SERIE", movie.releaseYear, movie.category].filter(Boolean).join(" - ") || "Sem detalhes"}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedType === "books" && bookSearchResults.length > 0 && (
+                  <div
+                    data-book-search-results
+                    className="absolute left-0 right-0 top-[74px] z-20 max-h-[28rem] overflow-y-auto rounded-xl border border-white/10 bg-[#111114] p-2 shadow-2xl shadow-black/50"
+                  >
+                    {bookSearchResults.map((book) => (
+                      <button
+                        key={`${book.source}-${book.id}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => void handleSelectBook(book)}
+                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-white/[0.055]"
+                      >
+                        <div className="h-14 w-10 shrink-0 overflow-hidden rounded bg-white/5">
+                          {book.cover && (
+                            <img
+                              src={book.cover}
+                              alt={book.title}
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <strong className="block truncate text-sm text-white">
+                            {book.title}
+                          </strong>
+                          <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wider text-neutral-500">
+                            {[book.author, book.releaseYear, book.category].filter(Boolean).join(" - ") || "Sem detalhes"}
                           </span>
                         </div>
                       </button>

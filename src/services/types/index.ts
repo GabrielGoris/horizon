@@ -92,3 +92,117 @@ export type GameCatalogDetails = GameCatalogResult & {
   creator: string;
   description: string;
 };
+
+export type TmdbMediaType = "movie" | "tv";
+
+export type TmdbGenre = {
+  id: number;
+  name: string;
+};
+
+export type TmdbCompany = {
+  name?: string;
+};
+
+export type TmdbPerson = {
+  name?: string;
+  job?: string;
+};
+
+export type TmdbSearchItem = {
+  id: number;
+  media_type?: TmdbMediaType | string;
+  title?: string;
+  name?: string;
+  release_date?: string;
+  first_air_date?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  genre_ids?: number[];
+  overview?: string;
+  origin_country?: string[];
+};
+
+export type TmdbSearchResponse = {
+  results?: TmdbSearchItem[];
+};
+
+export type TmdbDetails = {
+  id: number;
+  title?: string;
+  name?: string;
+  release_date?: string;
+  first_air_date?: string;
+  poster_path?: string | null;
+  backdrop_path?: string | null;
+  overview?: string;
+  genres?: TmdbGenre[];
+  production_companies?: TmdbCompany[];
+  networks?: TmdbCompany[];
+  created_by?: TmdbPerson[];
+  origin_country?: string[];
+  original_language?: string;
+  credits?: {
+    crew?: TmdbPerson[];
+  };
+};
+
+export type TmdbGenreResponse = {
+  genres?: TmdbGenre[];
+};
+
+export type MovieCatalogResult = {
+  id: number;
+  source: "tmdb";
+  mediaType: TmdbMediaType;
+  title: string;
+  releaseYear: string;
+  cover: string;
+  backdrop?: string;
+  category: string;
+  meta: string;
+};
+
+export type MovieCatalogDetails = MovieCatalogResult & {
+  creator: string;
+  director: string;
+  description: string;
+};
+
+export type OpenLibrarySearchItem = {
+  key?: string;
+  title?: string;
+  author_name?: string[];
+  publisher?: string[];
+  first_publish_year?: number;
+  subject?: string[];
+  cover_i?: number;
+  edition_count?: number;
+};
+
+export type OpenLibrarySearchResponse = {
+  docs?: OpenLibrarySearchItem[];
+};
+
+export type OpenLibraryWork = {
+  description?: string | {
+    value?: string;
+  };
+  subjects?: string[];
+};
+
+export type BookCatalogResult = {
+  id: string;
+  source: "open-library";
+  title: string;
+  releaseYear: string;
+  cover: string;
+  backdrop?: string;
+  category: string;
+  author: string;
+  publisher: string;
+};
+
+export type BookCatalogDetails = BookCatalogResult & {
+  description: string;
+};
