@@ -98,6 +98,7 @@ export function getDefaultValues(type: MediaType): CreateMediaDTO {
     type,
     category: "",
     cover: "",
+    backdrop: "",
     status: "queue",
     release_year: "",
     meta: "",

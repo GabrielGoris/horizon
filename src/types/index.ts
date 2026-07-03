@@ -8,6 +8,7 @@ export interface MediaItem {
   director?: string;
   category: string;
   cover: string;
+  backdrop?: string;
   type: MediaType;
   status: MediaStatus;
   releaseYear: string;

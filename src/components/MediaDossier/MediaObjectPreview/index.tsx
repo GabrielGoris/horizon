@@ -28,11 +28,25 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
   const backColor = isBook ? "#151515" : isGame ? "#151923" : "#09090b";
   const spineTextColor = isBook ? "#d8c08a" : "rgba(255,255,255,0.35)";
   const spineTitle = item.title.length > 28 ? `${item.title.slice(0, 28)}...` : item.title;
+  const backgroundImage = item.backdrop || item.cover;
 
   return (
-    <div className="mx-auto mb-8 flex h-[250px] items-center justify-center [perspective:900px]">
+    <div className="relative mx-auto mb-8 flex h-[250px] items-center justify-center overflow-hidden rounded-2xl [perspective:900px]">
+      {backgroundImage && (
+        <>
+          <img
+            src={backgroundImage}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-sm"
+          />
+          <div className="absolute inset-0 bg-[#17171a]/42" />
+          <div className="absolute inset-x-8 bottom-4 h-20 rounded-full bg-black/35 blur-2xl" />
+        </>
+      )}
+
       <div
-        className="animate-media-object-float transform-style-3d relative h-[210px] w-[148px]"
+        className="animate-media-object-float transform-style-3d relative z-10 h-[210px] w-[148px]"
         style={{
           ["--object-depth" as string]: `${depth}px`,
           ["--object-width" as string]: `${width}px`,

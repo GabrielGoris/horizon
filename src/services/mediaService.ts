@@ -25,6 +25,26 @@ function toNullableNumber(value: string | number | undefined) {
   return Number(value);
 }
 
+function toNullableText(value: string | undefined) {
+  const trimmedValue = value?.trim();
+
+  return trimmedValue ? trimmedValue : null;
+}
+
+function getCreateMediaPayload(data: CreateMediaDTO) {
+  return {
+    ...data,
+    creator: toNullableText(data.creator),
+    director: toNullableText(data.director),
+    category: toNullableText(data.category),
+    cover: toNullableText(data.cover),
+    backdrop: toNullableText(data.backdrop),
+    release_year: toNullableText(data.release_year),
+    meta: toNullableText(data.meta),
+    description: toNullableText(data.description),
+  };
+}
+
 function normalizeMediaItem(item: MediaItemRow): MediaItem {
   const movieCompletion = getCompletion(item.movie_completions);
   const bookCompletion = getCompletion(item.book_completions);
@@ -38,6 +58,7 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     director: item.director ?? "",
     category: item.category ?? "",
     cover: item.cover ?? "",
+    backdrop: item.backdrop ?? "",
     type: item.type,
     status: item.status,
     releaseYear: item.release_year ?? "",
@@ -65,7 +86,7 @@ export async function fetchMedia() {
 }
 
 export async function createMedia(data: CreateMediaDTO) {
-  const { error } = await supabase.from("media_items").insert([data]);
+  const { error } = await supabase.from("media_items").insert([getCreateMediaPayload(data)]);
 
   if (error) throw error;
 }

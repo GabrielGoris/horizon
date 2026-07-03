@@ -1,11 +1,25 @@
-import { useState } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
+import {
+  applyGameCatalogDetails,
+  getGameDetails,
+  searchGames,
+  type GameCatalogResult,
+} from "../../services/gameCatalogService";
 import { createMedia } from "../../services/mediaService";
 import type { MediaType } from "../../types";
 import { fieldCopy, getDefaultValues, typeOptions } from "./consts";
+
+function isMissingColumnError(error: unknown, column: string) {
+  if (!error || typeof error !== "object") return false;
+
+  const supabaseError = error as { code?: string; message?: string };
+
+  return supabaseError.code === "PGRST204" && Boolean(supabaseError.message?.includes(column));
+}
 
 interface AddMediaDialogProps {
   isOpen: boolean;
@@ -16,11 +30,18 @@ interface AddMediaDialogProps {
 
 export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddMediaDialogProps) {
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
+  const [gameSearchResults, setGameSearchResults] = useState<GameCatalogResult[]>([]);
+  const [gameSearchError, setGameSearchError] = useState("");
+  const [coverBackdrop, setCoverBackdrop] = useState("");
+  const [isGameSearchLoading, setIsGameSearchLoading] = useState(false);
+  const gameSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gameSearchRequestRef = useRef(0);
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateMediaDTO>({
     resolver: zodResolver(createMediaSchema),
@@ -35,12 +56,128 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
     setManualSelectedType(type);
     reset(getDefaultValues(type));
     setValue("type", type);
+    clearGameSearch();
   };
 
   const closeDialog = () => {
     setManualSelectedType(null);
     reset(getDefaultValues(initialType ?? "games"));
+    clearGameSearch();
     onClose();
+  };
+
+  const clearGameSearch = () => {
+    if (gameSearchTimeoutRef.current) {
+      clearTimeout(gameSearchTimeoutRef.current);
+    }
+
+    gameSearchRequestRef.current += 1;
+    setGameSearchResults([]);
+    setGameSearchError("");
+    setCoverBackdrop("");
+    setIsGameSearchLoading(false);
+  };
+
+  const fillGameFields = (game: Partial<CreateMediaDTO>) => {
+    Object.entries(game).forEach(([key, value]) => {
+      setValue(key as keyof CreateMediaDTO, value ?? "", { shouldDirty: true, shouldValidate: true });
+    });
+  };
+
+  const scheduleGameSearch = (query: string) => {
+    const trimmedQuery = query.trim();
+
+    if (gameSearchTimeoutRef.current) {
+      clearTimeout(gameSearchTimeoutRef.current);
+    }
+
+    gameSearchRequestRef.current += 1;
+
+    setGameSearchError("");
+
+    if (selectedType !== "games" || trimmedQuery.length < 2) {
+      setGameSearchResults([]);
+      setIsGameSearchLoading(false);
+      return;
+    }
+
+    setIsGameSearchLoading(true);
+
+    const requestId = gameSearchRequestRef.current;
+
+    gameSearchTimeoutRef.current = setTimeout(() => {
+      searchGames(trimmedQuery)
+        .then((results) => {
+          if (requestId !== gameSearchRequestRef.current) return;
+
+          setGameSearchResults(results);
+          setGameSearchError(results.length === 0 ? "Nenhum jogo encontrado." : "");
+        })
+        .catch((error) => {
+          if (requestId !== gameSearchRequestRef.current) return;
+
+          console.error(error);
+          setGameSearchResults([]);
+          setGameSearchError(error instanceof Error ? error.message : "Erro ao buscar jogos.");
+        })
+        .finally(() => {
+          if (requestId === gameSearchRequestRef.current) {
+            setIsGameSearchLoading(false);
+          }
+        });
+    }, 250);
+  };
+
+  const handleTitleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    void titleInput.onChange(event);
+    scheduleGameSearch(event.target.value);
+  };
+
+  const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
+    void coverInput.onChange(event);
+  };
+
+  const handleTitleFocus = () => {
+    const currentTitle = String(watch("title") ?? "");
+
+    if (selectedType === "games" && currentTitle.trim().length >= 2 && gameSearchResults.length === 0) {
+      scheduleGameSearch(currentTitle);
+    }
+  };
+
+  const handleTitleBlur = () => {
+    window.setTimeout(() => {
+      if (document.activeElement?.closest("[data-game-search-results]")) {
+        return;
+      }
+
+      setGameSearchResults([]);
+    }, 120);
+  };
+
+  const handleSelectGame = async (game: GameCatalogResult) => {
+    setGameSearchError("");
+    setIsGameSearchLoading(true);
+
+    try {
+      const details = await getGameDetails(game);
+      const backdrop = details.backdrop || game.backdrop || details.cover || game.cover;
+
+      fillGameFields(applyGameCatalogDetails(details));
+      setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+      setCoverBackdrop(backdrop);
+      setGameSearchResults([]);
+    } catch (error) {
+      console.error(error);
+      const backdrop = game.backdrop || game.cover;
+
+      fillGameFields(applyGameCatalogDetails({ ...game, creator: "", description: "" }));
+      setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+      setCoverBackdrop(backdrop);
+      setGameSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
+    } finally {
+      setIsGameSearchLoading(false);
+    }
   };
 
   const onSubmit = async (data: CreateMediaDTO) => {
@@ -51,9 +188,16 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       await onSuccess();
       reset(getDefaultValues(selectedType));
       setManualSelectedType(null);
+      clearGameSearch();
       onClose();
     } catch (error) {
       console.error("Erro ao guardar:", error);
+
+      if (isMissingColumnError(error, "backdrop")) {
+        alert("Falta adicionar a coluna backdrop no Supabase para salvar o fundo/banner da obra.");
+        return;
+      }
+
       alert("Erro ao guardar a obra.");
     }
   };
@@ -62,6 +206,10 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
   const inputClass = "w-full rounded-lg border border-white/10 bg-[#131315] px-4 py-3 text-sm text-white placeholder-neutral-600 outline-none transition-all focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37]";
   const labelClass = "flex flex-col gap-1.5 text-xs font-bold uppercase tracking-wider text-neutral-400";
   const errorClass = "text-[10px] text-red-400 normal-case tracking-normal";
+  const titleInput = register("title");
+  const coverInput = register("cover");
+  const coverValue = watch("cover");
+  const coverBackground = coverBackdrop || coverValue;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
@@ -74,7 +222,10 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
             {!initialType && selectedType && (
               <button
                 type="button"
-                onClick={() => setManualSelectedType(null)}
+                onClick={() => {
+                  setManualSelectedType(null);
+                  clearGameSearch();
+                }}
                 className="mt-2 font-mono text-[10px] uppercase tracking-widest text-neutral-500 transition-colors hover:text-noir-gold"
               >
                 Trocar tipo
@@ -122,14 +273,64 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
         {selectedType && copy && (
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <label className={labelClass}>
+              <label className={`${labelClass} relative`}>
                 {copy.nameLabel}
                 <input
                   placeholder={copy.namePlaceholder}
-                  {...register("title")}
+                  {...titleInput}
+                  onBlur={(event) => {
+                    void titleInput.onBlur(event);
+                    handleTitleBlur();
+                  }}
+                  onChange={handleTitleChange}
+                  onFocus={handleTitleFocus}
                   className={`${inputClass} ${errors.title ? "border-red-500/50 focus:border-red-500 focus:ring-red-500" : ""}`}
                 />
                 {errors.title && <span className={errorClass}>{errors.title.message}</span>}
+                {selectedType === "games" && isGameSearchLoading && (
+                  <span className="absolute right-3 top-[35px] font-mono text-[9px] uppercase tracking-widest text-neutral-500">
+                    Buscando
+                  </span>
+                )}
+                {selectedType === "games" && gameSearchError && (
+                  <span className="text-[10px] text-red-300 normal-case tracking-normal">
+                    {gameSearchError}
+                  </span>
+                )}
+                {selectedType === "games" && gameSearchResults.length > 0 && (
+                  <div
+                    data-game-search-results
+                    className="absolute left-0 right-0 top-[74px] z-20 max-h-[28rem] overflow-y-auto rounded-xl border border-white/10 bg-[#111114] p-2 shadow-2xl shadow-black/50"
+                  >
+                    {gameSearchResults.map((game) => (
+                      <button
+                        key={`${game.source}-${game.id}`}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => void handleSelectGame(game)}
+                        className="flex w-full items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-white/[0.055]"
+                      >
+                        <div className="h-14 w-10 shrink-0 overflow-hidden rounded bg-white/5">
+                          {game.cover && (
+                            <img
+                              src={game.cover}
+                              alt={game.title}
+                              className="h-full w-full object-cover"
+                            />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <strong className="block truncate text-sm text-white">
+                            {game.title}
+                          </strong>
+                          <span className="mt-1 block truncate font-mono text-[10px] uppercase tracking-wider text-neutral-500">
+                            {[game.source.toUpperCase(), game.releaseYear, game.category].filter(Boolean).join(" - ") || "Sem detalhes"}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </label>
 
               <label className={labelClass}>
@@ -176,11 +377,42 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <label className={labelClass}>
                 {copy.coverLabel}
-                <input
-                  placeholder="https://..."
-                  {...register("cover")}
-                  className={`${inputClass} ${errors.cover ? "border-red-500/50 focus:border-red-500 focus:ring-red-500" : ""}`}
-                />
+                <div className="relative flex min-h-[170px] items-center gap-4 overflow-hidden rounded-xl border border-white/10 bg-[#111114] p-4">
+                  {coverBackground && (
+                    <>
+                      <img
+                        src={coverBackground}
+                        alt=""
+                        aria-hidden="true"
+                        className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-sm"
+                      />
+                      <div className="absolute inset-0 bg-[#111114]/48" />
+                    </>
+                  )}
+
+                  <div className="relative flex h-36 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-white/[0.04] text-center text-[10px] leading-4 text-neutral-500 shadow-2xl shadow-black/35">
+                    {coverValue ? (
+                      <img
+                        src={coverValue}
+                        alt="Capa selecionada"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span>Sem capa</span>
+                    )}
+                  </div>
+                  <div className="relative min-w-0 flex-1">
+                    <span className="mb-2 block font-mono text-[9px] uppercase tracking-widest text-neutral-500">
+                      Trocar URL da capa
+                    </span>
+                    <input
+                      placeholder="https://..."
+                      {...coverInput}
+                      onChange={handleCoverChange}
+                      className={`${inputClass} ${errors.cover ? "border-red-500/50 focus:border-red-500 focus:ring-red-500" : ""}`}
+                    />
+                  </div>
+                </div>
                 {errors.cover && <span className={errorClass}>{errors.cover.message}</span>}
               </label>
 
