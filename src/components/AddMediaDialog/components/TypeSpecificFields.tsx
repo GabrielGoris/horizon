@@ -1,4 +1,12 @@
 import type { TypeSpecificFieldsProps } from "../types";
+import { MEDIA_STATUS_OPTIONS } from "../../../consts/mediaStatus";
+
+function getCompletedYearLabel(selectedType: TypeSpecificFieldsProps["selectedType"]) {
+  if (selectedType === "games") return "Ano em que zerou";
+  if (selectedType === "movies") return "Ano em que assistiu";
+
+  return "Ano em que leu";
+}
 
 export function TypeSpecificFields({
   copy,
@@ -48,12 +56,32 @@ export function TypeSpecificFields({
       <label className={labelClass}>
         Estado na Biblioteca *
         <select {...register("status")} className={inputClass}>
-          <option value="queue">{copy.statusOptions.queue}</option>
-          <option value="reading">{copy.statusOptions.reading}</option>
-          <option value="new">{copy.statusOptions.new}</option>
-          <option value="complete">{copy.statusOptions.complete}</option>
+          {MEDIA_STATUS_OPTIONS.map((status) => (
+            <option key={status} value={status}>
+              {copy.statusOptions[status]}
+            </option>
+          ))}
         </select>
         {errors.status && <span className={errorClass}>{errors.status.message}</span>}
+      </label>
+
+      <label className={labelClass}>
+        Adicionado em
+        <input
+          type="date"
+          {...register("added_at")}
+          className={inputClass}
+        />
+      </label>
+
+      <label className={labelClass}>
+        {getCompletedYearLabel(selectedType)}
+        <input
+          placeholder="Ex: 2026"
+          inputMode="numeric"
+          {...register("completed_year")}
+          className={inputClass}
+        />
       </label>
     </div>
   );

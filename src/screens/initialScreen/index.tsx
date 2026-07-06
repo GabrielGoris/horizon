@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, type Dispatch, type SetStateAction } from "react";
 import { Link } from "react-router-dom";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
@@ -20,10 +20,31 @@ import {
   saveGameCompletion,
   saveMovieTicket,
 } from "../../services/mediaService";
+import { LibraryFilters } from "./components/LibraryFilters";
+import type { InitialScreenProps, LibraryFilterState } from "./types";
+import { getCompletionYear, getYear, sortMediaItems } from "./utils";
 
+function getDefaultFilterState(activeTab: string): LibraryFilterState {
+  return {
+    activeTab,
+    addedYearFilter: "",
+    completedYearFilter: "",
+    isFiltersOpen: false,
+    sortMode: "added_desc",
+    statusFilter: "all",
+  };
+}
 
-interface InitialScreenProps {
-  activeTab: string;
+function updateFilterState(
+  activeTab: string,
+  setFilterState: Dispatch<SetStateAction<LibraryFilterState>>,
+  nextFilterState: Partial<Omit<LibraryFilterState, "activeTab">>
+) {
+  setFilterState((currentState) => {
+    const baseState = currentState.activeTab === activeTab ? currentState : getDefaultFilterState(activeTab);
+
+    return { ...baseState, ...nextFilterState };
+  });
 }
 
 
@@ -32,10 +53,20 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [filterState, setFilterState] = useState<LibraryFilterState>(() => getDefaultFilterState(activeTab));
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
   const activeLabel = activeTab === 'overview' ? 'Visão Geral' : activeCategory?.plural ?? 'Nova Categoria';
   const addMediaInitialType = activeTab === 'overview' ? null : activeCategory?.id;
+  const activeFilterState = filterState.activeTab === activeTab ? filterState : getDefaultFilterState(activeTab);
+  const {
+    addedYearFilter,
+    completedYearFilter,
+    isFiltersOpen,
+    sortMode,
+    statusFilter,
+  } = activeFilterState;
+  const hasActiveFilters = statusFilter !== "all" || addedYearFilter || completedYearFilter || sortMode !== "added_desc";
 
   useEffect(() => {
     let isMounted = true;
@@ -148,13 +179,18 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   }, [refreshMedia]);
 
   const filteredCollection = useMemo(() => {
-    return collection.filter((item) => {
+    const filteredItems = collection.filter((item) => {
       const matchesTab = activeTab === 'overview' || item.type === activeTab;
       const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+      const matchesAddedYear = !addedYearFilter || getYear(item.added_at) === addedYearFilter;
+      const matchesCompletedYear = !completedYearFilter || getCompletionYear(item) === completedYearFilter;
 
-      return matchesTab && matchesSearch;
+      return matchesTab && matchesSearch && matchesStatus && matchesAddedYear && matchesCompletedYear;
     });
-  }, [collection, activeTab, searchQuery]);
+
+    return activeTab === "overview" ? filteredItems : sortMediaItems(filteredItems, sortMode);
+  }, [collection, activeTab, searchQuery, statusFilter, addedYearFilter, completedYearFilter, sortMode]);
 
 
   return (
@@ -227,14 +263,31 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
             )}
 
             {activeTab !== 'overview' && (
-              <section>
-                <div className="mb-8 flex items-center justify-between border-b border-white/5 pb-4">
+              <section className="relative">
+                <div className="relative mb-8 flex items-center justify-between border-b border-white/5 pb-4">
                   <h3 className="font-serif text-2xl font-bold italic tracking-normal text-white">
                     {activeLabel}
                   </h3>
-                  <span className="rounded border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-neutral-500">
-                    {filteredCollection.length} itens catalogados
-                  </span>
+                  <LibraryFilters
+                    activeTab={activeTab}
+                    mediaType={addMediaInitialType ?? undefined}
+                    itemCount={filteredCollection.length}
+                    isOpen={isFiltersOpen}
+                    hasActiveFilters={Boolean(hasActiveFilters)}
+                    statusFilter={statusFilter}
+                    addedYearFilter={addedYearFilter}
+                    completedYearFilter={completedYearFilter}
+                    sortMode={sortMode}
+                    onToggle={() => updateFilterState(activeTab, setFilterState, { isFiltersOpen: !isFiltersOpen })}
+                    onClose={() => updateFilterState(activeTab, setFilterState, { isFiltersOpen: false })}
+                    onStatusFilterChange={(nextStatusFilter) => updateFilterState(activeTab, setFilterState, { statusFilter: nextStatusFilter })}
+                    onAddedYearFilterChange={(nextAddedYearFilter) => updateFilterState(activeTab, setFilterState, { addedYearFilter: nextAddedYearFilter })}
+                    onCompletedYearFilterChange={(nextCompletedYearFilter) => updateFilterState(activeTab, setFilterState, { completedYearFilter: nextCompletedYearFilter })}
+                    onSortModeChange={(nextSortMode) => updateFilterState(activeTab, setFilterState, { sortMode: nextSortMode })}
+                    onClearFilters={() => {
+                      setFilterState(getDefaultFilterState(activeTab));
+                    }}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">

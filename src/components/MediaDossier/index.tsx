@@ -1,9 +1,10 @@
 import { Check, Trash2, X } from "lucide-react";
 import { CompletionArtifacts } from "./CompletionArtifacts";
 import { MediaObjectPreview } from "./MediaObjectPreview";
-import { statusLabels, typeLabels } from "./consts";
+import { typeLabels } from "./consts";
 import type { MediaDossierProps } from "./types";
 import { formatAuthorLine } from "./utils";
+import { getMediaStatusLabel } from "../../consts/mediaStatus";
 
 export function MediaDossier({
   item,
@@ -15,7 +16,7 @@ export function MediaDossier({
   onSaveGameCompletion,
 }: MediaDossierProps) {
   const category = item.category || item.meta || typeLabels[item.type];
-  const status = statusLabels[item.status];
+  const status = getMediaStatusLabel(item.status, item.type);
   const isComplete = item.status === "complete";
   const progressPercentage = item.progress
     ? Math.min(100, Math.round((item.progress.current / item.progress.total) * 100))

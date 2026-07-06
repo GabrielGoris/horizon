@@ -13,13 +13,6 @@ import { fieldCopy, getDefaultValues } from "./consts";
 import { useMediaCatalogSearch } from "./hooks/useMediaCatalogSearch";
 import type { AddMediaDialogProps } from "./types";
 
-function isMissingColumnError(error: unknown, column: string) {
-  if (!error || typeof error !== "object") return false;
-
-  const supabaseError = error as { code?: string; message?: string };
-
-  return supabaseError.code === "PGRST204" && Boolean(supabaseError.message?.includes(column));
-}
 
 export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddMediaDialogProps) {
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
@@ -65,27 +58,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       onClose();
     } catch (error) {
       console.error("Erro ao guardar:", error);
-
-      if (isMissingColumnError(error, "backdrop")) {
-        alert("Falta adicionar a coluna backdrop no Supabase para salvar o fundo/banner da obra.");
-        return;
-      }
-
-      if (isMissingColumnError(error, "page_count")) {
-        alert("Falta adicionar a coluna page_count no Supabase para salvar a quantidade de paginas do livro.");
-        return;
-      }
-
-      if (isMissingColumnError(error, "runtime_minutes")) {
-        alert("Falta adicionar a coluna runtime_minutes no Supabase para salvar a duracao de filmes e series.");
-        return;
-      }
-
-      if (isMissingColumnError(error, "campaign_hours")) {
-        alert("Falta adicionar a coluna campaign_hours no Supabase para salvar o tempo medio da campanha.");
-        return;
-      }
-
+    
       alert("Erro ao guardar a obra.");
     }
   };
@@ -100,8 +73,14 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
   const coverBackground = catalogSearch.coverBackdrop || coverValue || "";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#1a1a1e] p-8 shadow-2xl">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      onClick={closeDialog}
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#1a1a1e] p-8 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="mb-8 flex items-center justify-between border-b border-white/5 pb-4">
           <div>
             <h2 className="font-serif text-3xl font-bold text-[#ebdcb9]">

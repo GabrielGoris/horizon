@@ -75,6 +75,8 @@ function getCreateMediaPayload(data: CreateMediaDTO) {
     cover: toNullableText(data.cover),
     backdrop: toNullableText(data.backdrop),
     release_year: toNullableText(data.release_year),
+    added_at: toNullableText(data.added_at),
+    completed_year: toNullableNumber(data.completed_year),
     page_count: toNullableNumber(data.page_count),
     runtime_minutes: parseDurationMinutes(data.runtime_minutes),
     campaign_hours: parseDurationHours(data.campaign_hours),
@@ -103,6 +105,8 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     meta: item.meta ?? "",
     rating: formatRating(completion?.rating ?? item.rating),
     description: item.description ?? "",
+    added_at: item.added_at ?? undefined,
+    completed_year: item.completed_year ?? undefined,
     watched_at: movieCompletion?.watched_at ?? undefined,
     completed_at: bookCompletion?.finished_at ?? gameCompletion?.finished_at ?? undefined,
     page_count: item.page_count ?? undefined,
@@ -135,7 +139,7 @@ export async function createMedia(data: CreateMediaDTO) {
 export async function completeMedia(itemId: string) {
   const { error } = await supabase
     .from("media_items")
-    .update({ status: "complete" })
+    .update({ status: "complete", completed_year: new Date().getFullYear() })
     .eq("id", itemId);
 
   if (error) throw error;
@@ -197,6 +201,7 @@ export function markMediaAsComplete(item: MediaItem): MediaItem {
     ...item,
     status: "complete",
     completed_at: new Date().toISOString(),
+    completed_year: new Date().getFullYear(),
   };
 }
 

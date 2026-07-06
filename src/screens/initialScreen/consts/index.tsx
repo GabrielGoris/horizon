@@ -1,5 +1,6 @@
 import { BookOpen, Film, Gamepad2 } from 'lucide-react';
-import type { CategoryDef } from "../../components/Sidebar/types";
+import type { CategoryDef } from '../../../components/Sidebar/types';
+
 
 export const CATEGORIES: CategoryDef[] = [
   {

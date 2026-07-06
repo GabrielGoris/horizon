@@ -1,5 +1,5 @@
 export type MediaType = 'games' | 'movies' | 'books';
-export type MediaStatus = 'complete' | 'new' | 'queue' | 'reading';
+export type MediaStatus = 'complete' | 'dropped' | 'in_progress' | 'queue';
 
 export interface MediaItem {
   id: string;
@@ -15,6 +15,8 @@ export interface MediaItem {
   meta: string;
   rating: string;
   description: string;
+  added_at?: string;
+  completed_year?: number | string;
   watched_at?: string;
   completed_at?: string;
   page_count?: number | string;
@@ -49,8 +51,11 @@ export type GameCompletionRow = CompletionRow & {
   completion_type?: string | null;
 };
 
-export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating"> & {
+export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating" | "status"> & {
   release_year?: string | null;
+  status: MediaStatus;
+  added_at?: string | null;
+  completed_year?: number | string | null;
   page_count?: number | string | null;
   runtime_minutes?: number | string | null;
   campaign_hours?: number | string | null;
