@@ -4,6 +4,7 @@ import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
 import { MediaCard } from "../../components/MediaCard";
 import { MediaDossier } from "../../components/MediaDossier";
+import { DeleteMediaDialog } from "../../components/DeleteMediaDialog";
 import { CATEGORIES } from "./consts";
 import type { BookCompletionDTO, GameCompletionDTO, MovieTicketDTO } from "../../schemas/media";
 import type { MediaItem } from "../../types";
@@ -54,6 +55,8 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
+  const [mediaToDelete, setMediaToDelete] = useState<MediaItem | null>(null);
+  const [isDeletingMedia, setIsDeletingMedia] = useState(false);
   const [filterState, setFilterState] = useState<LibraryFilterState>(() => getDefaultFilterState(activeTab));
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
@@ -164,21 +167,27 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   }, []);
 
   const handleDeleteMedia = useCallback(async (item: MediaItem) => {
-    const shouldDelete = window.confirm(`Excluir "${item.title}" da biblioteca?`);
+    setMediaToDelete(item);
+  }, []);
 
-    if (!shouldDelete) return;
+  const confirmDeleteMedia = useCallback(async () => {
+    if (!mediaToDelete) return;
 
+    setIsDeletingMedia(true);
     try {
-      await deleteMedia(item.id);
+      await deleteMedia(mediaToDelete.id);
     } catch (error) {
       console.error(error);
       alert('Erro ao excluir a obra.');
+      setIsDeletingMedia(false);
       return;
     }
 
+    setIsDeletingMedia(false);
+    setMediaToDelete(null);
     setSelectedMedia(null);
     await refreshMedia();
-  }, [refreshMedia]);
+  }, [mediaToDelete, refreshMedia]);
 
   const filteredCollection = useMemo(() => {
     const filteredItems = collection.filter((item) => {
@@ -328,6 +337,18 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
           onSaveTicket={handleSaveMovieTicket}
           onSaveBookCompletion={handleSaveBookCompletion}
           onSaveGameCompletion={handleSaveGameCompletion}
+        />
+      )}
+      {mediaToDelete && (
+        <DeleteMediaDialog
+          item={mediaToDelete}
+          isDeleting={isDeletingMedia}
+          onCancel={() => {
+            if (!isDeletingMedia) {
+              setMediaToDelete(null);
+            }
+          }}
+          onConfirm={confirmDeleteMedia}
         />
       )}
     </div>
