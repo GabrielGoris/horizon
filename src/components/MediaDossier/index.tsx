@@ -1,10 +1,11 @@
 import { Check, Trash2, X } from "lucide-react";
+import { getMediaStatusLabel } from "../../consts/mediaStatus";
 import { CompletionArtifacts } from "./CompletionArtifacts";
+import { DossierFacts } from "./DossierFacts";
 import { MediaObjectPreview } from "./MediaObjectPreview";
 import { typeLabels } from "./consts";
 import type { MediaDossierProps } from "./types";
 import { formatAuthorLine } from "./utils";
-import { getMediaStatusLabel } from "../../consts/mediaStatus";
 
 export function MediaDossier({
   item,
@@ -15,6 +16,14 @@ export function MediaDossier({
   onSaveBookCompletion,
   onSaveGameCompletion,
 }: MediaDossierProps) {
+  const isSeries = item.type === "movies" && item.movie_kind === "series";
+  const mediaDisplayType = isSeries
+    ? "Série"
+    : item.type === "movies"
+      ? "Filme"
+      : item.type === "games"
+        ? "Jogo"
+        : "Livro";
   const category = item.category || item.meta || typeLabels[item.type];
   const status = getMediaStatusLabel(item.status, item.type);
   const isComplete = item.status === "complete";
@@ -37,7 +46,7 @@ export function MediaDossier({
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             <span>Dossie</span>
             <span className="text-neutral-600">-</span>
-            <span>{typeLabels[item.type]}</span>
+            <span>{mediaDisplayType}</span>
           </div>
 
           <button
@@ -75,6 +84,8 @@ export function MediaDossier({
               )}
             </div>
           </div>
+
+          <DossierFacts item={item} mediaDisplayType={mediaDisplayType} />
 
           <div className="my-8 h-px bg-white/10" />
 

@@ -1,6 +1,7 @@
 import { useState, type MouseEvent } from "react";
 import { Star, X } from "lucide-react";
 import type { MovieTicketEditorProps } from "../types";
+import { formatDateInput } from "../../utils";
 
 export function MovieTicketEditor({
   item,
@@ -47,9 +48,11 @@ export function MovieTicketEditor({
         <label className="mb-5 flex flex-col gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">
           Data assistida
           <input
-            type="date"
+            type="text"
             value={watchedAt}
-            onChange={(event) => onWatchedAtChange(event.target.value)}
+            onChange={(event) => onWatchedAtChange(formatDateInput(event.target.value))}
+            placeholder="Ex: 2020 ou 05/02/2020"
+            inputMode="numeric"
             className="rounded-lg border border-white/10 bg-[#151518] px-3 py-3 text-sm font-medium normal-case tracking-normal text-white outline-none focus:border-noir-gold"
           />
         </label>

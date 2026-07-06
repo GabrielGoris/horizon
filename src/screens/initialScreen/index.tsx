@@ -22,7 +22,7 @@ import {
 } from "../../services/mediaService";
 import { LibraryFilters } from "./components/LibraryFilters";
 import type { InitialScreenProps, LibraryFilterState } from "./types";
-import { getCompletionYear, getYear, sortMediaItems } from "./utils";
+import { getCompletionYear, getYear, isSeriesItem, sortMediaItems } from "./utils";
 
 function getDefaultFilterState(activeTab: string): LibraryFilterState {
   return {
@@ -30,6 +30,7 @@ function getDefaultFilterState(activeTab: string): LibraryFilterState {
     addedYearFilter: "",
     completedYearFilter: "",
     isFiltersOpen: false,
+    movieKindFilter: "all",
     sortMode: "added_desc",
     statusFilter: "all",
   };
@@ -63,10 +64,11 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
     addedYearFilter,
     completedYearFilter,
     isFiltersOpen,
+    movieKindFilter,
     sortMode,
     statusFilter,
   } = activeFilterState;
-  const hasActiveFilters = statusFilter !== "all" || addedYearFilter || completedYearFilter || sortMode !== "added_desc";
+  const hasActiveFilters = statusFilter !== "all" || movieKindFilter !== "all" || addedYearFilter || completedYearFilter || sortMode !== "added_desc";
 
   useEffect(() => {
     let isMounted = true;
@@ -183,14 +185,18 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
       const matchesTab = activeTab === 'overview' || item.type === activeTab;
       const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+      const matchesMovieKind =
+        activeTab !== "movies" ||
+        movieKindFilter === "all" ||
+        (movieKindFilter === "series" ? isSeriesItem(item) : !isSeriesItem(item));
       const matchesAddedYear = !addedYearFilter || getYear(item.added_at) === addedYearFilter;
       const matchesCompletedYear = !completedYearFilter || getCompletionYear(item) === completedYearFilter;
 
-      return matchesTab && matchesSearch && matchesStatus && matchesAddedYear && matchesCompletedYear;
+      return matchesTab && matchesSearch && matchesStatus && matchesMovieKind && matchesAddedYear && matchesCompletedYear;
     });
 
     return activeTab === "overview" ? filteredItems : sortMediaItems(filteredItems, sortMode);
-  }, [collection, activeTab, searchQuery, statusFilter, addedYearFilter, completedYearFilter, sortMode]);
+  }, [collection, activeTab, searchQuery, statusFilter, movieKindFilter, addedYearFilter, completedYearFilter, sortMode]);
 
 
   return (
@@ -277,12 +283,14 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
                     statusFilter={statusFilter}
                     addedYearFilter={addedYearFilter}
                     completedYearFilter={completedYearFilter}
+                    movieKindFilter={movieKindFilter}
                     sortMode={sortMode}
                     onToggle={() => updateFilterState(activeTab, setFilterState, { isFiltersOpen: !isFiltersOpen })}
                     onClose={() => updateFilterState(activeTab, setFilterState, { isFiltersOpen: false })}
                     onStatusFilterChange={(nextStatusFilter) => updateFilterState(activeTab, setFilterState, { statusFilter: nextStatusFilter })}
                     onAddedYearFilterChange={(nextAddedYearFilter) => updateFilterState(activeTab, setFilterState, { addedYearFilter: nextAddedYearFilter })}
                     onCompletedYearFilterChange={(nextCompletedYearFilter) => updateFilterState(activeTab, setFilterState, { completedYearFilter: nextCompletedYearFilter })}
+                    onMovieKindFilterChange={(nextMovieKindFilter) => updateFilterState(activeTab, setFilterState, { movieKindFilter: nextMovieKindFilter })}
                     onSortModeChange={(nextSortMode) => updateFilterState(activeTab, setFilterState, { sortMode: nextSortMode })}
                     onClearFilters={() => {
                       setFilterState(getDefaultFilterState(activeTab));

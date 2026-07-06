@@ -5,6 +5,7 @@ export interface InitialScreenProps {
 }
 
 export type StatusFilter = "all" | MediaStatus;
+export type MovieKindFilter = "all" | "movie" | "series";
 
 export type SortMode =
   | "added_desc"
@@ -20,6 +21,7 @@ export interface LibraryFilterState {
   addedYearFilter: string;
   completedYearFilter: string;
   isFiltersOpen: boolean;
+  movieKindFilter: MovieKindFilter;
   sortMode: SortMode;
   statusFilter: StatusFilter;
 }

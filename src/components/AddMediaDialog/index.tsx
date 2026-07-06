@@ -13,9 +13,9 @@ import { fieldCopy, getDefaultValues } from "./consts";
 import { useMediaCatalogSearch } from "./hooks/useMediaCatalogSearch";
 import type { AddMediaDialogProps } from "./types";
 
-
 export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddMediaDialogProps) {
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
+  const [movieKind, setMovieKind] = useState<"movie" | "series">("movie");
   const {
     register,
     handleSubmit,
@@ -34,13 +34,16 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
 
   const selectType = (type: MediaType) => {
     setManualSelectedType(type);
+    setMovieKind("movie");
     reset(getDefaultValues(type));
     setValue("type", type);
+    setValue("movie_kind", "movie");
     catalogSearch.clearCatalogSearch();
   };
 
   const closeDialog = () => {
     setManualSelectedType(null);
+    setMovieKind("movie");
     reset(getDefaultValues(initialType ?? "games"));
     catalogSearch.clearCatalogSearch();
     onClose();
@@ -50,15 +53,20 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
     if (!selectedType) return;
 
     try {
-      await createMedia({ ...data, type: selectedType });
+      const nextData = selectedType === "movies"
+        ? { ...data, type: selectedType, movie_kind: movieKind }
+        : { ...data, type: selectedType };
+
+      await createMedia(nextData);
       await onSuccess();
       reset(getDefaultValues(selectedType));
       setManualSelectedType(null);
+      setMovieKind("movie");
       catalogSearch.clearCatalogSearch();
       onClose();
     } catch (error) {
       console.error("Erro ao guardar:", error);
-    
+
       alert("Erro ao guardar a obra.");
     }
   };
@@ -70,7 +78,16 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
   const titleInput = register("title");
   const coverInput = register("cover");
   const coverValue = watch("cover");
+  const statusValue = watch("status");
   const coverBackground = catalogSearch.coverBackdrop || coverValue || "";
+
+  const updateMovieKind = (nextMovieKind: "movie" | "series") => {
+    setMovieKind(nextMovieKind);
+    setValue("movie_kind", nextMovieKind, { shouldDirty: true, shouldValidate: true });
+    setValue("runtime_minutes", "", { shouldDirty: true, shouldValidate: true });
+    setValue("season_count", "", { shouldDirty: true, shouldValidate: true });
+    setValue("episode_count", "", { shouldDirty: true, shouldValidate: true });
+  };
 
   return (
     <div
@@ -135,7 +152,12 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                 onFocus={() => catalogSearch.searchCurrentTitle(String(watch("title") ?? ""))}
                 onSelectBook={(book) => void catalogSearch.handleSelectBook(book)}
                 onSelectGame={(game) => void catalogSearch.handleSelectGame(game)}
-                onSelectMovie={(movie) => void catalogSearch.handleSelectMovie(movie)}
+                onSelectMovie={(movie) => {
+                  const nextMovieKind = movie.mediaType === "tv" ? "series" : "movie";
+                  setMovieKind(nextMovieKind);
+                  setValue("movie_kind", nextMovieKind, { shouldDirty: true, shouldValidate: true });
+                  void catalogSearch.handleSelectMovie(movie);
+                }}
                 selectedType={selectedType}
                 titleInput={titleInput}
               />
@@ -199,8 +221,11 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                 errors={errors}
                 inputClass={inputClass}
                 labelClass={labelClass}
+                movieKind={movieKind}
+                onMovieKindChange={updateMovieKind}
                 register={register}
                 selectedType={selectedType}
+                statusValue={statusValue}
               />
             </div>
 

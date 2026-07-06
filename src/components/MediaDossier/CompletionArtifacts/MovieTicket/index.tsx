@@ -1,6 +1,6 @@
 import { Star } from "lucide-react";
-import type { MovieTicketProps } from "../types";
 import { formatTicketDate } from "../../utils";
+import type { MovieTicketProps } from "../types";
 
 function renderStars(rating: number) {
   return Array.from({ length: 5 }, (_, index) => {
@@ -21,6 +21,7 @@ function renderStars(rating: number) {
 
 export function MovieTicket({ item, watchedAt, rating, onClick }: MovieTicketProps) {
   const hasRating = rating > 0;
+  const isSeries = item.type === "movies" && item.movie_kind === "series";
   const director = item.director || "Diretor nao informado";
 
   return (
@@ -41,6 +42,11 @@ export function MovieTicket({ item, watchedAt, rating, onClick }: MovieTicketPro
           </div>
 
           <div>
+            {isSeries && (
+              <p className="mb-1 font-mono text-[8px] font-black uppercase tracking-[0.22em] text-black/55">
+                Série assistida
+              </p>
+            )}
             <h3 className="font-serif text-xl font-extrabold uppercase leading-none text-black">
               {item.title}
             </h3>

@@ -258,7 +258,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       console.error(error);
       const backdrop = movie.backdrop || movie.cover;
 
-      fillMediaFields(applyMovieCatalogDetails({ ...movie, creator: "", director: "", description: "", runtimeMinutes: "" }));
+      fillMediaFields(applyMovieCatalogDetails({ ...movie, creator: "", director: "", description: "", runtimeMinutes: "", seasonCount: "", episodeCount: "" }));
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
       setMovieSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");

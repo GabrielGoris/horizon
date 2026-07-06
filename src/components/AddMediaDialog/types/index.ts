@@ -77,4 +77,7 @@ export interface TypeSpecificFieldsProps {
   errorClass: string;
   register: UseFormRegister<CreateMediaDTO>;
   selectedType: MediaType;
+  movieKind: "movie" | "series";
+  onMovieKindChange: (movieKind: "movie" | "series") => void;
+  statusValue?: CreateMediaDTO["status"];
 }

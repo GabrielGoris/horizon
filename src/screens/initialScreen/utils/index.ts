@@ -1,6 +1,9 @@
 import type { MediaItem } from "../../../types";
 import type { SortMode } from "../types";
 
+const ESTIMATED_EPISODE_MINUTES = 45;
+const ESTIMATED_EPISODES_PER_SEASON = 10;
+
 export function getYear(value?: string | number) {
   if (value === undefined || value === null || value === "") return "";
 
@@ -9,6 +12,10 @@ export function getYear(value?: string | number) {
 
 export function getCompletionYear(item: MediaItem) {
   return String(item.completed_year || getYear(item.watched_at) || getYear(item.completed_at));
+}
+
+export function isSeriesItem(item: MediaItem) {
+  return item.type === "movies" && item.movie_kind === "series";
 }
 
 function getNumericValue(value?: string | number) {
@@ -42,6 +49,17 @@ function getDurationMinutes(value?: string | number, numericUnit: "hours" | "min
   return numericUnit === "hours" ? numberValue * 60 : numberValue;
 }
 
+function getRuntimeMinutes(item: MediaItem) {
+  if (isSeriesItem(item)) {
+    const episodeCount = getNumericValue(item.episode_count);
+    const seasonCount = getNumericValue(item.season_count);
+
+    return (episodeCount || seasonCount * ESTIMATED_EPISODES_PER_SEASON) * ESTIMATED_EPISODE_MINUTES;
+  }
+
+  return getDurationMinutes(item.runtime_minutes);
+}
+
 export function sortMediaItems(items: MediaItem[], sortMode: SortMode) {
   return [...items].sort((firstItem, secondItem) => {
     if (sortMode === "campaign_asc") {
@@ -53,11 +71,11 @@ export function sortMediaItems(items: MediaItem[], sortMode: SortMode) {
     }
 
     if (sortMode === "runtime_asc") {
-      return getDurationMinutes(firstItem.runtime_minutes) - getDurationMinutes(secondItem.runtime_minutes);
+      return getRuntimeMinutes(firstItem) - getRuntimeMinutes(secondItem);
     }
 
     if (sortMode === "runtime_desc") {
-      return getDurationMinutes(secondItem.runtime_minutes) - getDurationMinutes(firstItem.runtime_minutes);
+      return getRuntimeMinutes(secondItem) - getRuntimeMinutes(firstItem);
     }
 
     if (sortMode === "pages_asc") {

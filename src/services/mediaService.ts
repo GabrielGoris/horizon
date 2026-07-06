@@ -4,6 +4,7 @@ import type { CreateMediaDTO } from "../schemas/media/dto/create-media.dto";
 import type { GameCompletionDTO } from "../schemas/media/dto/game-completion.dto";
 import type { MovieTicketDTO } from "../schemas/media/dto/movie-ticket.dto";
 import type { MediaItem, MediaItemRow } from "../types";
+import { toSupabaseDate } from "../utils/date";
 
 
 
@@ -68,17 +69,22 @@ function toNullableText(value: string | undefined) {
 
 function getCreateMediaPayload(data: CreateMediaDTO) {
   return {
-    ...data,
+    title: data.title,
+    type: data.type,
+    movie_kind: data.type === "movies" ? data.movie_kind ?? "movie" : null,
+    status: data.status,
     creator: toNullableText(data.creator),
     director: toNullableText(data.director),
     category: toNullableText(data.category),
     cover: toNullableText(data.cover),
     backdrop: toNullableText(data.backdrop),
     release_year: toNullableText(data.release_year),
-    added_at: toNullableText(data.added_at),
+    added_at: toSupabaseDate(data.added_at),
     completed_year: toNullableNumber(data.completed_year),
     page_count: toNullableNumber(data.page_count),
     runtime_minutes: parseDurationMinutes(data.runtime_minutes),
+    season_count: toNullableNumber(data.season_count),
+    episode_count: toNullableNumber(data.episode_count),
     campaign_hours: parseDurationHours(data.campaign_hours),
     meta: toNullableText(data.meta),
     description: toNullableText(data.description),
@@ -100,6 +106,7 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     cover: item.cover ?? "",
     backdrop: item.backdrop ?? "",
     type: item.type,
+    movie_kind: item.movie_kind ?? undefined,
     status: item.status,
     releaseYear: item.release_year ?? "",
     meta: item.meta ?? "",
@@ -111,6 +118,8 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     completed_at: bookCompletion?.finished_at ?? gameCompletion?.finished_at ?? undefined,
     page_count: item.page_count ?? undefined,
     runtime_minutes: item.runtime_minutes ?? undefined,
+    season_count: item.season_count ?? undefined,
+    episode_count: item.episode_count ?? undefined,
     campaign_hours: item.campaign_hours ?? undefined,
     pages: bookCompletion?.pages ?? undefined,
     hours_played: gameCompletion?.hours_played ?? undefined,
@@ -131,9 +140,19 @@ export async function fetchMedia() {
 }
 
 export async function createMedia(data: CreateMediaDTO) {
-  const { error } = await supabase.from("media_items").insert([getCreateMediaPayload(data)]);
+  const { data: createdMedia, error } = await supabase
+    .from("media_items")
+    .insert([getCreateMediaPayload(data)])
+    .select("id")
+    .single();
 
   if (error) throw error;
+
+  const watchedAt = toSupabaseDate(data.watched_at);
+
+  if (data.type === "movies" && data.status === "complete" && watchedAt && createdMedia?.id) {
+    await saveMovieTicket(createdMedia.id, { watchedAt, rating: "" });
+  }
 }
 
 export async function completeMedia(itemId: string) {
@@ -158,7 +177,7 @@ export async function saveMovieTicket(itemId: string, ticket: MovieTicketDTO) {
   const { error } = await supabase.from("movie_completions").upsert(
     {
       media_item_id: itemId,
-      watched_at: ticket.watchedAt,
+      watched_at: toSupabaseDate(ticket.watchedAt),
       rating: toNullableNumber(ticket.rating),
     },
     { onConflict: "media_item_id" }

@@ -1,4 +1,7 @@
 import type { MediaItem } from "../../../types";
+import { getDateInputValue } from "../../../utils/date";
+
+export { formatDateInput, formatTicketDate } from "../../../utils/date";
 
 export function formatAuthorLine(item: MediaItem) {
   const creator = item.creator || "Autor desconhecido";
@@ -7,25 +10,8 @@ export function formatAuthorLine(item: MediaItem) {
   return `Por ${creator}${year}`;
 }
 
-export function formatTicketDate(date: string) {
-  if (!date) return "Sem data";
-
-  const ticketDate = new Date(`${date}T00:00:00`);
-  const day = String(ticketDate.getDate()).padStart(2, "0");
-  const month = new Intl.DateTimeFormat("pt-BR", { month: "short" })
-    .format(ticketDate)
-    .replace(".", "");
-  const year = ticketDate.getFullYear();
-
-  return `${day}/${month}/${year}`;
-}
-
 export function getInitialWatchedDate(item: MediaItem) {
-  const storedDate = item.watched_at || item.completed_at;
-
-  if (storedDate) return storedDate.slice(0, 10);
-
-  return new Date().toISOString().slice(0, 10);
+  return getDateInputValue(item.watched_at || item.completed_at);
 }
 
 export function getNumericRating(rating: string) {

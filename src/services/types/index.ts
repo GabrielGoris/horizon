@@ -147,6 +147,11 @@ export type TmdbDetails = {
   overview?: string;
   runtime?: number;
   episode_run_time?: number[];
+  number_of_episodes?: number;
+  number_of_seasons?: number;
+  seasons?: Array<{
+    episode_count?: number;
+  }>;
   genres?: TmdbGenre[];
   production_companies?: TmdbCompany[];
   networks?: TmdbCompany[];
@@ -179,6 +184,8 @@ export type MovieCatalogDetails = MovieCatalogResult & {
   director: string;
   description: string;
   runtimeMinutes: string;
+  seasonCount: string;
+  episodeCount: string;
 };
 
 export type OpenLibrarySearchItem = {

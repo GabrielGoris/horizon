@@ -1,7 +1,16 @@
 import type { MediaCardProps } from "./types";
 
+function getTypeLabel(item: MediaCardProps["item"]) {
+  if (item.type === "movies" && item.movie_kind === "series") return "Série";
+  if (item.type === "movies") return "Filme";
+  if (item.type === "games") return "Jogo";
+
+  return "Livro";
+}
+
 export function MediaCard({ item, onClick, rank }: MediaCardProps) {
   const isBook = item.type === 'books';
+  const typeLabel = getTypeLabel(item);
   
   return (
     <div 
@@ -27,7 +36,7 @@ export function MediaCard({ item, onClick, rank }: MediaCardProps) {
           </span>
         ) : (
           <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded border bg-[#131315]/80 text-[#ebdcb9] border-[#d4af37]/30 backdrop-blur-md">
-            {item.type}
+            {typeLabel}
           </span>
         )}
       </div>

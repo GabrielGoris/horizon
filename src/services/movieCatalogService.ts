@@ -34,10 +34,6 @@ function getReleaseYear(item: Pick<TmdbSearchItem, "release_date" | "first_air_d
   return date?.slice(0, 4) ?? "";
 }
 
-function getMediaTypeLabel(mediaType: TmdbMediaType) {
-  return mediaType === "movie" ? "Filme" : "Serie";
-}
-
 function getOriginLabel(originCountry?: string[], originalLanguage?: string) {
   return originCountry?.[0] || originalLanguage?.toUpperCase() || "";
 }
@@ -78,11 +74,15 @@ function getCreator(details: TmdbDetails, mediaType: TmdbMediaType) {
 }
 
 function getRuntimeMinutes(details: TmdbDetails, mediaType: TmdbMediaType) {
-  if (mediaType === "movie") {
-    return formatMinutes(details.runtime);
-  }
+  if (mediaType !== "movie") return "";
 
-  return formatMinutes(details.episode_run_time?.[0]);
+  return formatMinutes(details.runtime);
+}
+
+function getEpisodeCount(details: TmdbDetails) {
+  if (details.number_of_episodes) return details.number_of_episodes;
+
+  return details.seasons?.reduce((total, season) => total + (season.episode_count ?? 0), 0);
 }
 
 function formatMinutes(totalMinutes?: number) {
@@ -148,11 +148,13 @@ function mapTmdbSearchItem(item: TmdbSearchItem, genres: Record<TmdbMediaType, T
     cover: getImageUrl(item.poster_path, "w500"),
     backdrop: getImageUrl(item.backdrop_path, "w1280"),
     category: getGenreNamesById(item.genre_ids, genres[item.media_type]),
-    meta: [getMediaTypeLabel(item.media_type), getOriginLabel(item.origin_country)].filter(Boolean).join(" - "),
+    meta: getOriginLabel(item.origin_country),
   };
 }
 
 function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCatalogDetails {
+  const episodeCount = mediaType === "tv" ? getEpisodeCount(details) : undefined;
+
   return {
     id: details.id,
     source: "tmdb",
@@ -162,11 +164,13 @@ function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCa
     cover: getImageUrl(details.poster_path, "w500"),
     backdrop: getImageUrl(details.backdrop_path, "w1280"),
     category: getGenreNames(details.genres),
-    meta: [getMediaTypeLabel(mediaType), getOriginLabel(details.origin_country, details.original_language)].filter(Boolean).join(" - "),
+    meta: getOriginLabel(details.origin_country, details.original_language),
     creator: getCreator(details, mediaType),
     director: getDirector(details, mediaType),
     description: details.overview ?? "",
     runtimeMinutes: getRuntimeMinutes(details, mediaType),
+    seasonCount: mediaType === "tv" && details.number_of_seasons ? String(details.number_of_seasons) : "",
+    episodeCount: episodeCount ? String(episodeCount) : "",
   };
 }
 
@@ -215,6 +219,7 @@ export async function getMovieDetails(movie: MovieCatalogResult): Promise<MovieC
 export function applyMovieCatalogDetails(movie: MovieCatalogDetails): Partial<CreateMediaDTO> {
   return {
     title: movie.title,
+    movie_kind: movie.mediaType === "tv" ? "series" : "movie",
     creator: movie.creator,
     director: movie.director,
     category: movie.category,
@@ -222,6 +227,8 @@ export function applyMovieCatalogDetails(movie: MovieCatalogDetails): Partial<Cr
     backdrop: movie.backdrop ?? "",
     release_year: movie.releaseYear,
     runtime_minutes: movie.runtimeMinutes,
+    season_count: movie.seasonCount,
+    episode_count: movie.episodeCount,
     meta: movie.meta,
     description: movie.description,
   };

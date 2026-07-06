@@ -1,7 +1,8 @@
 import { SlidersHorizontal } from "lucide-react";
 import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../../consts/mediaStatus";
 import type { MediaType } from "../../../types";
-import type { SortMode, StatusFilter } from "../types";
+import type { MovieKindFilter, SortMode, StatusFilter } from "../types";
+import { MovieKindFilters } from "./MovieKindFilters";
 
 type SortOption = {
   value: SortMode;
@@ -17,12 +18,14 @@ interface LibraryFiltersProps {
   statusFilter: StatusFilter;
   addedYearFilter: string;
   completedYearFilter: string;
+  movieKindFilter: MovieKindFilter;
   sortMode: SortMode;
   onToggle: () => void;
   onClose: () => void;
   onStatusFilterChange: (status: StatusFilter) => void;
   onAddedYearFilterChange: (year: string) => void;
   onCompletedYearFilterChange: (year: string) => void;
+  onMovieKindFilterChange: (movieKind: MovieKindFilter) => void;
   onSortModeChange: (sortMode: SortMode) => void;
   onClearFilters: () => void;
 }
@@ -39,16 +42,16 @@ function getSortOptions(activeTab: string): SortOption[] {
   if (activeTab === "movies") {
     return [
       { value: "added_desc", label: "Mais recentes" },
-      { value: "runtime_asc", label: "Menor duracao" },
-      { value: "runtime_desc", label: "Maior duracao" },
+      { value: "runtime_asc", label: "Menor duração" },
+      { value: "runtime_desc", label: "Maior duração" },
     ];
   }
 
   if (activeTab === "books") {
     return [
       { value: "added_desc", label: "Mais recentes" },
-      { value: "pages_asc", label: "Menos paginas" },
-      { value: "pages_desc", label: "Mais paginas" },
+      { value: "pages_asc", label: "Menos páginas" },
+      { value: "pages_desc", label: "Mais páginas" },
     ];
   }
 
@@ -72,12 +75,14 @@ export function LibraryFilters({
   statusFilter,
   addedYearFilter,
   completedYearFilter,
+  movieKindFilter,
   sortMode,
   onToggle,
   onClose,
   onStatusFilterChange,
   onAddedYearFilterChange,
   onCompletedYearFilterChange,
+  onMovieKindFilterChange,
   onSortModeChange,
   onClearFilters,
 }: LibraryFiltersProps) {
@@ -123,32 +128,44 @@ export function LibraryFilters({
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => onStatusFilterChange("all")}
-                className={`rounded-lg border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                  statusFilter === "all"
-                    ? "border-noir-gold/50 bg-noir-gold/15 text-noir-gold"
-                    : "border-white/10 bg-white/[0.03] text-neutral-500 hover:text-white"
-                }`}
-              >
-                Todos
-              </button>
-              {MEDIA_STATUS_OPTIONS.map((status) => (
+            {activeTab === "movies" && (
+              <MovieKindFilters
+                movieKindFilter={movieKindFilter}
+                onChange={onMovieKindFilterChange}
+              />
+            )}
+
+            <div className="flex flex-col gap-2">
+              <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                Estado
+              </span>
+              <div className="flex flex-wrap gap-2">
                 <button
-                  key={status}
                   type="button"
-                  onClick={() => onStatusFilterChange(status)}
+                  onClick={() => onStatusFilterChange("all")}
                   className={`rounded-lg border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                    statusFilter === status
+                    statusFilter === "all"
                       ? "border-noir-gold/50 bg-noir-gold/15 text-noir-gold"
                       : "border-white/10 bg-white/[0.03] text-neutral-500 hover:text-white"
                   }`}
                 >
-                  {getMediaStatusLabel(status, mediaType)}
+                  Todos
                 </button>
-              ))}
+                {MEDIA_STATUS_OPTIONS.map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => onStatusFilterChange(status)}
+                    className={`rounded-lg border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${
+                      statusFilter === status
+                        ? "border-noir-gold/50 bg-noir-gold/15 text-noir-gold"
+                        : "border-white/10 bg-white/[0.03] text-neutral-500 hover:text-white"
+                    }`}
+                  >
+                    {getMediaStatusLabel(status, mediaType)}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
