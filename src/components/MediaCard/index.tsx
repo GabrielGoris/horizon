@@ -11,18 +11,22 @@ function getTypeLabel(item: MediaCardProps["item"]) {
 export function MediaCard({ item, onClick, rank }: MediaCardProps) {
   const isBook = item.type === 'books';
   const typeLabel = getTypeLabel(item);
+  const clipPath = isBook
+    ? "inset(0 round 0.375rem 0.75rem 0.75rem 0.375rem)"
+    : "inset(0 round 0.75rem)";
   
   return (
     <div 
       onClick={() => onClick && onClick(item)}
-      className={`group relative bg-[#1a1a1e] border border-white/5 overflow-hidden cursor-pointer shadow-lg transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:border-[#d4af37]/30 aspect-[2/3] ${
+      className={`group relative isolate transform-gpu overflow-hidden bg-[#1a1a1e] border border-white/5 cursor-pointer shadow-lg transition-all duration-500 will-change-transform [backface-visibility:hidden] hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:border-[#d4af37]/30 aspect-[2/3] ${
         isBook ? 'rounded-r-xl rounded-l-md' : 'rounded-xl'
       }`}
+      style={{ clipPath }}
     >
       <img 
         src={item.cover} 
         alt={item.title} 
-        className="w-full h-full object-cover filter saturate-[0.65] sepia-[0.18] contrast-[1.08] brightness-[0.82] transition-all duration-600 group-hover:saturate-100 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105" 
+        className="block h-full w-full rounded-[inherit] object-cover filter saturate-[0.65] sepia-[0.18] contrast-[1.08] brightness-[0.82] transition-all duration-600 transform-gpu [backface-visibility:hidden] group-hover:saturate-100 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105" 
       />
 
       {isBook && (
@@ -41,7 +45,7 @@ export function MediaCard({ item, onClick, rank }: MediaCardProps) {
         )}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0c] via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-5 z-20">
+      <div className="absolute inset-0 z-20 flex flex-col justify-end rounded-[inherit] bg-gradient-to-t from-[#0a0a0c] via-black/50 to-transparent p-5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="text-[9px] font-bold uppercase tracking-widest text-[#d4af37] mb-1 drop-shadow-md">
           {item.creator}
         </span>
