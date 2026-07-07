@@ -319,3 +319,5 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     searchTitle,
   };
 }
+
+export type MediaCatalogSearch = ReturnType<typeof useMediaCatalogSearch>;
