@@ -1,34 +1,8 @@
 import { SlidersHorizontal } from "lucide-react";
-import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../../consts/mediaStatus";
-import type { MediaType } from "../../../types";
-import type { MovieKindFilter, SortMode, StatusFilter } from "../types";
-import { MovieKindFilters } from "./MovieKindFilters";
-
-type SortOption = {
-  value: SortMode;
-  label: string;
-};
-
-interface LibraryFiltersProps {
-  activeTab: string;
-  mediaType?: MediaType;
-  itemCount: number;
-  isOpen: boolean;
-  hasActiveFilters: boolean;
-  statusFilter: StatusFilter;
-  addedYearFilter: string;
-  completedYearFilter: string;
-  movieKindFilter: MovieKindFilter;
-  sortMode: SortMode;
-  onToggle: () => void;
-  onClose: () => void;
-  onStatusFilterChange: (status: StatusFilter) => void;
-  onAddedYearFilterChange: (year: string) => void;
-  onCompletedYearFilterChange: (year: string) => void;
-  onMovieKindFilterChange: (movieKind: MovieKindFilter) => void;
-  onSortModeChange: (sortMode: SortMode) => void;
-  onClearFilters: () => void;
-}
+import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../../../consts/mediaStatus";
+import type { SortMode } from "../../types";
+import { MovieKindFilters } from "../MovieKindFilters/index";
+import type { LibraryFiltersProps, SortOption } from "../types";
 
 function getSortOptions(activeTab: string): SortOption[] {
   const defaultOptions: SortOption[] = [

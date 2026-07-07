@@ -1,9 +1,5 @@
-import type { MovieKindFilter } from "../types";
-
-interface MovieKindFiltersProps {
-  movieKindFilter: MovieKindFilter;
-  onChange: (movieKind: MovieKindFilter) => void;
-}
+import type { MovieKindFilter } from "../../types";
+import type { MovieKindFiltersProps } from "../types";
 
 const movieKindOptions: Array<{ label: string; value: MovieKindFilter }> = [
   { label: "Todos", value: "all" },
