@@ -6,6 +6,33 @@ type Fact = {
   value?: string | number;
 };
 
+function formatGameCampaignTime(value?: string | number) {
+  if (value === undefined || value === null || value === "") return "";
+
+  if (typeof value === "string" && /h|min/i.test(value)) return value;
+
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue)) return String(value);
+
+  const totalMinutes = Math.round(numericValue * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (!hours) return `${minutes} min`;
+  if (!minutes) return `${hours}h`;
+
+  return `${hours}h ${minutes} min`;
+}
+
+function getGameTimeFact(item: MediaItem): Fact {
+  if (item.hours_played !== undefined && item.hours_played !== null && String(item.hours_played).trim() !== "") {
+    return { label: "Tempo jogado", value: formatGameCampaignTime(item.hours_played) };
+  }
+
+  return { label: "História principal", value: formatGameCampaignTime(item.campaign_hours) };
+}
+
 function getDossierFacts(item: MediaItem, mediaDisplayType: string): Fact[] {
   const isSeries = mediaDisplayType === "Série";
 
@@ -42,10 +69,9 @@ function getDossierFacts(item: MediaItem, mediaDisplayType: string): Fact[] {
 
   return [
     { label: "Tipo", value: "Jogo" },
-    { label: "Campanha", value: item.campaign_hours ? `${item.campaign_hours} h` : "" },
+    getGameTimeFact(item),
     { label: "Estúdio", value: item.creator },
     { label: "Ano", value: item.releaseYear },
-    { label: "Finalizado em", value: item.completed_at ? formatTicketDate(item.completed_at) : "" },
   ];
 }
 

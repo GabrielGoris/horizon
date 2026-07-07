@@ -31,9 +31,16 @@ interface LibraryFiltersProps {
 }
 
 function getSortOptions(activeTab: string): SortOption[] {
+  const defaultOptions: SortOption[] = [
+    { value: "added_desc", label: "Mais recentes" },
+    { value: "added_asc", label: "Mais antigos" },
+    { value: "rating_desc", label: "Melhor avaliados" },
+    { value: "rating_asc", label: "Pior avaliados" },
+  ];
+
   if (activeTab === "games") {
     return [
-      { value: "added_desc", label: "Mais recentes" },
+      ...defaultOptions,
       { value: "campaign_asc", label: "Campanha menor" },
       { value: "campaign_desc", label: "Campanha maior" },
     ];
@@ -41,7 +48,7 @@ function getSortOptions(activeTab: string): SortOption[] {
 
   if (activeTab === "movies") {
     return [
-      { value: "added_desc", label: "Mais recentes" },
+      ...defaultOptions,
       { value: "runtime_asc", label: "Menor duração" },
       { value: "runtime_desc", label: "Maior duração" },
     ];
@@ -49,13 +56,13 @@ function getSortOptions(activeTab: string): SortOption[] {
 
   if (activeTab === "books") {
     return [
-      { value: "added_desc", label: "Mais recentes" },
+      ...defaultOptions,
       { value: "pages_asc", label: "Menos páginas" },
       { value: "pages_desc", label: "Mais páginas" },
     ];
   }
 
-  return [{ value: "added_desc", label: "Mais recentes" }];
+  return defaultOptions;
 }
 
 function getCompletionYearLabel(activeTab: string) {

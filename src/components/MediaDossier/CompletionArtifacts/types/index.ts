@@ -12,39 +12,18 @@ export interface MovieTicketProps {
   item: MediaItem;
   watchedAt: string;
   rating: number;
-  onClick: () => void;
-}
-
-export interface MovieTicketEditorProps {
-  item: MediaItem;
-  watchedAt: string;
-  rating: number;
-  stars: number[];
   onWatchedAtChange: (watchedAt: string) => void;
   onRatingChange: (rating: number) => void;
-  onClose: () => void;
-  onSave: () => void | Promise<void>;
+  onSave: (values?: { watchedAt?: string; rating?: number }) => void | Promise<void>;
 }
 
 export interface BookBookmarkProps {
   item: MediaItem;
   finishedAt: string;
   rating: number;
-  pages: string;
-  onClick: () => void;
-}
-
-export interface BookBookmarkEditorProps {
-  item: MediaItem;
-  finishedAt: string;
-  rating: number;
-  pages: string;
-  stars: number[];
   onFinishedAtChange: (finishedAt: string) => void;
   onRatingChange: (rating: number) => void;
-  onPagesChange: (pages: string) => void;
-  onClose: () => void;
-  onSave: () => void | Promise<void>;
+  onSave: (values?: { finishedAt?: string; rating?: number }) => void | Promise<void>;
 }
 
 export interface GameSaveCardProps {
@@ -53,20 +32,14 @@ export interface GameSaveCardProps {
   rating: number;
   hoursPlayed: string;
   completionType: string;
-  onClick: () => void;
-}
-
-export interface GameSaveEditorProps {
-  item: MediaItem;
-  finishedAt: string;
-  rating: number;
-  hoursPlayed: string;
-  completionType: string;
-  stars: number[];
   onFinishedAtChange: (finishedAt: string) => void;
   onRatingChange: (rating: number) => void;
   onHoursPlayedChange: (hoursPlayed: string) => void;
   onCompletionTypeChange: (completionType: string) => void;
-  onClose: () => void;
-  onSave: () => void | Promise<void>;
+  onSave: (values?: {
+    finishedAt?: string;
+    rating?: number;
+    hoursPlayed?: string;
+    completionType?: string;
+  }) => void | Promise<void>;
 }

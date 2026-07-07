@@ -1,20 +1,44 @@
+import { useState } from "react";
 import { Star } from "lucide-react";
-import { formatTicketDate } from "../../utils";
+import { formatDateInput } from "../../utils";
 import type { GameSaveCardProps } from "../types";
+import { getRatingFromMouse } from "../utils";
 
-function renderStars(rating: number) {
+const completionTypeOptions = ["Campanha", "Completo", "Platina"];
+
+function renderStars(
+  rating: number,
+  onPreviewRating: (rating: number) => void,
+  onRatingChange: (rating: number) => void,
+  onSave: GameSaveCardProps["onSave"]
+) {
   return Array.from({ length: 5 }, (_, index) => {
+    const star = index + 1;
     const fillPercentage = Math.max(0, Math.min(1, rating - index)) * 100;
 
     return (
-      <span key={index} className="relative inline-flex">
-        <Star size={14} className="text-emerald-200/25" />
-        {fillPercentage > 0 && (
-          <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercentage}%` }}>
-            <Star size={14} className="fill-emerald-200 text-emerald-200" />
-          </span>
-        )}
-      </span>
+      <button
+        key={star}
+        type="button"
+        className="relative inline-flex transition-transform hover:scale-110"
+        onClick={(event) => {
+          const nextRating = getRatingFromMouse(event, star);
+
+          onRatingChange(nextRating);
+          void onSave({ rating: nextRating });
+        }}
+        onMouseMove={(event) => onPreviewRating(getRatingFromMouse(event, star))}
+        aria-label={`Dar nota ate ${star}`}
+      >
+        <span className="relative inline-flex">
+          <Star size={14} className="text-emerald-200/25" />
+          {fillPercentage > 0 && (
+            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercentage}%` }}>
+              <Star size={14} className="fill-emerald-200 text-emerald-200" />
+            </span>
+          )}
+        </span>
+      </button>
     );
   });
 }
@@ -25,13 +49,19 @@ export function GameSaveCard({
   rating,
   hoursPlayed,
   completionType,
-  onClick,
+  onFinishedAtChange,
+  onRatingChange,
+  onHoursPlayedChange,
+  onCompletionTypeChange,
+  onSave,
 }: GameSaveCardProps) {
+  const [previewRating, setPreviewRating] = useState<number | null>(null);
+  const visibleRating = previewRating ?? rating;
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className="group mt-8 w-full text-left transition-transform duration-300 hover:-translate-y-1"
+      onMouseLeave={() => setPreviewRating(null)}
     >
       <div className="relative mx-auto max-w-[340px] rounded-[18px] border border-white/10 bg-[#2b2c30] p-5 text-zinc-100 shadow-[0_28px_60px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]">
         <div className="pointer-events-none absolute inset-0 rounded-[18px] bg-[linear-gradient(135deg,rgba(255,255,255,0.10),transparent_32%,rgba(0,0,0,0.30))]" />
@@ -52,9 +82,20 @@ export function GameSaveCard({
               </p>
             </div>
 
-            <span className="rounded bg-black/25 px-2 py-1 font-mono text-[9px] font-bold text-white/45">
-              {formatTicketDate(finishedAt)}
-            </span>
+            <input
+              type="text"
+              value={finishedAt}
+              onChange={(event) => onFinishedAtChange(formatDateInput(event.target.value))}
+              onBlur={(event) => void onSave({ finishedAt: event.currentTarget.value })}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.currentTarget.blur();
+                }
+              }}
+              placeholder="2020 ou 05/02/2020"
+              inputMode="numeric"
+              className="w-[104px] rounded bg-black/25 px-2 py-1 text-right font-mono text-[9px] font-bold text-white/55 outline-none transition-colors focus:bg-black/40 focus:text-white"
+            />
           </div>
 
           <div className="mb-5 h-px bg-black/40 shadow-[0_1px_0_rgba(255,255,255,0.08)]" />
@@ -75,21 +116,43 @@ export function GameSaveCard({
                 <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/35">
                   Play time
                 </p>
-                <p className="mt-1 font-mono text-sm font-bold text-white">
-                  {hoursPlayed ? `${hoursPlayed}h` : "--"}
-                </p>
+                <div className="mt-1 flex items-center gap-1">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={hoursPlayed}
+                    onChange={(event) => onHoursPlayedChange(event.target.value)}
+                    onBlur={(event) => void onSave({ hoursPlayed: event.currentTarget.value })}
+                    placeholder="--"
+                    className="w-full bg-transparent font-mono text-sm font-bold text-white outline-none placeholder:text-white/35"
+                  />
+                  <span className="font-mono text-xs font-bold text-white/45">h</span>
+                </div>
               </div>
               <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
                 <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/35">
                   Clear type
                 </p>
-                <p className="mt-1 truncate font-mono text-sm font-bold text-white">
-                  {completionType || "Campanha"}
-                </p>
+                <select
+                  value={completionType}
+                  onChange={(event) => {
+                    onCompletionTypeChange(event.target.value);
+                    void onSave({ completionType: event.target.value });
+                  }}
+                  className="mt-1 w-full truncate bg-transparent font-mono text-sm font-bold text-white outline-none"
+                >
+                  {completionTypeOptions.map((option) => (
+                    <option key={option} value={option} className="bg-[#202126] text-white">
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-1">{renderStars(rating)}</div>
+            <div className="mt-4 flex items-center gap-1">
+              {renderStars(visibleRating, setPreviewRating, onRatingChange, onSave)}
+            </div>
           </div>
         </div>
 
@@ -105,6 +168,6 @@ export function GameSaveCard({
           ))}
         </div>
       </div>
-    </button>
+    </div>
   );
 }

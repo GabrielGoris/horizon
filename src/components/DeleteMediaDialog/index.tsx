@@ -14,6 +14,8 @@ export function DeleteMediaDialog({
   onCancel,
   onConfirm,
 }: DeleteMediaDialogProps) {
+  const coverUrl = item.cover?.trim();
+
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-5 backdrop-blur-[5px]">
       <button
@@ -51,11 +53,17 @@ export function DeleteMediaDialog({
 
         <div className="px-6 py-6">
           <div className="flex gap-4">
-            <img
-              src={item.cover}
-              alt={item.title}
-              className="h-28 w-20 shrink-0 rounded-lg border border-white/10 object-cover shadow-lg"
-            />
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt={item.title}
+                className="h-28 w-20 shrink-0 rounded-lg border border-white/10 object-cover shadow-lg"
+              />
+            ) : (
+              <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] px-2 text-center font-mono text-[9px] uppercase tracking-widest text-neutral-600 shadow-lg">
+                Sem capa
+              </div>
+            )}
 
             <div className="min-w-0 pt-1">
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">

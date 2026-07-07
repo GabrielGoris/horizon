@@ -28,7 +28,8 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
   const backColor = isBook ? "#151515" : isGame ? "#151923" : "#09090b";
   const spineTextColor = isBook ? "#d8c08a" : "rgba(255,255,255,0.35)";
   const spineTitle = item.title.length > 28 ? `${item.title.slice(0, 28)}...` : item.title;
-  const backgroundImage = item.backdrop || item.cover;
+  const coverUrl = item.cover?.trim();
+  const backgroundImage = item.backdrop?.trim() || coverUrl;
 
   return (
     <div className="relative mx-auto mb-8 flex h-[250px] items-center justify-center overflow-hidden rounded-2xl [perspective:900px]">
@@ -58,11 +59,17 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
       >
         <div className="transform-style-3d absolute inset-0 rounded-md shadow-2xl shadow-black/60">
           <div className="absolute inset-0 overflow-hidden rounded-md border border-white/15 bg-[#111] [backface-visibility:hidden] [transform:translateZ(var(--object-half-depth))]">
-            <img
-              src={item.cover}
-              alt={`Capa de ${item.title}`}
-              className="h-full w-full object-cover"
-            />
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt={`Capa de ${item.title}`}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-white/[0.04] px-4 text-center font-mono text-[10px] uppercase tracking-widest text-neutral-500">
+                Sem capa
+              </div>
+            )}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/35" />
           </div>
 

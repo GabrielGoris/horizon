@@ -15,14 +15,19 @@ export function formatDateInput(value: string) {
 }
 
 export function formatTicketDate(date: string) {
-  if (!date) return "Sem data";
-  if (/^\d{4}$/.test(date)) return date;
+  const normalizedDate = date.trim();
 
-  const brDateMatch = date.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!normalizedDate) return "Sem data";
+  if (/^\d{4}$/.test(normalizedDate)) return normalizedDate;
+
+  const brDateMatch = normalizedDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
 
   if (brDateMatch) {
     const [, day, month, year] = brDateMatch;
     const ticketDate = new Date(`${year}-${month}-${day}T00:00:00`);
+
+    if (Number.isNaN(ticketDate.getTime())) return normalizedDate;
+
     const formattedMonth = new Intl.DateTimeFormat("pt-BR", { month: "short" })
       .format(ticketDate)
       .replace(".", "");
@@ -30,7 +35,14 @@ export function formatTicketDate(date: string) {
     return `${day}/${formattedMonth}/${year}`;
   }
 
-  const ticketDate = new Date(`${date}T00:00:00`);
+  const ticketDate = new Date(
+    /^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)
+      ? `${normalizedDate}T00:00:00`
+      : normalizedDate
+  );
+
+  if (Number.isNaN(ticketDate.getTime())) return normalizedDate;
+
   const isYearOnlyDate = ticketDate.getDate() === 1 && ticketDate.getMonth() === 0;
 
   if (isYearOnlyDate) return String(ticketDate.getFullYear());
@@ -64,13 +76,19 @@ export function toSupabaseDate(value: string | undefined) {
 
   if (!trimmedValue) return null;
   if (/^\d{4}$/.test(trimmedValue)) return `${trimmedValue}-01-01`;
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) return trimmedValue;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedValue)) {
+    const parsedDate = new Date(`${trimmedValue}T00:00:00`);
+
+    return Number.isNaN(parsedDate.getTime()) ? null : trimmedValue;
+  }
 
   const brDateMatch = trimmedValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
 
-  if (!brDateMatch) return trimmedValue;
+  if (!brDateMatch) return null;
 
   const [, day, month, year] = brDateMatch;
+  const supabaseDate = `${year}-${month}-${day}`;
+  const parsedDate = new Date(`${supabaseDate}T00:00:00`);
 
-  return `${year}-${month}-${day}`;
+  return Number.isNaN(parsedDate.getTime()) ? null : supabaseDate;
 }

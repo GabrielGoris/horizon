@@ -11,6 +11,7 @@ function getTypeLabel(item: MediaCardProps["item"]) {
 export function MediaCard({ item, onClick, rank }: MediaCardProps) {
   const isBook = item.type === 'books';
   const typeLabel = getTypeLabel(item);
+  const coverUrl = item.cover?.trim();
   const clipPath = isBook
     ? "inset(0 round 0.375rem 0.75rem 0.75rem 0.375rem)"
     : "inset(0 round 0.75rem)";
@@ -23,11 +24,17 @@ export function MediaCard({ item, onClick, rank }: MediaCardProps) {
       }`}
       style={{ clipPath }}
     >
-      <img 
-        src={item.cover} 
-        alt={item.title} 
-        className="block h-full w-full rounded-[inherit] object-cover filter saturate-[0.65] sepia-[0.18] contrast-[1.08] brightness-[0.82] transition-all duration-600 transform-gpu [backface-visibility:hidden] group-hover:saturate-100 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105" 
-      />
+      {coverUrl ? (
+        <img
+          src={coverUrl}
+          alt={item.title}
+          className="block h-full w-full rounded-[inherit] object-cover filter saturate-[0.65] sepia-[0.18] contrast-[1.08] brightness-[0.82] transition-all duration-600 transform-gpu [backface-visibility:hidden] group-hover:saturate-100 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center rounded-[inherit] bg-white/[0.04] font-mono text-[10px] uppercase tracking-widest text-neutral-600">
+          Sem capa
+        </div>
+      )}
 
       {isBook && (
         <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/60 via-white/10 to-transparent z-10 border-r border-black/20" />

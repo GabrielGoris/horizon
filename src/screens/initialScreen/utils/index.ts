@@ -24,6 +24,25 @@ function getNumericValue(value?: string | number) {
   return Number.isFinite(numberValue) ? numberValue : 0;
 }
 
+function getRatingValue(item: MediaItem) {
+  const rating = Number(item.rating);
+
+  return Number.isFinite(rating) && rating > 0 ? rating : null;
+}
+
+function getDateSortValue(value?: string | number) {
+  if (value === undefined || value === null || value === "") return 0;
+
+  const dateValue = String(value);
+  const brDateMatch = dateValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  const sortableDate = brDateMatch
+    ? `${brDateMatch[3]}-${brDateMatch[2]}-${brDateMatch[1]}T00:00:00`
+    : dateValue;
+  const timestamp = new Date(sortableDate).getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
 function getDurationMinutes(value?: string | number, numericUnit: "hours" | "minutes" = "minutes") {
   if (typeof value === "number") {
     return numericUnit === "hours" ? value * 60 : value;
@@ -62,6 +81,18 @@ function getRuntimeMinutes(item: MediaItem) {
 
 export function sortMediaItems(items: MediaItem[], sortMode: SortMode) {
   return [...items].sort((firstItem, secondItem) => {
+    if (sortMode === "added_asc") {
+      return getDateSortValue(firstItem.added_at) - getDateSortValue(secondItem.added_at);
+    }
+
+    if (sortMode === "rating_asc") {
+      return (getRatingValue(firstItem) ?? Number.POSITIVE_INFINITY) - (getRatingValue(secondItem) ?? Number.POSITIVE_INFINITY);
+    }
+
+    if (sortMode === "rating_desc") {
+      return (getRatingValue(secondItem) ?? -1) - (getRatingValue(firstItem) ?? -1);
+    }
+
     if (sortMode === "campaign_asc") {
       return getDurationMinutes(firstItem.campaign_hours, "hours") - getDurationMinutes(secondItem.campaign_hours, "hours");
     }
@@ -86,6 +117,6 @@ export function sortMediaItems(items: MediaItem[], sortMode: SortMode) {
       return getNumericValue(secondItem.page_count) - getNumericValue(firstItem.page_count);
     }
 
-    return getYear(secondItem.added_at).localeCompare(getYear(firstItem.added_at));
+    return getDateSortValue(secondItem.added_at) - getDateSortValue(firstItem.added_at);
   });
 }

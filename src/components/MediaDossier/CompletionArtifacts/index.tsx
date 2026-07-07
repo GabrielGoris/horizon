@@ -1,11 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { getInitialWatchedDate, getNumericRating } from "../utils";
 import { BookBookmark } from "./BookBookmark";
-import { BookBookmarkEditor } from "./BookBookmarkEditor";
 import { GameSaveCard } from "./GameSaveCard";
-import { GameSaveEditor } from "./GameSaveEditor";
 import { MovieTicket } from "./MovieTicket";
-import { MovieTicketEditor } from "./MovieTicketEditor";
 import type { CompletionArtifactProps } from "./types";
 
 export function CompletionArtifacts({
@@ -14,44 +11,51 @@ export function CompletionArtifacts({
   onSaveBookCompletion,
   onSaveGameCompletion,
 }: CompletionArtifactProps) {
-  const [isTicketEditorOpen, setIsTicketEditorOpen] = useState(false);
   const [finishedAt, setFinishedAt] = useState(() => getInitialWatchedDate(item));
   const [rating, setRating] = useState(() => getNumericRating(item.rating));
-  const [pages, setPages] = useState(() => String(item.pages ?? ""));
   const [hoursPlayed, setHoursPlayed] = useState(() => String(item.hours_played ?? ""));
-  const [completionType, setCompletionType] = useState(() => item.completion_type ?? "");
-  const stars = useMemo(() => Array.from({ length: 5 }, (_, index) => index + 1), []);
+  const [completionType, setCompletionType] = useState(() => item.completion_type || "Campanha");
 
   if (item.status !== "complete") return null;
 
-  const saveTicket = async () => {
+  const saveTicket = async (values?: { watchedAt?: string; rating?: number }) => {
+    const nextWatchedAt = values?.watchedAt ?? finishedAt;
+    const nextRating = values?.rating ?? rating;
+
     await onSaveTicket(item, {
-      watchedAt: finishedAt,
-      rating: rating > 0 ? rating.toFixed(1) : "",
+      watchedAt: nextWatchedAt,
+      rating: nextRating > 0 ? nextRating.toFixed(1) : "",
     });
-
-    setIsTicketEditorOpen(false);
   };
 
-  const saveBook = async () => {
+  const saveBook = async (values?: { finishedAt?: string; rating?: number }) => {
+    const nextFinishedAt = values?.finishedAt ?? finishedAt;
+    const nextRating = values?.rating ?? rating;
+
     await onSaveBookCompletion(item, {
-      finishedAt,
-      rating: rating > 0 ? rating.toFixed(1) : "",
-      pages,
+      finishedAt: nextFinishedAt,
+      rating: nextRating > 0 ? nextRating.toFixed(1) : "",
+      pages: String(item.page_count ?? ""),
     });
-
-    setIsTicketEditorOpen(false);
   };
 
-  const saveGame = async () => {
-    await onSaveGameCompletion(item, {
-      finishedAt,
-      rating: rating > 0 ? rating.toFixed(1) : "",
-      hoursPlayed,
-      completionType,
-    });
+  const saveGame = async (values?: {
+    finishedAt?: string;
+    rating?: number;
+    hoursPlayed?: string;
+    completionType?: string;
+  }) => {
+    const nextFinishedAt = values?.finishedAt ?? finishedAt;
+    const nextRating = values?.rating ?? rating;
+    const nextHoursPlayed = values?.hoursPlayed ?? hoursPlayed;
+    const nextCompletionType = values?.completionType ?? completionType;
 
-    setIsTicketEditorOpen(false);
+    await onSaveGameCompletion(item, {
+      finishedAt: nextFinishedAt,
+      rating: nextRating > 0 ? nextRating.toFixed(1) : "",
+      hoursPlayed: nextHoursPlayed,
+      completionType: nextCompletionType,
+    });
   };
 
   if (item.type === "movies") {
@@ -61,21 +65,10 @@ export function CompletionArtifacts({
           item={item}
           watchedAt={finishedAt}
           rating={rating}
-          onClick={() => setIsTicketEditorOpen(true)}
+          onWatchedAtChange={setFinishedAt}
+          onRatingChange={setRating}
+          onSave={saveTicket}
         />
-
-        {isTicketEditorOpen && (
-          <MovieTicketEditor
-            item={item}
-            watchedAt={finishedAt}
-            rating={rating}
-            stars={stars}
-            onWatchedAtChange={setFinishedAt}
-            onRatingChange={setRating}
-            onClose={() => setIsTicketEditorOpen(false)}
-            onSave={saveTicket}
-          />
-        )}
       </>
     );
   }
@@ -87,24 +80,10 @@ export function CompletionArtifacts({
           item={item}
           finishedAt={finishedAt}
           rating={rating}
-          pages={pages}
-          onClick={() => setIsTicketEditorOpen(true)}
+          onFinishedAtChange={setFinishedAt}
+          onRatingChange={setRating}
+          onSave={saveBook}
         />
-
-        {isTicketEditorOpen && (
-          <BookBookmarkEditor
-            item={item}
-            finishedAt={finishedAt}
-            rating={rating}
-            pages={pages}
-            stars={stars}
-            onFinishedAtChange={setFinishedAt}
-            onRatingChange={setRating}
-            onPagesChange={setPages}
-            onClose={() => setIsTicketEditorOpen(false)}
-            onSave={saveBook}
-          />
-        )}
       </>
     );
   }
@@ -118,25 +97,12 @@ export function CompletionArtifacts({
           rating={rating}
           hoursPlayed={hoursPlayed}
           completionType={completionType}
-          onClick={() => setIsTicketEditorOpen(true)}
+          onFinishedAtChange={setFinishedAt}
+          onRatingChange={setRating}
+          onHoursPlayedChange={setHoursPlayed}
+          onCompletionTypeChange={setCompletionType}
+          onSave={saveGame}
         />
-
-        {isTicketEditorOpen && (
-          <GameSaveEditor
-            item={item}
-            finishedAt={finishedAt}
-            rating={rating}
-            hoursPlayed={hoursPlayed}
-            completionType={completionType}
-            stars={stars}
-            onFinishedAtChange={setFinishedAt}
-            onRatingChange={setRating}
-            onHoursPlayedChange={setHoursPlayed}
-            onCompletionTypeChange={setCompletionType}
-            onClose={() => setIsTicketEditorOpen(false)}
-            onSave={saveGame}
-          />
-        )}
       </>
     );
   }
