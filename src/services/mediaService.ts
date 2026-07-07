@@ -121,6 +121,8 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     season_count: item.season_count ?? undefined,
     episode_count: item.episode_count ?? undefined,
     campaign_hours: item.campaign_hours ?? undefined,
+    wishlist_position: item.wishlist_position ?? undefined,
+    wishlist_added_at: item.wishlist_added_at ?? undefined,
     pages: bookCompletion?.pages ?? undefined,
     hours_played: gameCompletion?.hours_played ?? undefined,
     completion_type: gameCompletion?.completion_type ?? undefined,
@@ -143,7 +145,7 @@ export async function createMedia(data: CreateMediaDTO) {
   const { data: createdMedia, error } = await supabase
     .from("media_items")
     .insert([getCreateMediaPayload(data)])
-    .select("id")
+    .select("*")
     .single();
 
   if (error) throw error;
@@ -153,6 +155,8 @@ export async function createMedia(data: CreateMediaDTO) {
   if (data.type === "movies" && data.status === "complete" && watchedAt && createdMedia?.id) {
     await saveMovieTicket(createdMedia.id, { watchedAt, rating: "" });
   }
+
+  return createdMedia ? normalizeMediaItem(createdMedia as MediaItemRow) : null;
 }
 
 export async function completeMedia(itemId: string) {

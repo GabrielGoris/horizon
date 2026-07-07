@@ -1,7 +1,7 @@
 import type { FieldError, FieldErrors, UseFormRegister, UseFormRegisterReturn, UseFormSetValue } from "react-hook-form";
 import type { CreateMediaDTO } from "../../../schemas/media/dto/create-media.dto";
 import type { BookCatalogResult, GameCatalogResult, MovieCatalogResult } from "../../../services/types";
-import type { MediaType } from "../../../types";
+import type { MediaItem, MediaType } from "../../../types";
 import type { fieldCopy } from "../consts";
 
 export type AddMediaFieldCopy = (typeof fieldCopy)[MediaType];
@@ -10,6 +10,7 @@ export interface AddMediaDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void | Promise<void>;
+  onPriorityCreate?: (item: MediaItem) => void | Promise<void>;
   initialType?: MediaType | null;
 }
 
@@ -53,13 +54,16 @@ export interface SearchErrorProps {
 
 export interface SearchResultButtonProps {
   cover: string;
+  fallbackCover?: string;
   details: string;
   onClick: () => void;
   title: string;
 }
 
 export interface CoverFieldProps {
+  className?: string;
   coverBackground: string;
+  coverFallback?: string;
   coverInput: UseFormRegisterReturn<"cover">;
   coverLabel: string;
   coverValue?: string;
@@ -67,6 +71,7 @@ export interface CoverFieldProps {
   errorClass: string;
   inputClass: string;
   labelClass: string;
+  onUseCoverFallback?: (cover: string) => void;
 }
 
 export interface TypeSpecificFieldsProps {

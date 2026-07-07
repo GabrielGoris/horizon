@@ -26,6 +26,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const [movieSearchError, setMovieSearchError] = useState("");
   const [bookSearchError, setBookSearchError] = useState("");
   const [coverBackdrop, setCoverBackdrop] = useState("");
+  const [coverFallback, setCoverFallback] = useState("");
   const [isGameSearchLoading, setIsGameSearchLoading] = useState(false);
   const [isMovieSearchLoading, setIsMovieSearchLoading] = useState(false);
   const [isBookSearchLoading, setIsBookSearchLoading] = useState(false);
@@ -57,6 +58,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     setMovieSearchError("");
     setBookSearchError("");
     setCoverBackdrop("");
+    setCoverFallback("");
     setIsGameSearchLoading(false);
     setIsMovieSearchLoading(false);
     setIsBookSearchLoading(false);
@@ -223,19 +225,23 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
 
     try {
       const details = await getGameDetails(game);
+      const fallbackCover = details.fallbackCover || game.fallbackCover || "";
       const backdrop = details.backdrop || game.backdrop || details.cover || game.cover;
 
       fillMediaFields(applyGameCatalogDetails(details));
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
+      setCoverFallback(fallbackCover);
       setGameSearchResults([]);
     } catch (error) {
       console.error(error);
+      const fallbackCover = game.fallbackCover || "";
       const backdrop = game.backdrop || game.cover;
 
       fillMediaFields(applyGameCatalogDetails({ ...game, creator: "", description: "", campaignHours: "" }));
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
+      setCoverFallback(fallbackCover);
       setGameSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
     } finally {
       setIsGameSearchLoading(false);
@@ -298,6 +304,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     clearCatalogSearch,
     clearResultsLater,
     coverBackdrop,
+    coverFallback,
     gameSearchError,
     gameSearchResults,
     handleSelectBook,

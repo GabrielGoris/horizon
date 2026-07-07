@@ -337,12 +337,12 @@ async function getIgdbTimeToBeat(gameId: number) {
   return getCampaignHoursFromTimeToBeat(results[0]);
 }
 
-async function getIgdbGameIdByTitle(title: string) {
+async function getIgdbGameByTitle(title: string) {
   const games = await requestIgdb<IgdbGame[]>(
     "games",
     `
       search "${escapeIgdbSearch(title)}";
-      fields name, total_rating_count, version_parent;
+      fields name, alternative_names.name, cover.url, first_release_date, genres.name, platforms.name, total_rating_count, version_parent;
       where version_parent = null;
       limit 5;
     `
@@ -350,7 +350,7 @@ async function getIgdbGameIdByTitle(title: string) {
 
   return games
     .sort((firstGame, secondGame) => scoreGameSearchResult(secondGame, title) - scoreGameSearchResult(firstGame, title))[0]
-    ?.id;
+    ?? null;
 }
 
 export async function searchGames(query: string): Promise<GameCatalogResult[]> {
@@ -385,10 +385,7 @@ export async function searchGames(query: string): Promise<GameCatalogResult[]> {
   );
 
   const [steamResult, igdbGameResults, igdbSearchResults] = await Promise.all([
-    steamPromise.catch((error) => {
-      console.warn("Steam search failed, falling back to IGDB.", error);
-      return [];
-    }),
+    steamPromise.catch(() => []),
     Promise.allSettled(igdbGamePromises),
     Promise.allSettled(igdbSearchPromises),
   ]);
@@ -411,14 +408,6 @@ export async function searchGames(query: string): Promise<GameCatalogResult[]> {
     }
   });
 
-  if (gamesById.size === 0 && steamResult.length === 0) {
-    const rejectedResult = [...igdbGameResults, ...igdbSearchResults].find((result) => result.status === "rejected");
-
-    if (rejectedResult?.status === "rejected") {
-      throw rejectedResult.reason;
-    }
-  }
-
   const missingSearchGameIds = Array.from(searchGameIds).filter((gameId) => !gamesById.has(gameId));
 
   if (missingSearchGameIds.length > 0) {
@@ -429,7 +418,7 @@ export async function searchGames(query: string): Promise<GameCatalogResult[]> {
         where id = (${missingSearchGameIds.slice(0, maxCatalogResults * 2).join(",")});
         limit ${maxCatalogResults * 2};
       `
-    );
+    ).catch(() => []);
 
     games.forEach((game) => gamesById.set(game.id, game));
   }
@@ -444,9 +433,20 @@ export async function searchGames(query: string): Promise<GameCatalogResult[]> {
 
   [...steamResult, ...igdbResults].forEach((game) => {
     const normalizedName = normalizeSearchText(game.title);
+    const existingGame = resultsByName.get(normalizedName);
 
-    if (!resultsByName.has(normalizedName)) {
+    if (!existingGame) {
       resultsByName.set(normalizedName, game);
+      return;
+    }
+
+    if (existingGame.source === "steam" && game.source === "igdb" && game.cover) {
+      resultsByName.set(normalizedName, {
+        ...existingGame,
+        fallbackCover: game.cover,
+        category: existingGame.category || game.category,
+        releaseYear: existingGame.releaseYear || game.releaseYear,
+      });
     }
   });
 
@@ -459,27 +459,33 @@ export async function searchGames(query: string): Promise<GameCatalogResult[]> {
 
 export async function getGameDetails(gameResult: GameCatalogResult): Promise<GameCatalogDetails> {
   if (gameResult.source === "steam") {
-    const brazilianDetails = await getSteamAppDetails(gameResult.id, "brazilian");
-    const portugueseDetails = await getSteamAppDetails(gameResult.id, "portuguese");
+    const [brazilianDetails, portugueseDetails] = await Promise.all([
+      getSteamAppDetails(gameResult.id, "brazilian").catch(() => null),
+      getSteamAppDetails(gameResult.id, "portuguese").catch(() => null),
+    ]);
     const mappedBrazilianDetails = brazilianDetails ? mapSteamDetails(brazilianDetails, gameResult.id) : null;
     const mappedPortugueseDetails = portugueseDetails ? mapSteamDetails(portugueseDetails, gameResult.id) : null;
 
     if (mappedBrazilianDetails) {
-      const igdbGameId = await getIgdbGameIdByTitle(mappedBrazilianDetails.title);
+      const igdbGame = await getIgdbGameByTitle(mappedBrazilianDetails.title);
+      const igdbFallbackCover = normalizeCoverUrl(igdbGame?.cover?.url);
 
       return {
         ...mappedBrazilianDetails,
+        fallbackCover: gameResult.fallbackCover || igdbFallbackCover,
         description: mappedBrazilianDetails.description || mappedPortugueseDetails?.description || "",
-        campaignHours: igdbGameId ? await getIgdbTimeToBeat(igdbGameId) : "",
+        campaignHours: igdbGame ? await getIgdbTimeToBeat(igdbGame.id) : "",
       };
     }
 
     if (mappedPortugueseDetails) {
-      const igdbGameId = await getIgdbGameIdByTitle(mappedPortugueseDetails.title);
+      const igdbGame = await getIgdbGameByTitle(mappedPortugueseDetails.title);
+      const igdbFallbackCover = normalizeCoverUrl(igdbGame?.cover?.url);
 
       return {
         ...mappedPortugueseDetails,
-        campaignHours: igdbGameId ? await getIgdbTimeToBeat(igdbGameId) : "",
+        fallbackCover: gameResult.fallbackCover || igdbFallbackCover,
+        campaignHours: igdbGame ? await getIgdbTimeToBeat(igdbGame.id) : "",
       };
     }
 

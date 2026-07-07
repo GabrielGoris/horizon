@@ -2,11 +2,11 @@ import { MEDIA_STATUS_OPTIONS } from "../../../../consts/mediaStatus";
 import { formatDateInput } from "../../../../utils/date";
 import type { TypeSpecificFieldsProps } from "../../types";
 
-function getCompletedYearLabel(selectedType: TypeSpecificFieldsProps["selectedType"]) {
-  if (selectedType === "games") return "Ano em que zerou";
-  if (selectedType === "movies") return "Ano em que assistiu";
+function getCompletionLabel(selectedType: TypeSpecificFieldsProps["selectedType"]) {
+  if (selectedType === "games") return "Data em que zerou";
+  if (selectedType === "movies") return "Data assistida";
 
-  return "Ano em que leu";
+  return "Data em que leu";
 }
 
 export function TypeSpecificFields({
@@ -21,177 +21,139 @@ export function TypeSpecificFields({
   onMovieKindChange,
   statusValue,
 }: TypeSpecificFieldsProps) {
-  const isFinishedMovie = selectedType === "movies" && statusValue === "complete";
-  const shouldShowCompletedYear = selectedType !== "movies";
+  const isFinished = statusValue === "complete";
 
-  if (selectedType === "movies") {
-    return (
-      <>
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
-              Tipo
-            </span>
-            <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-[#131315] p-1">
-              {[
-                { label: "Filme", value: "movie" },
-                { label: "Série", value: "series" },
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => onMovieKindChange(option.value as "movie" | "series")}
-                  className={`rounded-md px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                    movieKind === option.value
-                      ? "bg-noir-gold text-black"
-                      : "text-neutral-500 hover:bg-white/[0.04] hover:text-white"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+  return (
+    <>
+      <div className="flex flex-col gap-6">
+        {selectedType === "movies" && (
+          <>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
+                Tipo
+              </span>
+              <div className="grid grid-cols-2 gap-2 rounded-lg border border-white/10 bg-[#131315] p-1">
+                {[
+                  { label: "Filme", value: "movie" },
+                  { label: "Serie", value: "series" },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => onMovieKindChange(option.value as "movie" | "series")}
+                    className={`rounded-md px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                      movieKind === option.value
+                        ? "bg-noir-gold text-black"
+                        : "text-neutral-500 hover:bg-white/[0.04] hover:text-white"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {movieKind === "movie" ? (
-            <label className={labelClass}>
-              Duração
-              <input
-                placeholder="Ex: 2h 28 min"
-                {...register("runtime_minutes")}
-                className={inputClass}
-              />
-            </label>
-          ) : (
-            <div className="grid grid-cols-2 gap-3">
+            {movieKind === "movie" ? (
               <label className={labelClass}>
-                Temporadas
+                Duração
                 <input
-                  placeholder="Ex: 5"
-                  inputMode="numeric"
-                  {...register("season_count")}
+                  placeholder="Ex: 2h 28 min"
+                  {...register("runtime_minutes")}
                   className={inputClass}
                 />
               </label>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <label className={labelClass}>
+                  Temporadas
+                  <input
+                    placeholder="Ex: 5"
+                    inputMode="numeric"
+                    {...register("season_count")}
+                    className={inputClass}
+                  />
+                </label>
 
-              <label className={labelClass}>
-                Episódios
-                <input
-                  placeholder="Ex: 62"
-                  inputMode="numeric"
-                  {...register("episode_count")}
-                  className={inputClass}
-                />
-              </label>
-            </div>
-          )}
+                <label className={labelClass}>
+                  Episódios
+                  <input
+                    placeholder="Ex: 62"
+                    inputMode="numeric"
+                    {...register("episode_count")}
+                    className={inputClass}
+                  />
+                </label>
+              </div>
+            )}
+          </>
+        )}
 
+        {selectedType === "books" && (
           <label className={labelClass}>
-            Estado na Biblioteca *
-            <select {...register("status")} className={inputClass}>
-              {MEDIA_STATUS_OPTIONS.map((status) => (
-                <option key={status} value={status}>
-                  {copy.statusOptions[status]}
-                </option>
-              ))}
-            </select>
-            {errors.status && <span className={errorClass}>{errors.status.message}</span>}
-          </label>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 sm:col-span-2 sm:grid-cols-2">
-          <label className={labelClass}>
-            Adicionado em
+            Páginas da edição
             <input
-              placeholder="Ex: 2026 ou 06/07/2026"
+              placeholder="Ex: 416"
               inputMode="numeric"
-              {...register("added_at", {
-                onChange: (event) => {
-                  event.target.value = formatDateInput(event.target.value);
-                },
-              })}
+              {...register("page_count")}
               className={inputClass}
             />
           </label>
+        )}
 
-          {isFinishedMovie && (
-            <label className={labelClass}>
-              Data assistida
-              <input
-                placeholder="Ex: 06/07/2026"
-                inputMode="numeric"
-                {...register("watched_at", {
-                  onChange: (event) => {
-                    event.target.value = formatDateInput(event.target.value);
-                  },
-                })}
-                className={inputClass}
-              />
-            </label>
-          )}
-        </div>
-      </>
-    );
-  }
+        {selectedType === "games" && (
+          <label className={labelClass}>
+            Tempo da campanha
+            <input
+              placeholder="Ex: 48h 30 min"
+              {...register("campaign_hours")}
+              className={inputClass}
+            />
+          </label>
+        )}
 
-  return (
-    <div className="flex flex-col gap-6">
-      {selectedType === "books" && (
         <label className={labelClass}>
-          Páginas da edição
+          Estado na Biblioteca *
+          <select {...register("status")} className={inputClass}>
+            {MEDIA_STATUS_OPTIONS.map((status) => (
+              <option key={status} value={status}>
+                {copy.statusOptions[status]}
+              </option>
+            ))}
+          </select>
+          {errors.status && <span className={errorClass}>{errors.status.message}</span>}
+        </label>
+
+        <label className={labelClass}>
+          Adicionado em
           <input
-            placeholder="Ex: 416"
+            placeholder="Ex: 2026 ou 06/07/2026"
             inputMode="numeric"
-            {...register("page_count")}
+            {...register("added_at", {
+              onChange: (event) => {
+                event.target.value = formatDateInput(event.target.value);
+              },
+            })}
             className={inputClass}
           />
         </label>
-      )}
-
-      {selectedType === "games" && (
-        <label className={labelClass}>
-          Tempo da campanha
-          <input
-            placeholder="Ex: 48h 30 min"
-            {...register("campaign_hours")}
-            className={inputClass}
-          />
-        </label>
-      )}
+      </div>
 
       <label className={labelClass}>
-        Estado na Biblioteca *
-        <select {...register("status")} className={inputClass}>
-          {MEDIA_STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>
-              {copy.statusOptions[status]}
-            </option>
-          ))}
-        </select>
-        {errors.status && <span className={errorClass}>{errors.status.message}</span>}
-      </label>
-
-      <label className={labelClass}>
-        Adicionado em
+        {copy.metaLabel}
         <input
-          placeholder="Ex: 06/07/2026"
-          inputMode="numeric"
-          {...register("added_at", {
-            onChange: (event) => {
-              event.target.value = formatDateInput(event.target.value);
-            },
-          })}
+          placeholder={copy.metaPlaceholder}
+          {...register("meta")}
           className={inputClass}
         />
       </label>
 
-      {isFinishedMovie && (
+      {isFinished && (
         <label className={labelClass}>
-          Data assistida
+          {getCompletionLabel(selectedType)}
           <input
-            placeholder="Ex: 06/07/2026"
+            placeholder="Ex: 2026 ou 06/07/2026"
             inputMode="numeric"
-            {...register("watched_at", {
+            {...register(selectedType === "movies" ? "watched_at" : "completed_year", {
               onChange: (event) => {
                 event.target.value = formatDateInput(event.target.value);
               },
@@ -200,18 +162,6 @@ export function TypeSpecificFields({
           />
         </label>
       )}
-
-      {shouldShowCompletedYear && (
-        <label className={labelClass}>
-          {getCompletedYearLabel(selectedType)}
-          <input
-            placeholder="Ex: 2026"
-            inputMode="numeric"
-            {...register("completed_year")}
-            className={inputClass}
-          />
-        </label>
-      )}
-    </div>
+    </>
   );
 }

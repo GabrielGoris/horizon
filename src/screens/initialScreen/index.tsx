@@ -5,6 +5,7 @@ import { Sidebar } from "../../components/Sidebar";
 import { MediaCard } from "../../components/MediaCard";
 import { MediaDossier } from "../../components/MediaDossier";
 import { DeleteMediaDialog } from "../../components/DeleteMediaDialog";
+import { WishlistPriorityDialog } from "../../components/WishlistPriorityDialog";
 import { CATEGORIES } from "./consts";
 import type { BookCompletionDTO, GameCompletionDTO, MovieTicketDTO } from "../../schemas/media";
 import type { MediaItem } from "../../types";
@@ -21,6 +22,7 @@ import {
   saveGameCompletion,
   saveMovieTicket,
 } from "../../services/mediaService";
+import { getWishlistItems, moveMediaToWishlist } from "../../services/wishlistService";
 import { LibraryFilters } from "./components/LibraryFilters";
 import type { InitialScreenProps, LibraryFilterState } from "./types";
 import { getCompletionYear, getYear, isSeriesItem, sortMediaItems } from "./utils";
@@ -56,7 +58,9 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [mediaToDelete, setMediaToDelete] = useState<MediaItem | null>(null);
+  const [mediaToPrioritize, setMediaToPrioritize] = useState<MediaItem | null>(null);
   const [isDeletingMedia, setIsDeletingMedia] = useState(false);
+  const [isSavingWishlist, setIsSavingWishlist] = useState(false);
   const [filterState, setFilterState] = useState<LibraryFilterState>(() => getDefaultFilterState(activeTab));
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
@@ -189,6 +193,28 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
     await refreshMedia();
   }, [mediaToDelete, refreshMedia]);
 
+  const confirmWishlistPosition = useCallback(async (position: number) => {
+    if (!mediaToPrioritize) return;
+
+    const wishlistCollection = collection.some((item) => item.id === mediaToPrioritize.id)
+      ? collection
+      : [mediaToPrioritize, ...collection];
+
+    setIsSavingWishlist(true);
+    try {
+      await moveMediaToWishlist(wishlistCollection, mediaToPrioritize, position);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao atualizar a lista de prioridade.");
+      setIsSavingWishlist(false);
+      return;
+    }
+
+    setIsSavingWishlist(false);
+    setMediaToPrioritize(null);
+    await refreshMedia();
+  }, [collection, mediaToPrioritize, refreshMedia]);
+
   const filteredCollection = useMemo(() => {
     const filteredItems = collection.filter((item) => {
       const matchesTab = activeTab === 'overview' || item.type === activeTab;
@@ -206,6 +232,17 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
 
     return activeTab === "overview" ? filteredItems : sortMediaItems(filteredItems, sortMode);
   }, [collection, activeTab, searchQuery, statusFilter, movieKindFilter, addedYearFilter, completedYearFilter, sortMode]);
+
+  const overviewPriorityItems = useMemo(() => {
+    return new Map(
+      CATEGORIES.map((category) => [
+        category.id,
+        getWishlistItems(filteredCollection, category.id).slice(0, 5),
+      ])
+    );
+  }, [filteredCollection]);
+
+  const hasOverviewPriorityItems = Array.from(overviewPriorityItems.values()).some((items) => items.length > 0);
 
 
   return (
@@ -233,16 +270,14 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
               <p className="mt-1 text-sm text-neutral-500">O que está no seu radar no momento.</p>
             </div>
 
-            {filteredCollection.length === 0 && (
+            {!hasOverviewPriorityItems && (
                <div className="flex flex-col items-center justify-center py-20 text-neutral-500">
-                 <p>Nenhuma obra encontrada.</p>
+                 <p>Nenhuma obra na lista de prioridade.</p>
                </div>
             )}
 
             {CATEGORIES.map(category => {
-              const categoryItems = filteredCollection
-                .filter(item => item.type === category.id)
-                .slice(0, 5);
+              const categoryItems = overviewPriorityItems.get(category.id) ?? [];
               
               if (categoryItems.length === 0) return null; 
 
@@ -326,6 +361,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
         isOpen={isAddMediaModalOpen}
         onClose={() => setIsAddMediaModalOpen(false)}
         onSuccess={refreshMedia}
+        onPriorityCreate={setMediaToPrioritize}
         initialType={addMediaInitialType}
       />
       {selectedMedia && (
@@ -349,6 +385,23 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
             }
           }}
           onConfirm={confirmDeleteMedia}
+        />
+      )}
+      {mediaToPrioritize && (
+        <WishlistPriorityDialog
+          collection={
+            collection.some((item) => item.id === mediaToPrioritize.id)
+              ? collection
+              : [mediaToPrioritize, ...collection]
+          }
+          item={mediaToPrioritize}
+          isSaving={isSavingWishlist}
+          onCancel={() => {
+            if (!isSavingWishlist) {
+              setMediaToPrioritize(null);
+            }
+          }}
+          onConfirm={confirmWishlistPosition}
         />
       )}
     </div>

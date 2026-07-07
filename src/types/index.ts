@@ -26,6 +26,8 @@ export interface MediaItem {
   season_count?: number | string;
   episode_count?: number | string;
   campaign_hours?: number | string;
+  wishlist_position?: number | string;
+  wishlist_added_at?: string;
   pages?: number | string;
   hours_played?: number | string;
   completion_type?: string;
@@ -66,6 +68,8 @@ export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating" | "status"> 
   season_count?: number | string | null;
   episode_count?: number | string | null;
   campaign_hours?: number | string | null;
+  wishlist_position?: number | string | null;
+  wishlist_added_at?: string | null;
   rating?: string | number | null;
   movie_completions?: MovieCompletionRow[] | MovieCompletionRow | null;
   book_completions?: BookCompletionRow[] | BookCompletionRow | null;

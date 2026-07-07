@@ -91,6 +91,7 @@ export type GameCatalogResult = {
   title: string;
   releaseYear: string;
   cover: string;
+  fallbackCover?: string;
   backdrop?: string;
   category: string;
   platform: string;

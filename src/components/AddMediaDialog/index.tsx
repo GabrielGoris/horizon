@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import { createMedia } from "../../services/mediaService";
@@ -13,15 +13,16 @@ import { fieldCopy, getDefaultValues } from "./consts";
 import { useMediaCatalogSearch } from "./hooks/useMediaCatalogSearch";
 import type { AddMediaDialogProps } from "./types";
 
-export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddMediaDialogProps) {
+export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, initialType }: AddMediaDialogProps) {
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
   const [movieKind, setMovieKind] = useState<"movie" | "series">("movie");
   const {
     register,
     handleSubmit,
+    control,
+    getValues,
     reset,
     setValue,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateMediaDTO>({
     resolver: zodResolver(createMediaSchema),
@@ -29,8 +30,6 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
   });
   const selectedType = initialType ?? manualSelectedType;
   const catalogSearch = useMediaCatalogSearch({ selectedType, setValue });
-
-  if (!isOpen) return null;
 
   const selectType = (type: MediaType) => {
     setManualSelectedType(type);
@@ -49,7 +48,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
     onClose();
   };
 
-  const onSubmit = async (data: CreateMediaDTO) => {
+  const onSubmit = async (data: CreateMediaDTO, shouldPrioritize = false) => {
     if (!selectedType) return;
 
     try {
@@ -57,13 +56,17 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
         ? { ...data, type: selectedType, movie_kind: movieKind }
         : { ...data, type: selectedType };
 
-      await createMedia(nextData);
+      const createdMedia = await createMedia(nextData);
       await onSuccess();
       reset(getDefaultValues(selectedType));
       setManualSelectedType(null);
       setMovieKind("movie");
       catalogSearch.clearCatalogSearch();
       onClose();
+
+      if (shouldPrioritize && createdMedia) {
+        await onPriorityCreate?.(createdMedia);
+      }
     } catch (error) {
       console.error("Erro ao guardar:", error);
 
@@ -77,9 +80,11 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
   const errorClass = "text-[10px] text-red-400 normal-case tracking-normal";
   const titleInput = register("title");
   const coverInput = register("cover");
-  const coverValue = watch("cover");
-  const statusValue = watch("status");
+  const coverValue = useWatch({ control, name: "cover" });
+  const statusValue = useWatch({ control, name: "status" });
   const coverBackground = catalogSearch.coverBackdrop || coverValue || "";
+
+  if (!isOpen) return null;
 
   const updateMovieKind = (nextMovieKind: "movie" | "series") => {
     setMovieKind(nextMovieKind);
@@ -95,72 +100,80 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
       onClick={closeDialog}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/10 bg-[#1a1a1e] p-8 shadow-2xl"
+        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1e] shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="mb-8 flex items-center justify-between border-b border-white/5 pb-4">
-          <div>
-            <h2 className="font-serif text-3xl font-bold text-[#ebdcb9]">
-              {copy?.title ?? "Adicionar ao Catalogo"}
-            </h2>
-            {!initialType && selectedType && (
-              <button
-                type="button"
-                onClick={() => {
-                  setManualSelectedType(null);
-                  catalogSearch.clearCatalogSearch();
-                }}
-                className="mt-2 font-mono text-[10px] uppercase tracking-widest text-neutral-500 transition-colors hover:text-noir-gold"
-              >
-                Trocar tipo
-              </button>
-            )}
-          </div>
+        <div className="shrink-0 border-b border-white/5 px-8 pb-4 pt-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-serif text-3xl font-bold text-[#ebdcb9]">
+                {copy?.title ?? "Adicionar ao Catalogo"}
+              </h2>
+              {!initialType && selectedType && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualSelectedType(null);
+                    catalogSearch.clearCatalogSearch();
+                  }}
+                  className="mt-2 font-mono text-[10px] uppercase tracking-widest text-neutral-500 transition-colors hover:text-noir-gold"
+                >
+                  Trocar tipo
+                </button>
+              )}
+            </div>
 
-          <button
-            type="button"
-            onClick={closeDialog}
-            aria-label="Fechar"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            <X size={16} />
-          </button>
+            <button
+              type="button"
+              onClick={closeDialog}
+              aria-label="Fechar"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-neutral-400 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
-        {!selectedType && <MediaTypePicker onSelect={selectType} />}
+        {!selectedType && (
+          <div className="overflow-y-auto px-8 py-6">
+            <MediaTypePicker onSelect={selectType} />
+          </div>
+        )}
 
         {selectedType && copy && (
-          <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <CatalogTitleField
-                bookSearchError={catalogSearch.bookSearchError}
-                bookSearchResults={catalogSearch.bookSearchResults}
-                copy={copy}
-                error={errors.title}
-                errorClass={errorClass}
-                gameSearchError={catalogSearch.gameSearchError}
-                gameSearchResults={catalogSearch.gameSearchResults}
-                inputClass={inputClass}
-                isBookSearchLoading={catalogSearch.isBookSearchLoading}
-                isGameSearchLoading={catalogSearch.isGameSearchLoading}
-                isMovieSearchLoading={catalogSearch.isMovieSearchLoading}
-                labelClass={labelClass}
-                movieSearchError={catalogSearch.movieSearchError}
-                movieSearchResults={catalogSearch.movieSearchResults}
-                onBlur={catalogSearch.clearResultsLater}
-                onChange={catalogSearch.searchTitle}
-                onFocus={() => catalogSearch.searchCurrentTitle(String(watch("title") ?? ""))}
-                onSelectBook={(book) => void catalogSearch.handleSelectBook(book)}
-                onSelectGame={(game) => void catalogSearch.handleSelectGame(game)}
-                onSelectMovie={(movie) => {
-                  const nextMovieKind = movie.mediaType === "tv" ? "series" : "movie";
-                  setMovieKind(nextMovieKind);
-                  setValue("movie_kind", nextMovieKind, { shouldDirty: true, shouldValidate: true });
-                  void catalogSearch.handleSelectMovie(movie);
-                }}
-                selectedType={selectedType}
-                titleInput={titleInput}
-              />
+          <form onSubmit={handleSubmit((data) => onSubmit(data))} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 overflow-y-auto px-8 py-6">
+              <div className="flex flex-col gap-6">
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <CatalogTitleField
+                    bookSearchError={catalogSearch.bookSearchError}
+                    bookSearchResults={catalogSearch.bookSearchResults}
+                    copy={copy}
+                    error={errors.title}
+                    errorClass={errorClass}
+                    gameSearchError={catalogSearch.gameSearchError}
+                    gameSearchResults={catalogSearch.gameSearchResults}
+                    inputClass={inputClass}
+                    isBookSearchLoading={catalogSearch.isBookSearchLoading}
+                    isGameSearchLoading={catalogSearch.isGameSearchLoading}
+                    isMovieSearchLoading={catalogSearch.isMovieSearchLoading}
+                    labelClass={labelClass}
+                    movieSearchError={catalogSearch.movieSearchError}
+                    movieSearchResults={catalogSearch.movieSearchResults}
+                    onBlur={catalogSearch.clearResultsLater}
+                    onChange={catalogSearch.searchTitle}
+                    onFocus={() => catalogSearch.searchCurrentTitle(String(getValues("title") ?? ""))}
+                    onSelectBook={(book) => void catalogSearch.handleSelectBook(book)}
+                    onSelectGame={(game) => void catalogSearch.handleSelectGame(game)}
+                    onSelectMovie={(movie) => {
+                      const nextMovieKind = movie.mediaType === "tv" ? "series" : "movie";
+                      setMovieKind(nextMovieKind);
+                      setValue("movie_kind", nextMovieKind, { shouldDirty: true, shouldValidate: true });
+                      void catalogSearch.handleSelectMovie(movie);
+                    }}
+                    selectedType={selectedType}
+                    titleInput={titleInput}
+                  />
 
               <label className={labelClass}>
                 {copy.creatorLabel}
@@ -203,9 +216,10 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
               </label>
             </div>
 
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div className="grid grid-cols-1 items-stretch gap-6 sm:grid-cols-2">
               <CoverField
                 coverBackground={coverBackground}
+                coverFallback={catalogSearch.coverFallback}
                 coverInput={coverInput}
                 coverLabel={copy.coverLabel}
                 coverValue={coverValue}
@@ -213,6 +227,9 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                 errorClass={errorClass}
                 inputClass={inputClass}
                 labelClass={labelClass}
+                onUseCoverFallback={(cover) => {
+                  setValue("cover", cover, { shouldDirty: true, shouldValidate: true });
+                }}
               />
 
               <TypeSpecificFields
@@ -230,15 +247,6 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
             </div>
 
             <label className={labelClass}>
-              {copy.metaLabel}
-              <input
-                placeholder={copy.metaPlaceholder}
-                {...register("meta")}
-                className={inputClass}
-              />
-            </label>
-
-            <label className={labelClass}>
               {copy.descriptionLabel}
               <textarea
                 rows={3}
@@ -247,8 +255,11 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
                 className={`${inputClass} resize-none`}
               />
             </label>
+              </div>
+            </div>
 
-            <div className="mt-4 flex items-center justify-end gap-4 border-t border-white/5 pt-6">
+            <div className="shrink-0 border-t border-white/5 bg-[#1a1a1e] px-8 py-6">
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-4">
               <button
                 type="button"
                 onClick={closeDialog}
@@ -263,6 +274,15 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, initialType }: AddM
               >
                 {isSubmitting ? "Guardando..." : "Guardar Obra"}
               </button>
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleSubmit((data) => onSubmit(data, true))}
+                className="rounded-lg border border-[#d4af37]/35 bg-[#d4af37]/10 px-8 py-3 text-xs font-bold uppercase tracking-wider text-[#ebdcb9] transition-all hover:-translate-y-0.5 hover:border-[#d4af37]/60 hover:bg-[#d4af37]/15 disabled:opacity-50 disabled:hover:transform-none"
+              >
+                Adicionar à lista de prioridade
+              </button>
+              </div>
             </div>
           </form>
         )}

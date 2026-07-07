@@ -62,6 +62,7 @@ export function CatalogTitleField({
             <SearchResultButton
               key={`${game.source}-${game.id}`}
               cover={game.cover}
+              fallbackCover={game.fallbackCover}
               details={[game.source.toUpperCase(), game.releaseYear, game.category].filter(Boolean).join(" - ") || "Sem detalhes"}
               title={game.title}
               onClick={() => onSelectGame(game)}
@@ -121,7 +122,7 @@ function SearchError({ message }: SearchErrorProps) {
   );
 }
 
-function SearchResultButton({ cover, details, onClick, title }: SearchResultButtonProps) {
+function SearchResultButton({ cover, fallbackCover, details, onClick, title }: SearchResultButtonProps) {
   return (
     <button
       type="button"
@@ -134,6 +135,14 @@ function SearchResultButton({ cover, details, onClick, title }: SearchResultButt
           <img
             src={cover}
             alt={title}
+            onError={(event) => {
+              if (fallbackCover && event.currentTarget.src !== fallbackCover) {
+                event.currentTarget.src = fallbackCover;
+                return;
+              }
+
+              event.currentTarget.remove();
+            }}
             className="h-full w-full object-cover"
           />
         )}

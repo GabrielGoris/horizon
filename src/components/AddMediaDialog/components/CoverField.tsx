@@ -2,7 +2,9 @@ import type { ChangeEvent } from "react";
 import type { CoverFieldProps } from "../types";
 
 export function CoverField({
+  className,
   coverBackground,
+  coverFallback,
   coverInput,
   coverLabel,
   coverValue,
@@ -10,15 +12,16 @@ export function CoverField({
   errorClass,
   inputClass,
   labelClass,
+  onUseCoverFallback,
 }: CoverFieldProps) {
   const handleCoverChange = (event: ChangeEvent<HTMLInputElement>) => {
     void coverInput.onChange(event);
   };
 
   return (
-    <label className={labelClass}>
+    <label className={`${labelClass} ${className ?? ""}`}>
       {coverLabel}
-      <div className="relative flex min-h-[170px] items-center gap-4 overflow-hidden rounded-xl border border-white/10 bg-[#111114] p-4">
+      <div className="relative flex min-h-[170px] flex-1 items-center gap-4 overflow-hidden rounded-xl border border-white/10 bg-[#111114] p-4">
         {coverBackground && (
           <>
             <img
@@ -36,6 +39,15 @@ export function CoverField({
             <img
               src={coverValue}
               alt="Capa selecionada"
+              onError={(event) => {
+                if (coverFallback && event.currentTarget.src !== coverFallback) {
+                  event.currentTarget.src = coverFallback;
+                  onUseCoverFallback?.(coverFallback);
+                  return;
+                }
+
+                event.currentTarget.remove();
+              }}
               className="h-full w-full object-cover"
             />
           ) : (
