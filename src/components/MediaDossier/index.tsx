@@ -36,7 +36,7 @@ export function MediaDossier({
     <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-[6px]">
       <button
         type="button"
-        aria-label="Fechar dossie"
+        aria-label="Fechar dossiê"
         className="absolute inset-0 cursor-default"
         onClick={onClose}
       />
@@ -45,7 +45,7 @@ export function MediaDossier({
         <header className="flex h-[70px] items-center justify-between border-b border-white/10 px-7">
           <div className="flex items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-noir-gold">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            <span>Dossie</span>
+            <span>Dossiê</span>
             <span className="text-neutral-600">-</span>
             <span>{mediaDisplayType}</span>
           </div>

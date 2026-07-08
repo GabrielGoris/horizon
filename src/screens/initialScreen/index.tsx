@@ -26,7 +26,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   });
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
-  const activeLabel = activeTab === "overview" ? "Visao Geral" : activeCategory?.plural ?? "Nova Categoria";
+  const activeLabel = activeTab === "overview" ? "Visão Geral" : activeCategory?.plural ?? "Nova Categoria";
   const addMediaInitialType = activeTab === "overview" ? null : activeCategory?.id;
   const filteredCollection = useFilteredCollection({
     activeTab,

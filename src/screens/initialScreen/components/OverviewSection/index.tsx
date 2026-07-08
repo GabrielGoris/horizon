@@ -11,9 +11,9 @@ export function OverviewSection({ priorityItemsByCategory, onManageWishlist, onP
     <div className="flex flex-col gap-12">
       <div className="border-b border-white/5 pb-4">
         <h2 className="font-serif text-3xl font-extrabold text-white">
-          Visao Geral do Acervo
+          Visão Geral do Acervo
         </h2>
-        <p className="mt-1 text-sm text-neutral-500">O que esta no seu radar no momento.</p>
+        <p className="mt-1 text-sm text-neutral-500">O que está no seu radar no momento.</p>
       </div>
 
       {!hasPriorityItems && (

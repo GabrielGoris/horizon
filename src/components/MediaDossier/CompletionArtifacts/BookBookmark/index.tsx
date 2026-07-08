@@ -10,7 +10,7 @@ export function BookBookmark({
   onRatingChange,
   onSave,
 }: BookBookmarkProps) {
-  const pageCount = item.page_count ? `${item.page_count} paginas` : "Paginas nao informadas";
+  const pageCount = item.page_count ? `${item.page_count} páginas` : "Páginas nao informadas";
 
   return (
     <div className="mt-8 w-full rounded-md border border-[#d4af37]/25 bg-[#e7d8aa] p-5 text-left text-[#23190d] shadow-[0_18px_45px_rgba(212,175,55,0.16)] transition-transform duration-300 hover:-translate-y-1">
