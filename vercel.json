@@ -1,12 +1,20 @@
 {
   "rewrites": [
-      {
-      "source": "/igdb-api/(.)",
-      "destination": "https://api.igdb.com/v4/$1"
+    {
+      "source": "/igdb-api/:path*",
+      "destination": "/api/igdb-api/:path*"
     },
     {
-      "source": "/steam-api/(.)",
-      "destination": "https://store.steampowered.com/$1"
+      "source": "/steam-api/:path*",
+      "destination": "/api/steam-api/:path*"
+    },
+    {
+      "source": "/tmdb-api/:path*",
+      "destination": "/api/tmdb-api/:path*"
+    },
+    {
+      "source": "/books-api/:path*",
+      "destination": "/api/books-api/:path*"
     },
     {
       "source": "/(.*)",
