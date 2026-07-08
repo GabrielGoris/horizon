@@ -38,6 +38,21 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
     sortMode: filters.sortMode,
     statusFilter: filters.statusFilter,
   });
+  const activeItems = useMemo(() => {
+    if (activeTab === "overview") {
+      return [];
+    }
+
+    const normalizedSearch = searchQuery.trim().toLowerCase();
+
+    return mediaCollection.collection.filter((item) => {
+      const matchesType = item.type === activeTab;
+      const matchesStatus = item.status === "in_progress";
+      const matchesSearch = !normalizedSearch || item.title.toLowerCase().includes(normalizedSearch);
+
+      return matchesType && matchesStatus && matchesSearch;
+    });
+  }, [activeTab, mediaCollection.collection, searchQuery]);
   const overviewPriorityItems = useMemo(() => {
     return new Map(
       CATEGORIES.map((category) => [
@@ -69,6 +84,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
               />
             ) : (
               <CategorySection
+                activeItems={activeItems}
                 activeLabel={activeLabel}
                 activeTab={activeTab}
                 filters={filters}

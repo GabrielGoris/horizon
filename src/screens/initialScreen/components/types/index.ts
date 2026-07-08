@@ -2,6 +2,7 @@ import type { MediaItem, MediaType } from "../../../../types";
 import type { LibraryFilterState, MovieKindFilter, SortMode, StatusFilter } from "../../types";
 
 export type CategorySectionProps = {
+  activeItems: MediaItem[];
   activeLabel: string;
   activeTab: string;
   filters: {
@@ -20,6 +21,13 @@ export type CategorySectionProps = {
     sortMode: LibraryFilterState["sortMode"];
     statusFilter: LibraryFilterState["statusFilter"];
   };
+  items: MediaItem[];
+  mediaType?: MediaType;
+  onPrioritizeMedia: (item: MediaItem) => void;
+  onSelectMedia: (item: MediaItem) => void;
+};
+
+export type ActiveMediaSectionProps = {
   items: MediaItem[];
   mediaType?: MediaType;
   onPrioritizeMedia: (item: MediaItem) => void;
