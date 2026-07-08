@@ -10,7 +10,8 @@ import type {
   TmdbSearchResponse,
 } from "./types";
 
-const tmdbBaseUrl = "/tmdb-api";
+const internalApiPrefix = import.meta.env.PROD ? "/api" : "";
+const tmdbBaseUrl = `${internalApiPrefix}/tmdb-api`;
 const imageBaseUrl = "https://image.tmdb.org/t/p";
 const searchCache = new Map<string, MovieCatalogResult[]>();
 let genreCache: Record<TmdbMediaType, TmdbGenre[]> | null = null;

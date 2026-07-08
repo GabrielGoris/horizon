@@ -11,7 +11,8 @@ import type {
   OpenLibraryWork,
 } from "./types";
 
-const booksBaseUrl = "/books-api";
+const internalApiPrefix = import.meta.env.PROD ? "/api" : "";
+const booksBaseUrl = `${internalApiPrefix}/books-api`;
 const searchCache = new Map<string, BookCatalogResult[]>();
 const portugueseLanguageCodes = new Set(["por", "pt", "pt-br", "pt_br"]);
 const searchFields = [

@@ -1,8 +1,9 @@
 import type { CreateMediaDTO } from "../schemas/media";
 import type { GameCatalogDetails, GameCatalogResult, IgdbGame, IgdbGameTimeToBeat, IgdbGenre, IgdbInvolvedCompany, IgdbPlatform, IgdbSearchResult, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "./types";
 
-const igdbBaseUrl = "/igdb-api";
-const steamBaseUrl = "/steam-api";
+const internalApiPrefix = import.meta.env.PROD ? "/api" : "";
+const igdbBaseUrl = `${internalApiPrefix}/igdb-api`;
+const steamBaseUrl = `${internalApiPrefix}/steam-api`;
 const maxCatalogResults = 50;
 const searchCache = new Map<string, GameCatalogResult[]>();
 
