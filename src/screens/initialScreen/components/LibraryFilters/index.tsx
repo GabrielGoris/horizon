@@ -70,7 +70,7 @@ export function LibraryFilters({
   const sortOptions = getSortOptions(activeTab);
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="relative flex items-center gap-3">
       <span className="rounded border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-neutral-500">
         {itemCount} itens catalogados
       </span>
@@ -91,9 +91,10 @@ export function LibraryFilters({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-[70]" onClick={onClose}>
+        <>
+          <div className="fixed inset-0 z-[70]" onClick={onClose} />
           <div
-            className="absolute right-8 top-[156px] z-[80] flex w-[min(34rem,calc(100vw-7rem))] flex-col gap-4 rounded-xl border border-white/10 bg-[#17171a] p-4 shadow-2xl shadow-black/50 lg:right-12"
+            className="absolute right-0 top-[calc(100%+0.75rem)] z-[80] flex w-[min(34rem,calc(100vw-2rem))] flex-col gap-4 rounded-xl border border-white/10 bg-[#17171a] p-4 shadow-2xl shadow-black/50"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between">
@@ -188,7 +189,7 @@ export function LibraryFilters({
               </label>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

@@ -10,8 +10,3 @@ export type WishlistPriorityDialogProps = {
   onRemoveItem?: (item: MediaItem) => void | Promise<void>;
   mediaType?: MediaType;
 };
-
-export type MediaCoverProps = {
-  item: MediaItem;
-  className: string;
-};
