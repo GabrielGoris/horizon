@@ -15,10 +15,10 @@ function createIgdbProxyPlugin(): Plugin {
     name: 'horizon-igdb-proxy',
     configureServer(server) {
       const env = loadEnv(server.config.mode, process.cwd(), '')
-      const clientId = env.IGDB_CLIENT_ID
-      const clientSecret = env.IGDB_CLIENT_SECRET
-      const tmdbAccessToken = env.TMDB_ACCESS_TOKEN
-      const tmdbApiKey = env.TMDB_API_KEY
+      const clientId = env.VITE_IGDB_CLIENT_ID
+      const clientSecret = env.VITE_IGDB_CLIENT_SECRET
+      const tmdbAccessToken = env.VITE_TMDB_ACCESS_TOKEN
+      const tmdbApiKey = env.VITE_TMDB_API_KEY
 
       async function getAccessToken() {
         if (igdbAccessToken && Date.now() < igdbTokenExpiresAt) {
@@ -26,7 +26,7 @@ function createIgdbProxyPlugin(): Plugin {
         }
 
         if (!clientId || !clientSecret) {
-          throw new Error('Configure IGDB_CLIENT_ID e IGDB_CLIENT_SECRET no .env.local.')
+          throw new Error('Configure VITE_IGDB_CLIENT_ID e IGDB_CLIENT_SECRET no .env.local.')
         }
 
         const response = await fetch('https://id.twitch.tv/oauth2/token', {
@@ -39,7 +39,7 @@ function createIgdbProxyPlugin(): Plugin {
         })
 
         if (!response.ok) {
-          throw new Error('Nao foi possivel autenticar na IGDB.')
+          throw new Error('Não foi possivel autenticar na IGDB.')
         }
 
         const data = (await response.json()) as TwitchTokenResponse
@@ -132,7 +132,7 @@ function createIgdbProxyPlugin(): Plugin {
 
           if (!tmdbAccessToken && !tmdbApiKey) {
             res.statusCode = 500
-            res.end('Configure TMDB_ACCESS_TOKEN ou TMDB_API_KEY no .env.local.')
+            res.end('Configure VITE_TMDB_ACCESS_TOKEN ou VITE_TMDB_API_KEY no .env.local.')
             return
           }
 
