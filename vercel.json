@@ -1,25 +1,16 @@
 {
-	"rewrites": [
-		{
-			"source": "/igdb-api/:path*",
-			"destination": "https://api.igdb.com/v4/:path*"
-		},
-		{
-			"source": "/steam-api/:path*",
-			"destination": "https://store.steampowered.com/:path*"
-		},
-		{
-			"source": "/(.*)",
-			"destination": "/index.html"
-		}
-	],
-	"headers": [
-		{
-			"source": "/igdb-api/(.*)",
-			"headers": [
-				{ "key": "Access-Control-Allow-Origin", "value": "*" },
-				{ "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" }
-			]
-		}
-	]
+  "rewrites": [
+      {
+      "source": "/igdb-api/(.)",
+      "destination": "https://api.igdb.com/v4/$1"
+    },
+    {
+      "source": "/steam-api/(.)",
+      "destination": "https://store.steampowered.com/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
