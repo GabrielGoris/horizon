@@ -12,6 +12,7 @@ import {
   saveGameCompletion,
   saveMovieTicket,
 } from "../../../../services/mediaService";
+import { removeMediaFromWishlist } from "../../../../services/wishlistService";
 import type { MediaItem } from "../../../../types";
 
 export function useMediaCollection() {
@@ -42,6 +43,8 @@ export function useMediaCollection() {
     const media = await fetchMedia();
 
     setCollection(media);
+
+    return media;
   }, []);
 
   const updateMedia = useCallback((updatedMedia: MediaItem) => {
@@ -60,8 +63,20 @@ export function useMediaCollection() {
       return;
     }
 
-    updateMedia(markMediaAsComplete(item));
-  }, [updateMedia]);
+    if (item.wishlist_position) {
+      try {
+        await removeMediaFromWishlist(collection, item);
+      } catch (error) {
+        console.error(error);
+        alert("Obra concluida, mas não foi possivel remover da lista de prioridade.");
+      }
+    }
+
+    const refreshedCollection = await refreshMedia();
+    const refreshedMedia = refreshedCollection.find((media) => media.id === item.id);
+
+    setSelectedMedia(refreshedMedia ?? markMediaAsComplete(item));
+  }, [collection, refreshMedia]);
 
   const handleSaveMovieTicket = useCallback(async (item: MediaItem, ticket: MovieTicketDTO) => {
     try {

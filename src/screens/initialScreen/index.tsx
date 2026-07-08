@@ -62,6 +62,8 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 pb-10">
             {activeTab === "overview" ? (
               <OverviewSection
+                onManageWishlist={wishlistPriority.setManagedWishlistType}
+                onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
                 priorityItemsByCategory={overviewPriorityItems}
                 onSelectMedia={mediaCollection.setSelectedMedia}
               />
@@ -72,6 +74,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
                 filters={filters}
                 items={filteredCollection}
                 mediaType={addMediaInitialType ?? undefined}
+                onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
                 onSelectMedia={mediaCollection.setSelectedMedia}
               />
             )}
@@ -82,7 +85,9 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
       <AddMediaDialog
         isOpen={isAddMediaModalOpen}
         onClose={() => setIsAddMediaModalOpen(false)}
-        onSuccess={mediaCollection.refreshMedia}
+        onSuccess={async () => {
+          await mediaCollection.refreshMedia();
+        }}
         onPriorityCreate={wishlistPriority.setMediaToPrioritize}
         initialType={addMediaInitialType}
       />
@@ -119,6 +124,16 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
           isSaving={wishlistPriority.isSavingWishlist}
           onCancel={wishlistPriority.cancelWishlistPriority}
           onConfirm={wishlistPriority.confirmWishlistPosition}
+        />
+      )}
+      {wishlistPriority.managedWishlistType && !wishlistPriority.mediaToPrioritize && (
+        <WishlistPriorityDialog
+          collection={mediaCollection.collection}
+          mediaType={wishlistPriority.managedWishlistType}
+          isSaving={wishlistPriority.isSavingWishlist}
+          onCancel={wishlistPriority.cancelWishlistPriority}
+          onMoveItem={wishlistPriority.moveWishlistItem}
+          onRemoveItem={wishlistPriority.removeWishlistItem}
         />
       )}
     </div>

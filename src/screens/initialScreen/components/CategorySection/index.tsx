@@ -2,7 +2,7 @@ import { MediaCard } from "../../../../components/MediaCard";
 import { LibraryFilters } from "../LibraryFilters/index";
 import type { CategorySectionProps } from "../types";
 
-export function CategorySection({ activeLabel, activeTab, filters, items, mediaType, onSelectMedia }: CategorySectionProps) {
+export function CategorySection({ activeLabel, activeTab, filters, items, mediaType, onPrioritizeMedia, onSelectMedia }: CategorySectionProps) {
   return (
     <section className="relative">
       <div className="relative mb-8 flex items-center justify-between border-b border-white/5 pb-4">
@@ -37,6 +37,7 @@ export function CategorySection({ activeLabel, activeTab, filters, items, mediaT
             key={item.id}
             item={item}
             onClick={onSelectMedia}
+            onPrioritize={onPrioritizeMedia}
           />
         ))}
       </div>

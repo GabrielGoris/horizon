@@ -4,7 +4,7 @@ import { CATEGORIES } from "../../consts";
 import type { OverviewSectionProps } from "../types";
 
 
-export function OverviewSection({ priorityItemsByCategory, onSelectMedia }: OverviewSectionProps) {
+export function OverviewSection({ priorityItemsByCategory, onManageWishlist, onPrioritizeMedia, onSelectMedia }: OverviewSectionProps) {
   const hasPriorityItems = Array.from(priorityItemsByCategory.values()).some((items) => items.length > 0);
 
   return (
@@ -33,12 +33,21 @@ export function OverviewSection({ priorityItemsByCategory, onSelectMedia }: Over
               <h3 className="flex items-center gap-2 font-serif text-xl font-bold text-[#ebdcb9]">
                 Top 5 {category.plural}
               </h3>
-              <Link
-                to={`/${category.id}`}
-                className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 transition-colors hover:text-noir-gold"
-              >
-                Ver Tudo
-              </Link>
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => onManageWishlist(category.id)}
+                  className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 transition-colors hover:text-noir-gold"
+                >
+                  Gerenciar lista
+                </button>
+                <Link
+                  to={`/${category.id}`}
+                  className="font-mono text-[10px] uppercase tracking-widest text-neutral-500 transition-colors hover:text-noir-gold"
+                >
+                  Ver Tudo
+                </Link>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
@@ -48,6 +57,7 @@ export function OverviewSection({ priorityItemsByCategory, onSelectMedia }: Over
                   item={item}
                   rank={index + 1}
                   onClick={onSelectMedia}
+                  onPrioritize={onPrioritizeMedia}
                 />
               ))}
             </div>

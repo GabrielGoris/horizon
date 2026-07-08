@@ -22,6 +22,7 @@ export type CategorySectionProps = {
   };
   items: MediaItem[];
   mediaType?: MediaType;
+  onPrioritizeMedia: (item: MediaItem) => void;
   onSelectMedia: (item: MediaItem) => void;
 };
 
@@ -58,6 +59,8 @@ export interface MovieKindFiltersProps {
 };
 
 export type OverviewSectionProps = {
+  onManageWishlist: (mediaType: MediaType) => void;
+  onPrioritizeMedia: (item: MediaItem) => void;
   priorityItemsByCategory: Map<string, MediaItem[]>;
   onSelectMedia: (item: MediaItem) => void;
 };

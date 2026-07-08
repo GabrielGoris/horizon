@@ -14,5 +14,5 @@ export type UseFilteredCollectionParams = {
 
 export type UseWishlistPriorityParams = {
   collection: MediaItem[];
-  refreshMedia: () => Promise<void>;
+  refreshMedia: () => Promise<MediaItem[]>;
 };

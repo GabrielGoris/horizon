@@ -82,3 +82,30 @@ export async function moveMediaToWishlist(collection: MediaItem[], item: MediaIt
 
   return preview;
 }
+
+export async function removeMediaFromWishlist(collection: MediaItem[], item: MediaItem) {
+  const currentWishlist = getWishlistItems(collection, item.type).filter((wishlistItem) => wishlistItem.id !== item.id);
+  const updates = currentWishlist.map((wishlistItem, index) =>
+    supabase
+      .from("media_items")
+      .update({
+        wishlist_position: index + 1,
+      })
+      .eq("id", wishlistItem.id)
+  );
+
+  updates.push(
+    supabase
+      .from("media_items")
+      .update({
+        wishlist_position: null,
+        wishlist_added_at: null,
+      })
+      .eq("id", item.id)
+  );
+
+  const results = await Promise.all(updates);
+  const failedResult = results.find((result) => result.error);
+
+  if (failedResult?.error) throw failedResult.error;
+}

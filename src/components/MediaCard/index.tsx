@@ -1,3 +1,4 @@
+import { ListPlus } from "lucide-react";
 import type { MediaCardProps } from "./types";
 
 function getTypeLabel(item: MediaCardProps["item"]) {
@@ -8,7 +9,7 @@ function getTypeLabel(item: MediaCardProps["item"]) {
   return "Livro";
 }
 
-export function MediaCard({ item, onClick, rank }: MediaCardProps) {
+export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps) {
   const isBook = item.type === 'books';
   const typeLabel = getTypeLabel(item);
   const coverUrl = item.cover?.trim();
@@ -51,6 +52,20 @@ export function MediaCard({ item, onClick, rank }: MediaCardProps) {
           </span>
         )}
       </div>
+
+      {onPrioritize && (
+        <button
+          type="button"
+          aria-label="Editar lista de prioridade"
+          onClick={(event) => {
+            event.stopPropagation();
+            onPrioritize(item);
+          }}
+          className="absolute right-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#131315]/80 text-[#ebdcb9] opacity-0 shadow-lg backdrop-blur-md transition-all hover:border-[#d4af37]/50 hover:text-[#d4af37] group-hover:opacity-100"
+        >
+          <ListPlus size={15} />
+        </button>
+      )}
 
       <div className="absolute inset-0 z-20 flex flex-col justify-end rounded-[inherit] bg-gradient-to-t from-[#0a0a0c] via-black/50 to-transparent p-5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="text-[9px] font-bold uppercase tracking-widest text-[#d4af37] mb-1 drop-shadow-md">

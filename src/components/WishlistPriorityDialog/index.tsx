@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, X } from "lucide-react";
 import { buildWishlistPreview, getWishlistItems, WISHLIST_LIMIT } from "../../services/wishlistService";
 import type { MediaCoverProps, WishlistPriorityDialogProps } from "./types";
-
 
 const positions = Array.from({ length: WISHLIST_LIMIT }, (_, index) => index + 1);
 
@@ -32,19 +31,28 @@ function MediaCover({ item, className }: MediaCoverProps) {
 export function WishlistPriorityDialog({
   collection,
   item,
+  mediaType,
   isSaving = false,
   onCancel,
   onConfirm,
+  onMoveItem,
+  onRemoveItem,
 }: WishlistPriorityDialogProps) {
+  const targetMediaType = item?.type ?? mediaType;
+  const isManagingList = !item && Boolean(targetMediaType);
   const [selectedPosition, setSelectedPosition] = useState(() => {
+    if (!item) return 1;
+
     const currentPosition = Number(item.wishlist_position);
 
     if (Number.isFinite(currentPosition) && currentPosition > 0) return currentPosition;
 
     return Math.min(getWishlistItems(collection, item.type).length + 1, WISHLIST_LIMIT);
   });
-  const preview = buildWishlistPreview(collection, item, selectedPosition);
-  const previewPosition = preview.targetPosition;
+  const wishlistItems = targetMediaType ? getWishlistItems(collection, targetMediaType) : [];
+  const preview = item ? buildWishlistPreview(collection, item, selectedPosition) : null;
+  const previewItems = preview?.items ?? wishlistItems;
+  const previewPosition = preview?.targetPosition ?? selectedPosition;
 
   return (
     <div className="fixed inset-0 z-[75] flex items-center justify-center bg-black/75 px-5 backdrop-blur-[6px]">
@@ -62,10 +70,12 @@ export function WishlistPriorityDialog({
               Lista de prioridade
             </p>
             <h2 className="mt-1 font-serif text-2xl font-extrabold text-white">
-              Posicionar na wishlist
+              {isManagingList ? "Gerenciar wishlist" : "Posicionar na wishlist"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-neutral-400">
-              Escolha onde esta obra entra. Os itens abaixo descem uma posição.
+              {isManagingList
+                ? "Ajuste a ordem dos itens ou remova obras da lista."
+                : "Escolha onde esta obra entra. Os itens abaixo descem uma posição."}
             </p>
           </div>
 
@@ -80,37 +90,43 @@ export function WishlistPriorityDialog({
         </header>
 
         <div className="overflow-y-auto px-6 py-6">
-          <div className="mb-6 grid gap-5 rounded-2xl border border-noir-gold/20 bg-noir-gold/10 p-5 md:grid-cols-[140px_1fr]">
-            <div className="aspect-[2/3] overflow-hidden rounded-xl border border-noir-gold/25 bg-black/20 shadow-2xl shadow-black/30">
-              <MediaCover item={item} className="h-full w-full" />
-            </div>
+          {item && (
+            <div className="mb-6 grid gap-5 rounded-2xl border border-noir-gold/20 bg-noir-gold/10 p-5 md:grid-cols-[140px_1fr]">
+              <div className="aspect-[2/3] overflow-hidden rounded-xl border border-noir-gold/25 bg-black/20 shadow-2xl shadow-black/30">
+                <MediaCover item={item} className="h-full w-full" />
+              </div>
 
-            <div className="flex min-w-0 flex-col justify-center">
-              <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-noir-gold">
-                Nova prioridade
-              </p>
-              <h3 className="mt-3 truncate font-serif text-3xl font-extrabold text-white">
-                {item.title}
-              </h3>
-              <p className="mt-2 truncate font-mono text-[10px] uppercase tracking-wider text-neutral-500">
-                {item.creator || "Criador nao informado"}
-              </p>
-              <p className="mt-5 max-w-xl text-sm leading-6 text-neutral-400">
-                Clique em uma posição para visualizar a nova ordem da lista.
-              </p>
+              <div className="flex min-w-0 flex-col justify-center">
+                <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-noir-gold">
+                  Nova prioridade
+                </p>
+                <h3 className="mt-3 truncate font-serif text-3xl font-extrabold text-white">
+                  {item.title}
+                </h3>
+                <p className="mt-2 truncate font-mono text-[10px] uppercase tracking-wider text-neutral-500">
+                  {item.creator || "Criador nao informado"}
+                </p>
+                <p className="mt-5 max-w-xl text-sm leading-6 text-neutral-400">
+                  Clique em uma posição para visualizar a nova ordem da lista.
+                </p>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="flex gap-4 overflow-x-auto pb-3">
             {positions.map((position) => {
-              const slotItem = preview.items[position - 1];
-              const isNewItem = slotItem?.id === item.id;
+              const slotItem = previewItems[position - 1];
+              const isNewItem = Boolean(item && slotItem?.id === item.id);
 
               return (
                 <button
                   key={position}
                   type="button"
-                  onClick={() => setSelectedPosition(position)}
+                  onClick={() => {
+                    if (item) {
+                      setSelectedPosition(position);
+                    }
+                  }}
                   disabled={isSaving}
                   className={`group flex w-[132px] shrink-0 flex-col rounded-xl border p-2 text-left transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
                     isNewItem
@@ -144,11 +160,52 @@ export function WishlistPriorityDialog({
                       <span className="mt-1 block truncate font-mono text-[9px] uppercase tracking-wider text-neutral-500">
                         {isNewItem ? "Nova posição" : slotItem.creator || "Criador nao informado"}
                       </span>
+
+                      {isManagingList && (
+                        <div className="mt-3 flex items-center gap-1">
+                          <button
+                            type="button"
+                            aria-label="Mover para frente"
+                            disabled={isSaving || position === 1}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void onMoveItem?.(slotItem, position - 1);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded border border-white/10 bg-black/20 text-neutral-400 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ChevronLeft size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Mover para tras"
+                            disabled={isSaving || position >= wishlistItems.length}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void onMoveItem?.(slotItem, position + 1);
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded border border-white/10 bg-black/20 text-neutral-400 transition-colors hover:border-white/20 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <ChevronRight size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Remover da lista"
+                            disabled={isSaving}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void onRemoveItem?.(slotItem);
+                            }}
+                            className="ml-auto flex h-7 w-7 items-center justify-center rounded border border-red-400/20 bg-red-500/10 text-red-300 transition-colors hover:border-red-300/40 hover:text-red-100 disabled:cursor-not-allowed disabled:opacity-30"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="mt-3 min-w-0">
                       <strong className="block text-sm text-neutral-500">
-                        Posição vazia
+                        posição vazia
                       </strong>
                       <span className="mt-1 block font-mono text-[9px] uppercase tracking-wider text-neutral-700">
                         Inserir aqui
@@ -160,7 +217,7 @@ export function WishlistPriorityDialog({
             })}
           </div>
 
-          {preview.removedItem && (
+          {preview?.removedItem && (
             <p className="mt-4 rounded-lg border border-red-400/15 bg-red-500/10 px-4 py-3 text-sm leading-6 text-red-200">
               {preview.removedItem.title} sairá da lista de prioridade ao confirmar.
             </p>
@@ -178,11 +235,18 @@ export function WishlistPriorityDialog({
           </button>
           <button
             type="button"
-            onClick={() => onConfirm(previewPosition)}
-            disabled={isSaving}
+            onClick={() => {
+              if (item) {
+                void onConfirm?.(previewPosition);
+                return;
+              }
+
+              onCancel();
+            }}
+            disabled={isSaving || (Boolean(item) && !onConfirm)}
             className="rounded-lg bg-[#d4af37] px-6 py-3 font-mono text-xs font-bold uppercase tracking-wide text-black shadow-lg shadow-[#d4af37]/20 transition-all hover:-translate-y-0.5 hover:bg-[#ebdcb9] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
           >
-            {isSaving ? "Salvando..." : "Confirmar posição"}
+            {isSaving ? "Salvando..." : item ? "Confirmar posição" : "Fechar"}
           </button>
         </footer>
       </section>
