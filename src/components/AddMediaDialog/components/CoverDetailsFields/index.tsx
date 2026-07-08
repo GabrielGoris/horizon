@@ -11,8 +11,10 @@ export function CoverDetailsFields({
   errors,
   inputClass,
   labelClass,
+  metaValue,
   movieKind,
   onMovieKindChange,
+  ratingValue,
   register,
   selectedType,
   setValue,
@@ -44,10 +46,13 @@ export function CoverDetailsFields({
         errors={errors}
         inputClass={inputClass}
         labelClass={labelClass}
+        metaValue={metaValue}
         movieKind={movieKind}
         onMovieKindChange={onMovieKindChange}
+        ratingValue={ratingValue}
         register={register}
         selectedType={selectedType}
+        setValue={setValue}
         statusValue={statusValue}
       />
     </div>

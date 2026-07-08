@@ -11,9 +11,10 @@ import {
   saveBookCompletion,
   saveGameCompletion,
   saveMovieTicket,
+  updateMediaStatus,
 } from "../../../../services/mediaService";
 import { removeMediaFromWishlist } from "../../../../services/wishlistService";
-import type { MediaItem } from "../../../../types";
+import type { MediaItem, MediaStatus } from "../../../../types";
 
 export function useMediaCollection() {
   const [collection, setCollection] = useState<MediaItem[]>([]);
@@ -54,16 +55,20 @@ export function useMediaCollection() {
     setSelectedMedia(updatedMedia);
   }, []);
 
-  const handleCompleteMedia = useCallback(async (item: MediaItem) => {
+  const handleUpdateMediaStatus = useCallback(async (item: MediaItem, status: MediaStatus) => {
     try {
-      await completeMedia(item.id);
+      if (status === "complete") {
+        await completeMedia(item.id);
+      } else {
+        await updateMediaStatus(item.id, status);
+      }
     } catch (error) {
       console.error(error);
-      alert("Erro ao concluir a obra.");
+      alert("Erro ao atualizar o status da obra.");
       return;
     }
 
-    if (item.wishlist_position) {
+    if (status === "complete" && item.wishlist_position) {
       try {
         await removeMediaFromWishlist(collection, item);
       } catch (error) {
@@ -75,8 +80,12 @@ export function useMediaCollection() {
     const refreshedCollection = await refreshMedia();
     const refreshedMedia = refreshedCollection.find((media) => media.id === item.id);
 
-    setSelectedMedia(refreshedMedia ?? markMediaAsComplete(item));
+    setSelectedMedia(refreshedMedia ?? (status === "complete" ? markMediaAsComplete(item) : { ...item, status }));
   }, [collection, refreshMedia]);
+
+  const handleCompleteMedia = useCallback(async (item: MediaItem) => {
+    await handleUpdateMediaStatus(item, "complete");
+  }, [handleUpdateMediaStatus]);
 
   const handleSaveMovieTicket = useCallback(async (item: MediaItem, ticket: MovieTicketDTO) => {
     try {
@@ -140,6 +149,7 @@ export function useMediaCollection() {
     handleSaveBookCompletion,
     handleSaveGameCompletion,
     handleSaveMovieTicket,
+    handleUpdateMediaStatus,
     isDeletingMedia,
     mediaToDelete,
     refreshMedia,

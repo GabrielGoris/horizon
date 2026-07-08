@@ -1,4 +1,6 @@
 import { ListPlus } from "lucide-react";
+import { getGamePlatformOption } from "../../consts/gamePlatforms";
+import { GamePlatformLogo } from "../GamePlatformLogo";
 import type { MediaCardProps } from "./types";
 
 function getTypeLabel(item: MediaCardProps["item"]) {
@@ -12,6 +14,7 @@ function getTypeLabel(item: MediaCardProps["item"]) {
 export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps) {
   const isBook = item.type === 'books';
   const typeLabel = getTypeLabel(item);
+  const platform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
   const coverUrl = item.cover?.trim();
   const clipPath = isBook
     ? "inset(0 round 0.375rem 0.75rem 0.75rem 0.375rem)"
@@ -47,9 +50,17 @@ export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps)
             #{rank}
           </span>
         ) : (
-          <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded border bg-[#131315]/80 text-[#ebdcb9] border-[#d4af37]/30 backdrop-blur-md">
-            {typeLabel}
-          </span>
+          <>
+            <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded border bg-[#131315]/80 text-[#ebdcb9] border-[#d4af37]/30 backdrop-blur-md">
+              {typeLabel}
+            </span>
+            {platform && (
+              <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/65 px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-widest text-white/80 backdrop-blur-md">
+                <GamePlatformLogo platform={platform} compact className="h-3 w-3" />
+                {platform.label}
+              </span>
+            )}
+          </>
         )}
       </div>
 

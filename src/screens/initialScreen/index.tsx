@@ -114,6 +114,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
           onClose={() => mediaCollection.setSelectedMedia(null)}
           onComplete={mediaCollection.handleCompleteMedia}
           onDelete={mediaCollection.setMediaToDelete}
+          onStatusChange={mediaCollection.handleUpdateMediaStatus}
           onSaveTicket={mediaCollection.handleSaveMovieTicket}
           onSaveBookCompletion={mediaCollection.handleSaveBookCompletion}
           onSaveGameCompletion={mediaCollection.handleSaveGameCompletion}

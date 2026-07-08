@@ -1,5 +1,5 @@
 import { Check, Trash2, X } from "lucide-react";
-import { getMediaStatusLabel } from "../../consts/mediaStatus";
+import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../consts/mediaStatus";
 import { CompletionArtifacts } from "./CompletionArtifacts";
 import { DossierFacts } from "./DossierFacts";
 import { MediaObjectPreview } from "./MediaObjectPreview";
@@ -12,6 +12,7 @@ export function MediaDossier({
   onClose,
   onComplete,
   onDelete,
+  onStatusChange,
   onSaveTicket,
   onSaveBookCompletion,
   onSaveGameCompletion,
@@ -25,11 +26,11 @@ export function MediaDossier({
         ? "Jogo"
         : "Livro";
   const category = item.category || item.meta || typeLabels[item.type];
-  const status = getMediaStatusLabel(item.status, item.type);
   const isComplete = item.status === "complete";
   const progressPercentage = item.progress
     ? Math.min(100, Math.round((item.progress.current / item.progress.total) * 100))
     : 0;
+  const chipClass = "inline-flex h-6 items-center rounded-full border border-white/10 bg-white/[0.03] px-3 font-mono text-[10px] leading-none text-neutral-400";
 
   return (
     <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-[6px]">
@@ -71,14 +72,30 @@ export function MediaDossier({
             </p>
 
             <div className="mt-5 flex flex-wrap justify-center gap-2">
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] text-neutral-400">
+              <span className={chipClass}>
                 {category}
               </span>
-              <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] text-neutral-400">
-                {status}
-              </span>
+              <label className={`relative ${chipClass} px-0`}>
+                <span className="sr-only">Alterar status da obra</span>
+                <select
+                  value={item.status}
+                  onChange={(event) => {
+                    void onStatusChange(item, event.target.value as typeof item.status);
+                  }}
+                  className="h-full cursor-pointer appearance-none rounded-full border-0 bg-transparent pl-3 pr-6 font-mono text-[10px] leading-none text-neutral-400 outline-none transition-colors hover:text-noir-champagne"
+                >
+                  {MEDIA_STATUS_OPTIONS.map((statusOption) => (
+                    <option key={statusOption} value={statusOption} className="bg-[#17171a] text-neutral-200">
+                      {getMediaStatusLabel(statusOption, item.type)}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-neutral-500">
+                  ▾
+                </span>
+              </label>
               {item.rating && (
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-mono text-[10px] text-neutral-400">
+                <span className={chipClass}>
                   {item.rating}
                 </span>
               )}

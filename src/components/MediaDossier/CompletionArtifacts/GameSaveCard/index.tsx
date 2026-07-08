@@ -1,47 +1,8 @@
-import { useState } from "react";
-import { Star } from "lucide-react";
+import { RatingStars } from "../../../RatingStars";
 import { formatDateInput } from "../../utils";
 import type { GameSaveCardProps } from "../types";
-import { getRatingFromMouse } from "../utils";
 
 const completionTypeOptions = ["Campanha", "Completo", "Platina"];
-
-function renderStars(
-  rating: number,
-  onPreviewRating: (rating: number) => void,
-  onRatingChange: (rating: number) => void,
-  onSave: GameSaveCardProps["onSave"]
-) {
-  return Array.from({ length: 5 }, (_, index) => {
-    const star = index + 1;
-    const fillPercentage = Math.max(0, Math.min(1, rating - index)) * 100;
-
-    return (
-      <button
-        key={star}
-        type="button"
-        className="relative inline-flex transition-transform hover:scale-110"
-        onClick={(event) => {
-          const nextRating = getRatingFromMouse(event, star);
-
-          onRatingChange(nextRating);
-          void onSave({ rating: nextRating });
-        }}
-        onMouseMove={(event) => onPreviewRating(getRatingFromMouse(event, star))}
-        aria-label={`Dar nota ate ${star}`}
-      >
-        <span className="relative inline-flex">
-          <Star size={14} className="text-emerald-200/25" />
-          {fillPercentage > 0 && (
-            <span className="absolute inset-0 overflow-hidden" style={{ width: `${fillPercentage}%` }}>
-              <Star size={14} className="fill-emerald-200 text-emerald-200" />
-            </span>
-          )}
-        </span>
-      </button>
-    );
-  });
-}
 
 export function GameSaveCard({
   item,
@@ -55,14 +16,8 @@ export function GameSaveCard({
   onCompletionTypeChange,
   onSave,
 }: GameSaveCardProps) {
-  const [previewRating, setPreviewRating] = useState<number | null>(null);
-  const visibleRating = previewRating ?? rating;
-
   return (
-    <div
-      className="group mt-8 w-full text-left transition-transform duration-300 hover:-translate-y-1"
-      onMouseLeave={() => setPreviewRating(null)}
-    >
+    <div className="group mt-8 w-full text-left transition-transform duration-300 hover:-translate-y-1">
       <div className="relative mx-auto max-w-[340px] rounded-[18px] border border-white/10 bg-[#2b2c30] p-5 text-zinc-100 shadow-[0_28px_60px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]">
         <div className="pointer-events-none absolute inset-0 rounded-[18px] bg-[linear-gradient(135deg,rgba(255,255,255,0.10),transparent_32%,rgba(0,0,0,0.30))]" />
         <span className="absolute left-4 top-4 h-2.5 w-2.5 rounded-full border border-black/60 bg-[#15161a] shadow-[inset_0_1px_1px_rgba(255,255,255,0.16)]" />
@@ -150,9 +105,14 @@ export function GameSaveCard({
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-1">
-              {renderStars(visibleRating, setPreviewRating, onRatingChange, onSave)}
-            </div>
+            <RatingStars
+              value={rating}
+              onChange={onRatingChange}
+              onCommit={(nextRating) => onSave({ rating: nextRating })}
+              emptyClassName="text-emerald-200/25"
+              filledClassName="fill-emerald-200 text-emerald-200"
+              className="mt-4 flex items-center gap-1"
+            />
           </div>
         </div>
 

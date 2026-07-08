@@ -19,6 +19,7 @@ export const createMediaSchema = z.object({
   season_count: z.string().optional(),
   episode_count: z.string().optional(),
   campaign_hours: z.string().optional(),
+  rating: z.string().optional(),
   meta: z.string().optional(),
   description: z.string().optional(),
 });

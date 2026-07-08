@@ -110,6 +110,7 @@ export function getDefaultValues(type: MediaType): CreateMediaDTO {
     season_count: "",
     episode_count: "",
     campaign_hours: "",
+    rating: "",
     meta: "",
     description: "",
   };

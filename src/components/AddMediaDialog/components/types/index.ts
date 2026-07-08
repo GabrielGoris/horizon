@@ -25,8 +25,10 @@ export type CoverDetailsFieldsProps = {
   errors: FieldErrors<CreateMediaDTO>;
   inputClass: string;
   labelClass: string;
+  metaValue?: string;
   movieKind: "movie" | "series";
   onMovieKindChange: (movieKind: "movie" | "series") => void;
+  ratingValue?: string;
   register: UseFormRegister<CreateMediaDTO>;
   selectedType: CreateMediaDTO["type"];
   setValue: UseFormSetValue<CreateMediaDTO>;
@@ -37,4 +39,14 @@ export type FormActionsProps = {
   isSubmitting: boolean;
   onCancel: () => void;
   onSubmitWithPriority: () => void;
+};
+
+export type CompletionRatingFieldProps = {
+  ratingValue?: string;
+  setValue: UseFormSetValue<CreateMediaDTO>;
+};
+
+export type GamePlatformFieldProps = {
+  metaValue?: string;
+  setValue: UseFormSetValue<CreateMediaDTO>;
 };

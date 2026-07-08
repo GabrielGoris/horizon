@@ -31,6 +31,8 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   const selectedType = initialType ?? manualSelectedType;
   const catalogSearch = useMediaCatalogSearch({ selectedType, setValue });
   const coverValue = useWatch({ control, name: "cover" });
+  const metaValue = useWatch({ control, name: "meta" });
+  const ratingValue = useWatch({ control, name: "rating" });
   const statusValue = useWatch({ control, name: "status" });
 
   const copy = selectedType ? fieldCopy[selectedType] : null;
@@ -164,8 +166,10 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
                   errors={errors}
                   inputClass={inputClass}
                   labelClass={labelClass}
+                  metaValue={metaValue}
                   movieKind={movieKind}
                   onMovieKindChange={updateMovieKind}
+                  ratingValue={ratingValue}
                   register={register}
                   selectedType={selectedType}
                   setValue={setValue}

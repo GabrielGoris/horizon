@@ -150,10 +150,26 @@ export async function createMedia(data: CreateMediaDTO) {
 
   if (error) throw error;
 
-  const watchedAt = toSupabaseDate(data.watched_at);
+  const completionRating = data.rating ?? "";
 
-  if (data.type === "movies" && data.status === "complete" && watchedAt && createdMedia?.id) {
-    await saveMovieTicket(createdMedia.id, { watchedAt, rating: "" });
+  if (data.type === "movies" && data.status === "complete" && createdMedia?.id) {
+    await saveMovieTicket(createdMedia.id, { watchedAt: data.watched_at ?? "", rating: completionRating });
+  }
+
+  if (data.type === "books" && data.status === "complete" && createdMedia?.id) {
+    await saveBookCompletion(createdMedia.id, {
+      finishedAt: data.completed_year ?? "",
+      rating: completionRating,
+      pages: data.page_count,
+    });
+  }
+
+  if (data.type === "games" && data.status === "complete" && createdMedia?.id) {
+    await saveGameCompletion(createdMedia.id, {
+      finishedAt: data.completed_year ?? "",
+      rating: completionRating,
+      completionType: "Campanha",
+    });
   }
 
   return createdMedia ? normalizeMediaItem(createdMedia as MediaItemRow) : null;
@@ -163,6 +179,19 @@ export async function completeMedia(itemId: string) {
   const { error } = await supabase
     .from("media_items")
     .update({ status: "complete", completed_year: new Date().getFullYear() })
+    .eq("id", itemId);
+
+  if (error) throw error;
+}
+
+export async function updateMediaStatus(itemId: string, status: MediaItem["status"]) {
+  const payload = status === "complete"
+    ? { status, completed_year: new Date().getFullYear() }
+    : { status, completed_year: null };
+
+  const { error } = await supabase
+    .from("media_items")
+    .update(payload)
     .eq("id", itemId);
 
   if (error) throw error;
@@ -194,7 +223,7 @@ export async function saveBookCompletion(itemId: string, completion: BookComplet
   const { error } = await supabase.from("book_completions").upsert(
     {
       media_item_id: itemId,
-      finished_at: completion.finishedAt,
+      finished_at: toSupabaseDate(completion.finishedAt),
       rating: toNullableNumber(completion.rating),
       pages: toNullableNumber(completion.pages),
     },
@@ -208,7 +237,7 @@ export async function saveGameCompletion(itemId: string, completion: GameComplet
   const { error } = await supabase.from("game_completions").upsert(
     {
       media_item_id: itemId,
-      finished_at: completion.finishedAt,
+      finished_at: toSupabaseDate(completion.finishedAt),
       rating: toNullableNumber(completion.rating),
       hours_played: toNullableNumber(completion.hoursPlayed),
       completion_type: completion.completionType || null,

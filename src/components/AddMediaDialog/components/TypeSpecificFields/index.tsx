@@ -1,5 +1,7 @@
 import { MEDIA_STATUS_OPTIONS } from "../../../../consts/mediaStatus";
 import { formatDateInput } from "../../../../utils/date";
+import { CompletionRatingField } from "../CompletionRatingField";
+import { GamePlatformField } from "../GamePlatformField";
 import type { TypeSpecificFieldsProps } from "../../types";
 
 function getCompletionLabel(selectedType: TypeSpecificFieldsProps["selectedType"]) {
@@ -18,8 +20,11 @@ export function TypeSpecificFields({
   register,
   selectedType,
   movieKind,
+  metaValue,
   onMovieKindChange,
+  ratingValue,
   statusValue,
+  setValue,
 }: TypeSpecificFieldsProps) {
   const isFinished = statusValue === "complete";
 
@@ -138,29 +143,37 @@ export function TypeSpecificFields({
         </label>
       </div>
 
-      <label className={labelClass}>
-        {copy.metaLabel}
-        <input
-          placeholder={copy.metaPlaceholder}
-          {...register("meta")}
-          className={inputClass}
-        />
-      </label>
-
-      {isFinished && (
+      {selectedType === "games" ? (
+        <GamePlatformField metaValue={metaValue} setValue={setValue} />
+      ) : (
         <label className={labelClass}>
-          {getCompletionLabel(selectedType)}
+          {copy.metaLabel}
           <input
-            placeholder="Ex: 2026 ou 06/07/2026"
-            inputMode="numeric"
-            {...register(selectedType === "movies" ? "watched_at" : "completed_year", {
-              onChange: (event) => {
-                event.target.value = formatDateInput(event.target.value);
-              },
-            })}
+            placeholder={copy.metaPlaceholder}
+            {...register("meta")}
             className={inputClass}
           />
         </label>
+      )}
+
+      {isFinished && (
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className={labelClass}>
+            {getCompletionLabel(selectedType)}
+            <input
+              placeholder="Ex: 2026 ou 06/07/2026"
+              inputMode="numeric"
+              {...register(selectedType === "movies" ? "watched_at" : "completed_year", {
+                onChange: (event) => {
+                  event.target.value = formatDateInput(event.target.value);
+                },
+              })}
+              className={inputClass}
+            />
+          </label>
+
+          <CompletionRatingField ratingValue={ratingValue} setValue={setValue} />
+        </div>
       )}
     </>
   );
