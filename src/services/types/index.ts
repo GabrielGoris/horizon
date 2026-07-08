@@ -199,6 +199,9 @@ export type OpenLibrarySearchItem = {
   subject?: string[];
   cover_i?: number;
   edition_count?: number;
+  editions?: {
+    docs?: OpenLibrarySearchEdition[];
+  };
 };
 
 export type OpenLibrarySearchResponse = {
@@ -218,8 +221,21 @@ export type OpenLibraryEdition = {
   publishers?: string[];
   publish_date?: string;
   covers?: number[];
+  languages?: Array<string | { key?: string }>;
   authors?: Array<{ key?: string }>;
   works?: Array<{ key?: string }>;
+};
+
+export type OpenLibrarySearchEdition = {
+  key?: string;
+  title?: string;
+  language?: string[];
+  number_of_pages?: number;
+  publisher?: string[];
+  publish_date?: string[];
+  cover_i?: number;
+  cover_edition_key?: string;
+  isbn?: string[];
 };
 
 export type OpenLibraryBookApiResponse = Record<string, {
@@ -252,6 +268,7 @@ export type BookCatalogResult = {
   author: string;
   publisher: string;
   pageCount: string;
+  searchScore?: number;
 };
 
 export type BookCatalogDetails = BookCatalogResult & {

@@ -4,6 +4,7 @@ import type {
   BookCatalogResult,
   OpenLibraryBookApiResponse,
   OpenLibraryEdition,
+  OpenLibrarySearchEdition,
   OpenLibraryEditionsResponse,
   OpenLibrarySearchItem,
   OpenLibrarySearchResponse,
@@ -12,6 +13,28 @@ import type {
 
 const booksBaseUrl = "/books-api";
 const searchCache = new Map<string, BookCatalogResult[]>();
+const portugueseLanguageCodes = new Set(["por", "pt", "pt-br", "pt_br"]);
+const searchFields = [
+  "key",
+  "title",
+  "author_name",
+  "publisher",
+  "first_publish_year",
+  "number_of_pages_median",
+  "subject",
+  "cover_i",
+  "edition_count",
+  "editions",
+  "editions.key",
+  "editions.title",
+  "editions.language",
+  "editions.number_of_pages",
+  "editions.publisher",
+  "editions.publish_date",
+  "editions.cover_i",
+  "editions.cover_edition_key",
+  "editions.isbn",
+].join(",");
 
 function normalizeIsbn(value: string) {
   return value.replace(/[^0-9Xx]/g, "").toUpperCase();
@@ -30,6 +53,10 @@ function getCover(coverId?: number) {
   return coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : "";
 }
 
+function getOlidCover(olid?: string) {
+  return olid ? `https://covers.openlibrary.org/b/olid/${olid}-L.jpg` : "";
+}
+
 function getIsbnCover(isbn: string) {
   return isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg` : "";
 }
@@ -44,6 +71,30 @@ function getDescription(description?: OpenLibraryWork["description"]) {
   if (!description) return "";
 
   return typeof description === "string" ? description : description.value ?? "";
+}
+
+function normalizeLanguage(value: string | { key?: string }) {
+  const language = typeof value === "string" ? value : value.key ?? "";
+
+  return language.toLowerCase().replace(/^\/languages\//, "");
+}
+
+function getEditionLanguages(edition?: OpenLibrarySearchEdition | OpenLibraryEdition | null): Array<string | { key?: string }> {
+  if (!edition) return [];
+
+  if (Object.prototype.hasOwnProperty.call(edition, "language")) {
+    const searchEdition = edition as OpenLibrarySearchEdition;
+
+    return searchEdition.language ?? [];
+  }
+
+  const workEdition = edition as OpenLibraryEdition;
+
+  return workEdition.languages ?? [];
+}
+
+function isPortugueseEdition(edition?: OpenLibrarySearchEdition | OpenLibraryEdition | null) {
+  return getEditionLanguages(edition).some((language: string | { key?: string }) => portugueseLanguageCodes.has(normalizeLanguage(language)));
 }
 
 async function requestBooks<T>(endpoint: string, searchParams?: URLSearchParams) {
@@ -71,27 +122,67 @@ async function requestBooksText(endpoint: string, searchParams?: URLSearchParams
   return content;
 }
 
-function mapOpenLibraryBook(item: OpenLibrarySearchItem): BookCatalogResult | null {
+function getEditionScore(edition: OpenLibrarySearchEdition) {
+  let score = 0;
+
+  if (isPortugueseEdition(edition)) score += 80;
+  if (edition.cover_i || edition.cover_edition_key || edition.isbn?.[0]) score += 20;
+  if (edition.number_of_pages) score += 12;
+  if (edition.publisher?.[0]) score += 6;
+  if (edition.publish_date?.[0]) score += 4;
+
+  return score;
+}
+
+function getBestSearchEdition(item: OpenLibrarySearchItem) {
+  const editions = item.editions?.docs ?? [];
+
+  return [...editions].sort((first, second) => getEditionScore(second) - getEditionScore(first))[0] ?? null;
+}
+
+function getSearchEditionCover(edition?: OpenLibrarySearchEdition | null) {
+  return getCover(edition?.cover_i) || getOlidCover(edition?.cover_edition_key) || getIsbnCover(edition?.isbn?.[0] ?? "");
+}
+
+function mapOpenLibraryBook(item: OpenLibrarySearchItem, sourceScore = 0): BookCatalogResult | null {
   if (!item.key || !item.title) return null;
 
-  const cover = getCover(item.cover_i);
+  const edition = getBestSearchEdition(item);
+  const cover = getSearchEditionCover(edition) || getCover(item.cover_i);
 
   return {
     id: item.key.replace(/^\//, ""),
     source: "open-library",
-    title: item.title,
-    releaseYear: item.first_publish_year ? String(item.first_publish_year) : "",
+    title: edition?.title || item.title,
+    releaseYear: getReleaseYear(edition?.publish_date?.[0]) || (item.first_publish_year ? String(item.first_publish_year) : ""),
     cover,
     backdrop: cover,
     category: item.subject?.slice(0, 2).join(", ") ?? "",
     author: item.author_name?.slice(0, 2).join(", ") ?? "",
-    publisher: item.publisher?.[0] ?? "",
-    pageCount: item.number_of_pages_median ? String(item.number_of_pages_median) : "",
+    publisher: edition?.publisher?.[0] || item.publisher?.[0] || "",
+    pageCount: edition?.number_of_pages ? String(edition.number_of_pages) : item.number_of_pages_median ? String(item.number_of_pages_median) : "",
+    searchScore: sourceScore + (edition ? getEditionScore(edition) : 0) + (item.edition_count ?? 0),
   };
 }
 
 function getBestEdition(editions?: OpenLibraryEdition[]) {
-  return editions?.find((edition) => Boolean(edition.number_of_pages)) ?? editions?.[0] ?? null;
+  if (!editions?.length) return null;
+
+  return [...editions].sort((first, second) => {
+    const getScore = (edition: OpenLibraryEdition) => {
+      let score = 0;
+
+      if (isPortugueseEdition(edition)) score += 80;
+      if (edition.number_of_pages) score += 12;
+      if (edition.covers?.[0]) score += 10;
+      if (edition.publishers?.[0]) score += 6;
+      if (edition.publish_date) score += 4;
+
+      return score;
+    };
+
+    return getScore(second) - getScore(first);
+  })[0] ?? null;
 }
 
 export async function searchBooks(query: string): Promise<BookCatalogResult[]> {
@@ -101,28 +192,32 @@ export async function searchBooks(query: string): Promise<BookCatalogResult[]> {
     return searchCache.get(normalizedQuery) ?? [];
   }
 
-  const data = await requestBooks<OpenLibrarySearchResponse>(
-    "search.json",
-    new URLSearchParams({
-      q: query,
-      limit: "20",
-      fields: [
-        "key",
-        "title",
-        "author_name",
-      "publisher",
-      "first_publish_year",
-      "number_of_pages_median",
-      "subject",
-      "cover_i",
-      "edition_count",
-      ].join(","),
-    })
-  );
+  const [portugueseData, broadData] = await Promise.all([
+    requestBooks<OpenLibrarySearchResponse>(
+      "search.json",
+      new URLSearchParams({
+        q: `${query} language:por`,
+        lang: "pt",
+        limit: "20",
+        fields: searchFields,
+      })
+    ).catch(() => ({ docs: [] })),
+    requestBooks<OpenLibrarySearchResponse>(
+      "search.json",
+      new URLSearchParams({
+        q: query,
+        lang: "pt",
+        limit: "30",
+        fields: searchFields,
+      })
+    ),
+  ]);
 
-  const results = data.docs
-    ?.map(mapOpenLibraryBook)
+  const results = [...(portugueseData.docs ?? []), ...(broadData.docs ?? [])]
+    .map((item, index) => mapOpenLibraryBook(item, index < (portugueseData.docs?.length ?? 0) ? 200 : 0))
     .filter((item): item is BookCatalogResult => Boolean(item))
+    .sort((first, second) => (second.searchScore ?? 0) - (first.searchScore ?? 0))
+    .filter((item, index, items) => items.findIndex((current) => current.id === item.id) === index)
     .slice(0, 20) ?? [];
 
   searchCache.set(normalizedQuery, results);

@@ -90,7 +90,7 @@ export function BasicInfoFields({
           )}
           {catalogSearch.isBookSearchLoading && (
             <span className="text-[10px] text-noir-gold normal-case tracking-normal">
-              Buscando ediçãp pelo ISBN...
+              Buscando edição pelo ISBN...
             </span>
           )}
         </label>
