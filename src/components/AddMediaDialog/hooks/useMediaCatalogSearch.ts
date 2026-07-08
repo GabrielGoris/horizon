@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import type { CreateMediaDTO } from "../../../schemas/media/dto/create-media.dto";
 import {
   applyBookCatalogDetails,
+  getBookByIsbn,
   getBookDetails,
   searchBooks,
 } from "../../../services/bookCatalogService";
@@ -33,6 +34,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const gameSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movieSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bookSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isbnSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gameSearchRequestRef = useRef(0);
   const movieSearchRequestRef = useRef(0);
   const bookSearchRequestRef = useRef(0);
@@ -47,6 +49,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     if (gameSearchTimeoutRef.current) clearTimeout(gameSearchTimeoutRef.current);
     if (movieSearchTimeoutRef.current) clearTimeout(movieSearchTimeoutRef.current);
     if (bookSearchTimeoutRef.current) clearTimeout(bookSearchTimeoutRef.current);
+    if (isbnSearchTimeoutRef.current) clearTimeout(isbnSearchTimeoutRef.current);
 
     gameSearchRequestRef.current += 1;
     movieSearchRequestRef.current += 1;
@@ -298,6 +301,50 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     }
   };
 
+  const handleSelectBookByIsbn = async (isbn: string) => {
+    const trimmedIsbn = isbn.trim();
+
+    if (!trimmedIsbn) {
+      setBookSearchError("Informe um ISBN para buscar a edição.");
+      return;
+    }
+
+    setBookSearchError("");
+    setIsBookSearchLoading(true);
+
+    try {
+      const details = await getBookByIsbn(trimmedIsbn);
+      const backdrop = details.backdrop || details.cover;
+
+      fillMediaFields(applyBookCatalogDetails(details));
+      setValue("isbn", trimmedIsbn, { shouldDirty: true, shouldValidate: true });
+      setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+      setCoverBackdrop(backdrop);
+      setBookSearchResults([]);
+    } catch (error) {
+      console.error(error);
+      setBookSearchError(error instanceof Error ? error.message : "Edição não encontrada pelo ISBN.");
+    } finally {
+      setIsBookSearchLoading(false);
+    }
+  };
+
+  const searchBookIsbn = (isbn: string) => {
+    const normalizedIsbn = isbn.replace(/[^0-9Xx]/g, "");
+
+    if (isbnSearchTimeoutRef.current) clearTimeout(isbnSearchTimeoutRef.current);
+
+    setBookSearchError("");
+
+    if (selectedType !== "books" || (normalizedIsbn.length !== 10 && normalizedIsbn.length !== 13)) {
+      return;
+    }
+
+    isbnSearchTimeoutRef.current = setTimeout(() => {
+      void handleSelectBookByIsbn(normalizedIsbn);
+    }, 350);
+  };
+
   return {
     bookSearchError,
     bookSearchResults,
@@ -308,6 +355,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     gameSearchError,
     gameSearchResults,
     handleSelectBook,
+    handleSelectBookByIsbn,
     handleSelectGame,
     handleSelectMovie,
     isBookSearchLoading,
@@ -316,6 +364,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     movieSearchError,
     movieSearchResults,
     searchCurrentTitle,
+    searchBookIsbn,
     searchTitle,
   };
 }

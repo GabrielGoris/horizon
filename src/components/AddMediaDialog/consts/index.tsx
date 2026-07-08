@@ -105,6 +105,7 @@ export function getDefaultValues(type: MediaType): CreateMediaDTO {
     added_at: new Date().toLocaleDateString("pt-BR"),
     completed_year: "",
     watched_at: "",
+    isbn: "",
     page_count: "",
     runtime_minutes: "",
     season_count: "",

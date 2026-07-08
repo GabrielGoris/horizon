@@ -2,6 +2,7 @@ import type { CreateMediaDTO } from "../schemas/media";
 import type {
   BookCatalogDetails,
   BookCatalogResult,
+  OpenLibraryBookApiResponse,
   OpenLibraryEdition,
   OpenLibraryEditionsResponse,
   OpenLibrarySearchItem,
@@ -11,6 +12,10 @@ import type {
 
 const booksBaseUrl = "/books-api";
 const searchCache = new Map<string, BookCatalogResult[]>();
+
+function normalizeIsbn(value: string) {
+  return value.replace(/[^0-9Xx]/g, "").toUpperCase();
+}
 
 function normalizeSearchText(value: string) {
   return value
@@ -23,6 +28,10 @@ function normalizeSearchText(value: string) {
 
 function getCover(coverId?: number) {
   return coverId ? `https://covers.openlibrary.org/b/id/${coverId}-L.jpg` : "";
+}
+
+function getIsbnCover(isbn: string) {
+  return isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg` : "";
 }
 
 function getReleaseYear(value?: string | number) {
@@ -48,6 +57,18 @@ async function requestBooks<T>(endpoint: string, searchParams?: URLSearchParams)
   }
 
   return (await response.json()) as T;
+}
+
+async function requestBooksText(endpoint: string, searchParams?: URLSearchParams) {
+  const query = searchParams?.toString();
+  const response = await fetch(`${booksBaseUrl}/${endpoint}${query ? `?${query}` : ""}`);
+  const content = await response.text();
+
+  if (!response.ok) {
+    throw new Error(content || "Não foi possivel buscar livros no momento.");
+  }
+
+  return content;
 }
 
 function mapOpenLibraryBook(item: OpenLibrarySearchItem): BookCatalogResult | null {
@@ -134,6 +155,45 @@ export async function getBookDetails(book: BookCatalogResult): Promise<BookCatal
     pageCount: edition?.number_of_pages ? String(edition.number_of_pages) : book.pageCount,
     category: book.category || work.subjects?.slice(0, 2).join(", ") || "",
     description: getDescription(work.description),
+  };
+}
+
+export async function getBookByIsbn(isbn: string): Promise<BookCatalogDetails> {
+  const normalizedIsbn = normalizeIsbn(isbn);
+
+  if (!normalizedIsbn) {
+    throw new Error("Informe um ISBN válido.");
+  }
+
+  const content = await requestBooksText(
+    "api/books",
+    new URLSearchParams({
+      bibkeys: `ISBN:${normalizedIsbn}`,
+      format: "json",
+      jscmd: "data",
+    })
+  );
+  const data = JSON.parse(content) as OpenLibraryBookApiResponse;
+  const book = data[`ISBN:${normalizedIsbn}`];
+
+  if (!book) {
+    throw new Error("Edição não encontrada pelo ISBN.");
+  }
+
+  const cover = book.cover?.large || book.cover?.medium || book.cover?.small || getIsbnCover(normalizedIsbn);
+
+  return {
+    id: `isbn/${normalizedIsbn}`,
+    source: "open-library",
+    title: book.title ?? "",
+    releaseYear: getReleaseYear(book.publish_date),
+    cover,
+    backdrop: cover,
+    category: book.subjects?.map((subject) => subject.name).filter(Boolean).slice(0, 2).join(", ") ?? "",
+    author: book.authors?.map((author) => author.name).filter(Boolean).slice(0, 2).join(", ") ?? "",
+    publisher: book.publishers?.[0]?.name ?? "",
+    pageCount: book.number_of_pages ? String(book.number_of_pages) : "",
+    description: book.excerpts?.[0]?.text ?? "",
   };
 }
 

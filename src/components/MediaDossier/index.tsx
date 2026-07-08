@@ -94,11 +94,6 @@ export function MediaDossier({
                   ▾
                 </span>
               </label>
-              {item.rating && (
-                <span className={chipClass}>
-                  {item.rating}
-                </span>
-              )}
             </div>
           </div>
 

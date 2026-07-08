@@ -75,6 +75,27 @@ export function BasicInfoFields({
         </label>
       )}
 
+      {selectedType === "books" && (
+        <label className={labelClass}>
+          ISBN da edição
+          <input
+            placeholder="Ex: 9788535909555"
+            {...register("isbn", {
+              onChange: (event) => catalogSearch.searchBookIsbn(event.target.value),
+            })}
+            className={inputClass}
+          />
+          {catalogSearch.bookSearchError && (
+            <span className={errorClass}>{catalogSearch.bookSearchError}</span>
+          )}
+          {catalogSearch.isBookSearchLoading && (
+            <span className="text-[10px] text-noir-gold normal-case tracking-normal">
+              Buscando ediçãp pelo ISBN...
+            </span>
+          )}
+        </label>
+      )}
+
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <label className={labelClass}>
           Genero / Categoria

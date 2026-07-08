@@ -14,6 +14,7 @@ export const createMediaSchema = z.object({
   added_at: z.string().optional(),
   completed_year: z.string().optional(),
   watched_at: z.string().optional(),
+  isbn: z.string().optional(),
   page_count: z.string().optional(),
   runtime_minutes: z.string().optional(),
   season_count: z.string().optional(),

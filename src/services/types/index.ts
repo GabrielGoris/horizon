@@ -218,7 +218,24 @@ export type OpenLibraryEdition = {
   publishers?: string[];
   publish_date?: string;
   covers?: number[];
+  authors?: Array<{ key?: string }>;
+  works?: Array<{ key?: string }>;
 };
+
+export type OpenLibraryBookApiResponse = Record<string, {
+  title?: string;
+  authors?: Array<{ name?: string }>;
+  publishers?: Array<{ name?: string }>;
+  publish_date?: string;
+  number_of_pages?: number;
+  cover?: {
+    large?: string;
+    medium?: string;
+    small?: string;
+  };
+  subjects?: Array<{ name?: string }>;
+  excerpts?: Array<{ text?: string }>;
+}>;
 
 export type OpenLibraryEditionsResponse = {
   entries?: OpenLibraryEdition[];
