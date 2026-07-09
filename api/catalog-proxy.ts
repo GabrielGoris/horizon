@@ -1,7 +1,7 @@
-import { existsSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import type { ApiRequest, ApiResponse } from "./_utils";
-import { pipeFetchResponse, readRequestBody } from "./_utils";
+import type { IncomingMessage, ServerResponse } from "node:http";
+
+type ApiRequest = IncomingMessage;
+type ApiResponse = ServerResponse;
 
 type CatalogProxyService = "books" | "igdb" | "steam" | "tmdb";
 
@@ -12,43 +12,39 @@ type TwitchTokenResponse = {
 
 let igdbAccessToken = "";
 let igdbTokenExpiresAt = 0;
-let localEnvCache: Record<string, string> | null = null;
-
-function getLocalEnv() {
-  if (localEnvCache) return localEnvCache;
-
-  localEnvCache = {};
-
-  if (process.env.VERCEL) return localEnvCache;
-
-  const envPath = resolve(process.cwd(), ".env.local");
-
-  if (!existsSync(envPath)) return localEnvCache;
-
-  const content = readFileSync(envPath, "utf8");
-
-  content.split(/\r?\n/).forEach((line) => {
-    const match = line.match(/^\s*([^#=\s]+)\s*=\s*(.*)\s*$/);
-
-    if (!match) return;
-
-    const [, key, rawValue] = match;
-    localEnvCache![key] = rawValue.replace(/^["']|["']$/g, "");
-  });
-
-  return localEnvCache;
-}
 
 function getEnvValue(...names: string[]) {
-  const localEnv = getLocalEnv();
-
-  return names.map((name) => process.env[name] ?? localEnv[name]).find(Boolean) ?? "";
+  return names.map((name) => process.env[name]).find(Boolean) ?? "";
 }
 
 function sendJson(res: ApiResponse, statusCode: number, body: unknown) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json");
   res.end(JSON.stringify(body));
+}
+
+async function readRequestBody(req: ApiRequest) {
+  const chunks: Buffer[] = [];
+
+  for await (const chunk of req) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+async function pipeFetchResponse(res: ApiResponse, response: Response) {
+  const ignoredHeaders = new Set(["content-encoding", "content-length", "transfer-encoding"]);
+
+  res.statusCode = response.status;
+  response.headers.forEach((value, key) => {
+    if (!ignoredHeaders.has(key.toLowerCase())) {
+      res.setHeader(key, value);
+    }
+  });
+
+  const body = Buffer.from(await response.arrayBuffer());
+  res.end(body);
 }
 
 function isCatalogProxyService(value: string | null): value is CatalogProxyService {
@@ -196,6 +192,11 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     }
 
     const { service, endpoint } = getRequestParams(req);
+
+    if (!service && !endpoint) {
+      sendJson(res, 200, { ok: true, name: "catalog-proxy" });
+      return;
+    }
 
     if (!isCatalogProxyService(service)) {
       sendJson(res, 400, {
