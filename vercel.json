@@ -17,7 +17,7 @@
       "destination": "/api/books-api/:path*"
     },
     {
-      "source": "/(.*)",
+      "source": "/:path((?!api/|igdb-api/|steam-api/|tmdb-api/|books-api/|src/|@vite/|@react-refresh|node_modules/|assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

@@ -1,4 +1,5 @@
 import type { CreateMediaDTO } from "../schemas/media";
+import { getCatalogProxyUrl } from "./catalogProxy";
 import type {
   BookCatalogDetails,
   BookCatalogResult,
@@ -11,8 +12,6 @@ import type {
   OpenLibraryWork,
 } from "./types";
 
-const internalApiPrefix = import.meta.env.PROD ? "/api" : "";
-const booksBaseUrl = `${internalApiPrefix}/books-api`;
 const searchCache = new Map<string, BookCatalogResult[]>();
 const portugueseLanguageCodes = new Set(["por", "pt", "pt-br", "pt_br"]);
 const searchFields = [
@@ -99,21 +98,22 @@ function isPortugueseEdition(edition?: OpenLibrarySearchEdition | OpenLibraryEdi
 }
 
 async function requestBooks<T>(endpoint: string, searchParams?: URLSearchParams) {
-  const query = searchParams?.toString();
-  const response = await fetch(`${booksBaseUrl}/${endpoint}${query ? `?${query}` : ""}`);
+  const response = await fetch(getCatalogProxyUrl("books", endpoint, searchParams));
+  const content = await response.text();
 
   if (!response.ok) {
-    const message = await response.text();
-
-    throw new Error(message || "Nao foi possivel buscar livros agora.");
+    throw new Error(content || "Nao foi possivel buscar livros agora.");
   }
 
-  return (await response.json()) as T;
+  try {
+    return JSON.parse(content) as T;
+  } catch {
+    throw new Error("A Open Library retornou uma resposta invalida para livros.");
+  }
 }
 
 async function requestBooksText(endpoint: string, searchParams?: URLSearchParams) {
-  const query = searchParams?.toString();
-  const response = await fetch(`${booksBaseUrl}/${endpoint}${query ? `?${query}` : ""}`);
+  const response = await fetch(getCatalogProxyUrl("books", endpoint, searchParams));
   const content = await response.text();
 
   if (!response.ok) {
@@ -193,13 +193,14 @@ export async function searchBooks(query: string): Promise<BookCatalogResult[]> {
     return searchCache.get(normalizedQuery) ?? [];
   }
 
+  let broadSearchError: unknown = null;
   const [portugueseData, broadData] = await Promise.all([
     requestBooks<OpenLibrarySearchResponse>(
       "search.json",
       new URLSearchParams({
         q: `${query} language:por`,
         lang: "pt",
-        limit: "20",
+        limit: "10",
         fields: searchFields,
       })
     ).catch(() => ({ docs: [] })),
@@ -208,10 +209,14 @@ export async function searchBooks(query: string): Promise<BookCatalogResult[]> {
       new URLSearchParams({
         q: query,
         lang: "pt",
-        limit: "30",
+        limit: "18",
         fields: searchFields,
       })
-    ),
+    ).catch((error) => {
+      broadSearchError = error;
+
+      return { docs: [] };
+    }),
   ]);
 
   const results = [...(portugueseData.docs ?? []), ...(broadData.docs ?? [])]
@@ -220,6 +225,10 @@ export async function searchBooks(query: string): Promise<BookCatalogResult[]> {
     .sort((first, second) => (second.searchScore ?? 0) - (first.searchScore ?? 0))
     .filter((item, index, items) => items.findIndex((current) => current.id === item.id) === index)
     .slice(0, 20) ?? [];
+
+  if (results.length === 0 && broadSearchError) {
+    throw broadSearchError;
+  }
 
   searchCache.set(normalizedQuery, results);
 
@@ -234,11 +243,21 @@ export async function getBookDetails(book: BookCatalogResult): Promise<BookCatal
     };
   }
 
-  const work = await requestBooks<OpenLibraryWork>(`${book.id}.json`);
-  const editions = await requestBooks<OpenLibraryEditionsResponse>(
-    `${book.id}/editions.json`,
-    new URLSearchParams({ limit: "20" })
-  ).catch(() => null);
+  const [work, editions] = await Promise.all([
+    requestBooks<OpenLibraryWork>(`${book.id}.json`).catch((error) => {
+      console.warn("Nao foi possivel carregar a obra na Open Library.", error);
+
+      return null;
+    }),
+    requestBooks<OpenLibraryEditionsResponse>(
+      `${book.id}/editions.json`,
+      new URLSearchParams({ limit: "20" })
+    ).catch((error) => {
+      console.warn("Nao foi possivel carregar as edicoes na Open Library.", error);
+
+      return null;
+    }),
+  ]);
   const edition = getBestEdition(editions?.entries);
   const editionCover = getCover(edition?.covers?.[0]);
 
@@ -249,8 +268,8 @@ export async function getBookDetails(book: BookCatalogResult): Promise<BookCatal
     publisher: edition?.publishers?.[0] || book.publisher,
     releaseYear: getReleaseYear(edition?.publish_date) || book.releaseYear,
     pageCount: edition?.number_of_pages ? String(edition.number_of_pages) : book.pageCount,
-    category: book.category || work.subjects?.slice(0, 2).join(", ") || "",
-    description: getDescription(work.description),
+    category: book.category || work?.subjects?.slice(0, 2).join(", ") || "",
+    description: getDescription(work?.description),
   };
 }
 

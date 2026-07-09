@@ -1,4 +1,5 @@
 import type { CreateMediaDTO } from "../schemas/media";
+import { getCatalogProxyUrl } from "./catalogProxy";
 import type {
   MovieCatalogDetails,
   MovieCatalogResult,
@@ -10,8 +11,6 @@ import type {
   TmdbSearchResponse,
 } from "./types";
 
-const internalApiPrefix = import.meta.env.PROD ? "/api" : "";
-const tmdbBaseUrl = `${internalApiPrefix}/tmdb-api`;
 const imageBaseUrl = "https://image.tmdb.org/t/p";
 const searchCache = new Map<string, MovieCatalogResult[]>();
 let genreCache: Record<TmdbMediaType, TmdbGenre[]> | null = null;
@@ -99,8 +98,7 @@ function formatMinutes(totalMinutes?: number) {
 }
 
 async function requestTmdb<T>(endpoint: string, searchParams?: URLSearchParams) {
-  const query = searchParams?.toString();
-  const response = await fetch(`${tmdbBaseUrl}/${endpoint}${query ? `?${query}` : ""}`);
+  const response = await fetch(getCatalogProxyUrl("tmdb", endpoint, searchParams));
 
   if (!response.ok) {
     const message = await response.text();
@@ -183,7 +181,11 @@ export async function searchMovies(query: string): Promise<MovieCatalogResult[]>
   }
 
   const [genres, data] = await Promise.all([
-    getGenres(),
+    getGenres().catch((error) => {
+      console.warn("Nao foi possivel carregar generos da TMDB.", error);
+
+      return { movie: [], tv: [] };
+    }),
     requestTmdb<TmdbSearchResponse>(
       "search/multi",
       new URLSearchParams({

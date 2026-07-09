@@ -1,9 +1,7 @@
 import type { CreateMediaDTO } from "../schemas/media";
+import { getCatalogProxyUrl } from "./catalogProxy";
 import type { GameCatalogDetails, GameCatalogResult, IgdbGame, IgdbGameTimeToBeat, IgdbGenre, IgdbInvolvedCompany, IgdbPlatform, IgdbSearchResult, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "./types";
 
-const internalApiPrefix = import.meta.env.PROD ? "/api" : "";
-const igdbBaseUrl = `${internalApiPrefix}/igdb-api`;
-const steamBaseUrl = `${internalApiPrefix}/steam-api`;
 const maxCatalogResults = 50;
 const searchCache = new Map<string, GameCatalogResult[]>();
 
@@ -265,7 +263,7 @@ function getCampaignHoursFromTimeToBeat(timeToBeat?: IgdbGameTimeToBeat) {
 }
 
 async function requestIgdb<T>(endpoint: string, query: string) {
-  const response = await fetch(`${igdbBaseUrl}/${endpoint}`, {
+  const response = await fetch(getCatalogProxyUrl("igdb", endpoint), {
     method: "POST",
     headers: {
       "Content-Type": "text/plain",
@@ -283,7 +281,7 @@ async function requestIgdb<T>(endpoint: string, query: string) {
 }
 
 async function requestSteam<T>(endpoint: string, searchParams: URLSearchParams) {
-  const response = await fetch(`${steamBaseUrl}/${endpoint}?${searchParams.toString()}`);
+  const response = await fetch(getCatalogProxyUrl("steam", endpoint, searchParams));
 
   if (!response.ok) {
     const message = await response.text();
