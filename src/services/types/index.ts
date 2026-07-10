@@ -221,6 +221,8 @@ export type OpenLibraryEdition = {
   publishers?: string[];
   publish_date?: string;
   covers?: number[];
+  isbn_10?: string[];
+  isbn_13?: string[];
   languages?: Array<string | { key?: string }>;
   authors?: Array<{ key?: string }>;
   works?: Array<{ key?: string }>;
@@ -260,6 +262,7 @@ export type OpenLibraryEditionsResponse = {
 export type BookCatalogResult = {
   id: string;
   source: "open-library";
+  isbn?: string;
   title: string;
   releaseYear: string;
   cover: string;

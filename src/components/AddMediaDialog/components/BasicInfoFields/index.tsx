@@ -85,10 +85,10 @@ export function BasicInfoFields({
             })}
             className={inputClass}
           />
-          {catalogSearch.bookSearchError && (
-            <span className={errorClass}>{catalogSearch.bookSearchError}</span>
+          {catalogSearch.bookIsbnSearchError && (
+            <span className={errorClass}>{catalogSearch.bookIsbnSearchError}</span>
           )}
-          {catalogSearch.isBookSearchLoading && (
+          {catalogSearch.isBookIsbnSearchLoading && (
             <span className="text-[10px] text-noir-gold normal-case tracking-normal">
               Buscando edição pelo ISBN...
             </span>

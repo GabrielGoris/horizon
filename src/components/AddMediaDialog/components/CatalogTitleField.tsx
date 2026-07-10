@@ -39,6 +39,7 @@ export function CatalogTitleField({
     <label className={`${labelClass} relative`}>
       {copy.nameLabel}
       <input
+        autoFocus
         placeholder={copy.namePlaceholder}
         {...titleInput}
         onBlur={handleBlur}

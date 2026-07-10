@@ -1,23 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/igdb-api/:path*",
-      "destination": "/api/igdb-api/:path*"
-    },
-    {
-      "source": "/steam-api/:path*",
-      "destination": "/api/steam-api/:path*"
-    },
-    {
-      "source": "/tmdb-api/:path*",
-      "destination": "/api/tmdb-api/:path*"
-    },
-    {
-      "source": "/books-api/:path*",
-      "destination": "/api/books-api/:path*"
-    },
-    {
-      "source": "/:path((?!api/|igdb-api/|steam-api/|tmdb-api/|books-api/|src/|@vite/|@react-refresh|node_modules/|assets/|.*\\..*).*)",
+      "source": "/:path((?!api/|src/|@vite/|@react-refresh|node_modules/|assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

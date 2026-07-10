@@ -1,5 +1,7 @@
-import { Check, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Trash2, X } from "lucide-react";
+import { GAME_PLATFORM_OPTIONS, getGamePlatformOption } from "../../consts/gamePlatforms";
 import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../consts/mediaStatus";
+import { GamePlatformLogo } from "../GamePlatformLogo";
 import { CompletionArtifacts } from "./CompletionArtifacts";
 import { DossierFacts } from "./DossierFacts";
 import { MediaObjectPreview } from "./MediaObjectPreview";
@@ -12,6 +14,7 @@ export function MediaDossier({
   onClose,
   onComplete,
   onDelete,
+  onMetaChange,
   onStatusChange,
   onSaveTicket,
   onSaveBookCompletion,
@@ -25,12 +28,15 @@ export function MediaDossier({
       : item.type === "games"
         ? "Jogo"
         : "Livro";
-  const category = item.category || item.meta || typeLabels[item.type];
+  const category = item.category || (item.type === "games" ? typeLabels[item.type] : item.meta || typeLabels[item.type]);
   const isComplete = item.status === "complete";
+  const gamePlatform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
+  const platformValue = gamePlatform?.label ?? item.meta ?? "";
+  const hasUnknownPlatform = item.type === "games" && platformValue && !gamePlatform;
   const progressPercentage = item.progress
     ? Math.min(100, Math.round((item.progress.current / item.progress.total) * 100))
     : 0;
-  const chipClass = "inline-flex h-6 items-center rounded-full border border-white/10 bg-white/[0.03] px-3 font-mono text-[10px] leading-none text-neutral-400";
+  const chipClass = "inline-flex h-6 min-w-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-3 font-mono text-[10px] leading-none text-neutral-400";
 
   return (
     <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-[6px]">
@@ -71,10 +77,47 @@ export function MediaDossier({
               {formatAuthorLine(item)}
             </p>
 
-            <div className="mt-5 flex flex-wrap justify-center gap-2">
-              <span className={chipClass}>
-                {category}
+            <div className={`mx-auto mt-5 gap-2 ${item.type === "games" ? "grid w-full max-w-[360px] grid-cols-3" : "flex flex-wrap justify-center"}`}>
+              <span className={chipClass} title={category}>
+                <span className="truncate">
+                  {category}
+                </span>
               </span>
+              {item.type === "games" && (
+                <label className={`relative ${chipClass} px-0`}>
+                  <span className="sr-only">Alterar plataforma principal</span>
+                  {gamePlatform && (
+                    <span className="pointer-events-none absolute left-2.5 top-1/2 flex -translate-y-1/2 text-neutral-400">
+                      <GamePlatformLogo platform={gamePlatform} compact className="h-3 w-3" />
+                    </span>
+                  )}
+                  <select
+                    value={platformValue}
+                    onChange={(event) => {
+                      void onMetaChange(item, event.target.value);
+                    }}
+                    className={`h-full w-full cursor-pointer appearance-none truncate rounded-full border-0 bg-transparent pr-6 text-left font-mono text-[10px] leading-none text-neutral-400 outline-none transition-colors hover:text-noir-champagne ${gamePlatform ? "pl-7" : "pl-3"}`}
+                  >
+                    <option value="" className="bg-[#17171a] text-neutral-200">
+                      Plataforma
+                    </option>
+                    {hasUnknownPlatform && (
+                      <option value={platformValue} className="bg-[#17171a] text-neutral-200">
+                        {platformValue}
+                      </option>
+                    )}
+                    {GAME_PLATFORM_OPTIONS.map((platform) => (
+                      <option key={platform.label} value={platform.label} className="bg-[#17171a] text-neutral-200">
+                        {platform.label}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={10}
+                    className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500"
+                  />
+                </label>
+              )}
               <label className={`relative ${chipClass} px-0`}>
                 <span className="sr-only">Alterar status da obra</span>
                 <select
@@ -82,7 +125,7 @@ export function MediaDossier({
                   onChange={(event) => {
                     void onStatusChange(item, event.target.value as typeof item.status);
                   }}
-                  className="h-full cursor-pointer appearance-none rounded-full border-0 bg-transparent pl-3 pr-6 font-mono text-[10px] leading-none text-neutral-400 outline-none transition-colors hover:text-noir-champagne"
+                  className="h-full w-full cursor-pointer appearance-none truncate rounded-full border-0 bg-transparent pl-3 pr-6 text-center font-mono text-[10px] leading-none text-neutral-400 outline-none transition-colors hover:text-noir-champagne"
                 >
                   {MEDIA_STATUS_OPTIONS.map((statusOption) => (
                     <option key={statusOption} value={statusOption} className="bg-[#17171a] text-neutral-200">
@@ -90,9 +133,10 @@ export function MediaDossier({
                     </option>
                   ))}
                 </select>
-                <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[8px] text-neutral-500">
-                  ▾
-                </span>
+                <ChevronDown
+                  size={10}
+                  className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500"
+                />
               </label>
             </div>
           </div>

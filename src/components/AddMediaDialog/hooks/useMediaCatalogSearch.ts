@@ -26,11 +26,13 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const [gameSearchError, setGameSearchError] = useState("");
   const [movieSearchError, setMovieSearchError] = useState("");
   const [bookSearchError, setBookSearchError] = useState("");
+  const [bookIsbnSearchError, setBookIsbnSearchError] = useState("");
   const [coverBackdrop, setCoverBackdrop] = useState("");
   const [coverFallback, setCoverFallback] = useState("");
   const [isGameSearchLoading, setIsGameSearchLoading] = useState(false);
   const [isMovieSearchLoading, setIsMovieSearchLoading] = useState(false);
   const [isBookSearchLoading, setIsBookSearchLoading] = useState(false);
+  const [isBookIsbnSearchLoading, setIsBookIsbnSearchLoading] = useState(false);
   const gameSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movieSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bookSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -60,11 +62,13 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     setGameSearchError("");
     setMovieSearchError("");
     setBookSearchError("");
+    setBookIsbnSearchError("");
     setCoverBackdrop("");
     setCoverFallback("");
     setIsGameSearchLoading(false);
     setIsMovieSearchLoading(false);
     setIsBookSearchLoading(false);
+    setIsBookIsbnSearchLoading(false);
   };
 
   const scheduleGameSearch = (query: string) => {
@@ -305,12 +309,13 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     const trimmedIsbn = isbn.trim();
 
     if (!trimmedIsbn) {
-      setBookSearchError("Informe um ISBN para buscar a edição.");
+      setBookIsbnSearchError("Informe um ISBN para buscar a edição.");
       return;
     }
 
     setBookSearchError("");
-    setIsBookSearchLoading(true);
+    setBookIsbnSearchError("");
+    setIsBookIsbnSearchLoading(true);
 
     try {
       const details = await getBookByIsbn(trimmedIsbn);
@@ -323,9 +328,10 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       setBookSearchResults([]);
     } catch (error) {
       console.error(error);
-      setBookSearchError(error instanceof Error ? error.message : "Edição não encontrada pelo ISBN.");
+      setBookSearchError("");
+      setBookIsbnSearchError(error instanceof Error ? error.message : "Edição não encontrada pelo ISBN.");
     } finally {
-      setIsBookSearchLoading(false);
+      setIsBookIsbnSearchLoading(false);
     }
   };
 
@@ -335,6 +341,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     if (isbnSearchTimeoutRef.current) clearTimeout(isbnSearchTimeoutRef.current);
 
     setBookSearchError("");
+    setBookIsbnSearchError("");
 
     if (selectedType !== "books" || (normalizedIsbn.length !== 10 && normalizedIsbn.length !== 13)) {
       return;
@@ -347,6 +354,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
 
   return {
     bookSearchError,
+    bookIsbnSearchError,
     bookSearchResults,
     clearCatalogSearch,
     clearResultsLater,
@@ -358,6 +366,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     handleSelectBookByIsbn,
     handleSelectGame,
     handleSelectMovie,
+    isBookIsbnSearchLoading,
     isBookSearchLoading,
     isGameSearchLoading,
     isMovieSearchLoading,

@@ -11,6 +11,7 @@ import {
   saveBookCompletion,
   saveGameCompletion,
   saveMovieTicket,
+  updateMediaMeta,
   updateMediaStatus,
 } from "../../../../services/mediaService";
 import { removeMediaFromWishlist } from "../../../../services/wishlistService";
@@ -123,6 +124,18 @@ export function useMediaCollection() {
     updateMedia(applyGameCompletion(item, completion));
   }, [updateMedia]);
 
+  const handleUpdateMediaMeta = useCallback(async (item: MediaItem, meta: string) => {
+    try {
+      await updateMediaMeta(item.id, meta);
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao atualizar a plataforma.");
+      return;
+    }
+
+    updateMedia({ ...item, meta });
+  }, [updateMedia]);
+
   const confirmDeleteMedia = useCallback(async () => {
     if (!mediaToDelete) return;
 
@@ -149,6 +162,7 @@ export function useMediaCollection() {
     handleSaveBookCompletion,
     handleSaveGameCompletion,
     handleSaveMovieTicket,
+    handleUpdateMediaMeta,
     handleUpdateMediaStatus,
     isDeletingMedia,
     mediaToDelete,

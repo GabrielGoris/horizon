@@ -161,16 +161,6 @@ function getSteamReleaseYear(date?: string) {
   return year ?? "";
 }
 
-function getSteamPlatform(platforms?: SteamAppDetails["platforms"]) {
-  const platformLabels = [
-    platforms?.windows ? "PC" : "",
-    platforms?.mac ? "Mac" : "",
-    platforms?.linux ? "Linux" : "",
-  ].filter(Boolean);
-
-  return platformLabels.join(", ");
-}
-
 function getSteamLibraryCover(appId: number) {
   return `https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900.jpg`;
 }
@@ -194,7 +184,7 @@ function mapSteamSearchItem(item: SteamSearchItem): GameCatalogResult {
     cover: getSteamLibraryCover(item.id),
     backdrop: item.tiny_image ?? "",
     category: "",
-    platform: "PC",
+    platform: "Steam",
   };
 }
 
@@ -207,7 +197,7 @@ function mapSteamDetails(details: SteamAppDetails, appId: number): GameCatalogDe
     cover: getSteamCover(details),
     backdrop: details.header_image || details.capsule_image || details.capsule_imagev5 || "",
     category: details.genres?.map((genre) => genre.description).filter(Boolean).slice(0, 3).join(", ") ?? "",
-    platform: getSteamPlatform(details.platforms),
+    platform: "Steam",
     creator: details.developers?.slice(0, 2).join(", ") || details.publishers?.slice(0, 2).join(", ") || "",
     description: stripHtml(details.short_description || details.about_the_game || details.detailed_description),
     campaignHours: "",

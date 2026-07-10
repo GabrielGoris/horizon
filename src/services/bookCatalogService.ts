@@ -58,7 +58,7 @@ function getOlidCover(olid?: string) {
 }
 
 function getIsbnCover(isbn: string) {
-  return isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg` : "";
+  return isbn ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg?default=false` : "";
 }
 
 function getReleaseYear(value?: string | number) {
@@ -97,6 +97,18 @@ function isPortugueseEdition(edition?: OpenLibrarySearchEdition | OpenLibraryEdi
   return getEditionLanguages(edition).some((language: string | { key?: string }) => portugueseLanguageCodes.has(normalizeLanguage(language)));
 }
 
+function getEditionIsbn(edition?: OpenLibrarySearchEdition | OpenLibraryEdition | null) {
+  if (!edition) return "";
+
+  if (Object.prototype.hasOwnProperty.call(edition, "isbn")) {
+    return (edition as OpenLibrarySearchEdition).isbn?.[0] ?? "";
+  }
+
+  const workEdition = edition as OpenLibraryEdition;
+
+  return workEdition.isbn_13?.[0] || workEdition.isbn_10?.[0] || "";
+}
+
 async function requestBooks<T>(endpoint: string, searchParams?: URLSearchParams) {
   const response = await fetch(getCatalogProxyUrl("books", endpoint, searchParams));
   const content = await response.text();
@@ -112,22 +124,11 @@ async function requestBooks<T>(endpoint: string, searchParams?: URLSearchParams)
   }
 }
 
-async function requestBooksText(endpoint: string, searchParams?: URLSearchParams) {
-  const response = await fetch(getCatalogProxyUrl("books", endpoint, searchParams));
-  const content = await response.text();
-
-  if (!response.ok) {
-    throw new Error(content || "Não foi possivel buscar livros no momento.");
-  }
-
-  return content;
-}
-
 function getEditionScore(edition: OpenLibrarySearchEdition) {
   let score = 0;
 
   if (isPortugueseEdition(edition)) score += 80;
-  if (edition.cover_i || edition.cover_edition_key || edition.isbn?.[0]) score += 20;
+  if (edition.cover_i || edition.cover_edition_key || getEditionIsbn(edition)) score += 20;
   if (edition.number_of_pages) score += 12;
   if (edition.publisher?.[0]) score += 6;
   if (edition.publish_date?.[0]) score += 4;
@@ -142,7 +143,7 @@ function getBestSearchEdition(item: OpenLibrarySearchItem) {
 }
 
 function getSearchEditionCover(edition?: OpenLibrarySearchEdition | null) {
-  return getCover(edition?.cover_i) || getOlidCover(edition?.cover_edition_key) || getIsbnCover(edition?.isbn?.[0] ?? "");
+  return getCover(edition?.cover_i) || getOlidCover(edition?.cover_edition_key) || getIsbnCover(getEditionIsbn(edition));
 }
 
 function mapOpenLibraryBook(item: OpenLibrarySearchItem, sourceScore = 0): BookCatalogResult | null {
@@ -150,10 +151,12 @@ function mapOpenLibraryBook(item: OpenLibrarySearchItem, sourceScore = 0): BookC
 
   const edition = getBestSearchEdition(item);
   const cover = getSearchEditionCover(edition) || getCover(item.cover_i);
+  const isbn = getEditionIsbn(edition);
 
   return {
     id: item.key.replace(/^\//, ""),
     source: "open-library",
+    isbn,
     title: edition?.title || item.title,
     releaseYear: getReleaseYear(edition?.publish_date?.[0]) || (item.first_publish_year ? String(item.first_publish_year) : ""),
     cover,
@@ -175,7 +178,7 @@ function getBestEdition(editions?: OpenLibraryEdition[]) {
 
       if (isPortugueseEdition(edition)) score += 80;
       if (edition.number_of_pages) score += 12;
-      if (edition.covers?.[0]) score += 10;
+      if (edition.covers?.[0] || getEditionIsbn(edition)) score += 10;
       if (edition.publishers?.[0]) score += 6;
       if (edition.publish_date) score += 4;
 
@@ -259,18 +262,81 @@ export async function getBookDetails(book: BookCatalogResult): Promise<BookCatal
     }),
   ]);
   const edition = getBestEdition(editions?.entries);
-  const editionCover = getCover(edition?.covers?.[0]);
+  const editionIsbn = getEditionIsbn(edition);
+  const editionCover = getCover(edition?.covers?.[0]) || getIsbnCover(editionIsbn);
+  const cover = book.cover || editionCover;
 
   return {
     ...book,
-    cover: editionCover || book.cover,
-    backdrop: editionCover || book.backdrop,
+    isbn: book.isbn || editionIsbn,
+    cover,
+    backdrop: book.backdrop || cover,
     publisher: edition?.publishers?.[0] || book.publisher,
     releaseYear: getReleaseYear(edition?.publish_date) || book.releaseYear,
     pageCount: edition?.number_of_pages ? String(edition.number_of_pages) : book.pageCount,
     category: book.category || work?.subjects?.slice(0, 2).join(", ") || "",
     description: getDescription(work?.description),
   };
+}
+
+async function getBookFromSearchByIsbn(normalizedIsbn: string) {
+  const data = await requestBooks<OpenLibrarySearchResponse>(
+    "search.json",
+    new URLSearchParams({
+      isbn: normalizedIsbn,
+      lang: "pt",
+      limit: "10",
+      fields: searchFields,
+    })
+  ).catch(() => ({ docs: [] }));
+  const cover = getIsbnCover(normalizedIsbn);
+  const book = (data.docs ?? [])
+    .map((item, index) => mapOpenLibraryBook(item, 200 - index))
+    .filter((item): item is BookCatalogResult => Boolean(item))
+    .sort((first, second) => (second.searchScore ?? 0) - (first.searchScore ?? 0))[0];
+
+  if (!book) return null;
+
+  const details = await getBookDetails({
+    ...book,
+    isbn: normalizedIsbn,
+    cover: book.cover || cover,
+    backdrop: book.backdrop || book.cover || cover,
+  }).catch(() => ({ ...book, isbn: normalizedIsbn, description: "" }));
+
+  return {
+    ...details,
+    isbn: normalizedIsbn,
+    cover: details.cover || book.cover || cover,
+    backdrop: details.backdrop || details.cover || book.cover || cover,
+  };
+}
+
+async function getBookFromIsbnEndpoint(normalizedIsbn: string) {
+  const edition = await requestBooks<OpenLibraryEdition>(`isbn/${normalizedIsbn}.json`).catch(() => null);
+
+  if (!edition?.title) return null;
+
+  const workKey = edition.works?.[0]?.key?.replace(/^\//, "");
+  const work = workKey
+    ? await requestBooks<OpenLibraryWork>(`${workKey}.json`).catch(() => null)
+    : null;
+  const cover = getCover(edition.covers?.[0]) || getIsbnCover(normalizedIsbn);
+
+  return {
+    id: `isbn/${normalizedIsbn}`,
+    source: "open-library",
+    isbn: normalizedIsbn,
+    title: edition.title,
+    releaseYear: getReleaseYear(edition.publish_date),
+    cover,
+    backdrop: cover,
+    category: work?.subjects?.slice(0, 2).join(", ") ?? "",
+    author: "",
+    publisher: edition.publishers?.[0] ?? "",
+    pageCount: edition.number_of_pages ? String(edition.number_of_pages) : "",
+    description: getDescription(work?.description),
+  } satisfies BookCatalogDetails;
 }
 
 export async function getBookByIsbn(isbn: string): Promise<BookCatalogDetails> {
@@ -280,18 +346,29 @@ export async function getBookByIsbn(isbn: string): Promise<BookCatalogDetails> {
     throw new Error("Informe um ISBN válido.");
   }
 
-  const content = await requestBooksText(
+  const searchBook = await getBookFromSearchByIsbn(normalizedIsbn);
+
+  if (searchBook) {
+    return searchBook;
+  }
+
+  const data = await requestBooks<OpenLibraryBookApiResponse>(
     "api/books",
     new URLSearchParams({
       bibkeys: `ISBN:${normalizedIsbn}`,
       format: "json",
       jscmd: "data",
     })
-  );
-  const data = JSON.parse(content) as OpenLibraryBookApiResponse;
+  ).catch((): OpenLibraryBookApiResponse => ({}));
   const book = data[`ISBN:${normalizedIsbn}`];
 
   if (!book) {
+    const directBook = await getBookFromIsbnEndpoint(normalizedIsbn);
+
+    if (directBook) {
+      return directBook;
+    }
+
     throw new Error("Edição não encontrada pelo ISBN.");
   }
 
@@ -300,6 +377,7 @@ export async function getBookByIsbn(isbn: string): Promise<BookCatalogDetails> {
   return {
     id: `isbn/${normalizedIsbn}`,
     source: "open-library",
+    isbn: normalizedIsbn,
     title: book.title ?? "",
     releaseYear: getReleaseYear(book.publish_date),
     cover,
@@ -320,6 +398,7 @@ export function applyBookCatalogDetails(book: BookCatalogDetails): Partial<Creat
     cover: book.cover,
     backdrop: book.backdrop ?? "",
     release_year: book.releaseYear,
+    isbn: book.isbn ?? "",
     page_count: book.pageCount,
     meta: book.publisher,
     description: book.description,

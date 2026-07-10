@@ -197,6 +197,15 @@ export async function updateMediaStatus(itemId: string, status: MediaItem["statu
   if (error) throw error;
 }
 
+export async function updateMediaMeta(itemId: string, meta: string) {
+  const { error } = await supabase
+    .from("media_items")
+    .update({ meta: toNullableText(meta) })
+    .eq("id", itemId);
+
+  if (error) throw error;
+}
+
 export async function deleteMedia(itemId: string) {
   const { error } = await supabase
     .from("media_items")

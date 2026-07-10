@@ -1,6 +1,16 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 
-type ApiRequest = IncomingMessage;
+if (!process.env.VERCEL) {
+  try {
+    process.loadEnvFile(".env.local");
+  } catch {
+    // Vercel CLI may already have loaded the local environment.
+  }
+}
+
+type ApiRequest = IncomingMessage & {
+  body?: unknown;
+};
 type ApiResponse = ServerResponse;
 
 type CatalogProxyService = "books" | "igdb" | "steam" | "tmdb";
@@ -24,6 +34,10 @@ function sendJson(res: ApiResponse, statusCode: number, body: unknown) {
 }
 
 async function readRequestBody(req: ApiRequest) {
+  if (typeof req.body === "string") return req.body;
+  if (Buffer.isBuffer(req.body)) return req.body.toString("utf8");
+  if (req.body !== undefined && req.body !== null) return String(req.body);
+
   const chunks: Buffer[] = [];
 
   for await (const chunk of req) {
@@ -43,8 +57,7 @@ async function pipeFetchResponse(res: ApiResponse, response: Response) {
     }
   });
 
-  const body = Buffer.from(await response.arrayBuffer());
-  res.end(body);
+  res.end(Buffer.from(await response.arrayBuffer()));
 }
 
 function isCatalogProxyService(value: string | null): value is CatalogProxyService {
@@ -109,6 +122,11 @@ async function fetchIgdb(req: ApiRequest, endpoint: string) {
 
   const token = await getIgdbAccessToken(clientId, clientSecret);
   const body = await readRequestBody(req);
+
+  if (!body.trim()) {
+    return { response: null, error: "Query vazia para IGDB.", statusCode: 400 };
+  }
+
   const response = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
     method: "POST",
     headers: {
