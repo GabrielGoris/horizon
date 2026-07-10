@@ -15,7 +15,7 @@ import { useMediaCollection } from "./hooks/useMediaCollection";
 import { useWishlistPriority } from "./hooks/useWishlistPriority";
 import type { InitialScreenProps } from "./types";
 
-export function InitialScreen({ activeTab, onSignOut, userEmail }: InitialScreenProps) {
+export function InitialScreen({ activeTab }: InitialScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const mediaCollection = useMediaCollection();
@@ -64,7 +64,7 @@ export function InitialScreen({ activeTab, onSignOut, userEmail }: InitialScreen
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-noir-base font-sans text-white">
-      <Sidebar categories={CATEGORIES} onSignOut={onSignOut} userEmail={userEmail} />
+      <Sidebar categories={CATEGORIES} />
 
       <div className="relative flex h-screen flex-1 flex-col">
         <Header

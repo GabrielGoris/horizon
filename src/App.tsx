@@ -4,6 +4,7 @@ import { InitialScreen } from './screens/initialScreen/index.tsx'
 import { useAuthSession } from './hooks/useAuthSession'
 import { supabase } from './lib/supabase'
 import type { InitialScreenProps } from './screens/initialScreen/types'
+import { SettingsScreen } from './screens/settingsScreen'
 
 function App() {
   const { isLoadingSession, session } = useAuthSession()
@@ -32,13 +33,7 @@ function App() {
       return <Navigate to="/auth" replace />
     }
 
-    return (
-      <InitialScreen
-        activeTab={activeTab}
-        onSignOut={handleSignOut}
-        userEmail={session?.user.email}
-      />
-    )
+    return <InitialScreen activeTab={activeTab} />
   }
 
   return (
@@ -55,6 +50,14 @@ function App() {
       <Route path="/games" element={renderLibraryRoute("games")} />
       <Route path="/movies" element={renderLibraryRoute("movies")} />
       <Route path="/books" element={renderLibraryRoute("books")} />
+      <Route
+        path="/settings"
+        element={isAuthenticated && session ? <SettingsScreen onSignOut={handleSignOut} session={session} /> : <Navigate to="/auth" replace />}
+      />
+      <Route
+        path="/settings/*"
+        element={isAuthenticated && session ? <SettingsScreen onSignOut={handleSignOut} session={session} /> : <Navigate to="/auth" replace />}
+      />
       <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/auth"} replace />} />
     </Routes>
   )

@@ -11,8 +11,6 @@ export interface CategoryDef {
 
 export interface SidebarProps {
   categories: CategoryDef[];
-  onSignOut: () => void;
-  userEmail?: string;
 }
 
 export interface SidebarItemProps {
