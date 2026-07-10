@@ -21,6 +21,16 @@ function normalizeWishlistPosition(position: number) {
   return Math.min(WISHLIST_LIMIT, Math.max(1, Math.round(position)));
 }
 
+async function getCurrentUserId() {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    throw new Error("Usuário não autenticado.");
+  }
+
+  return data.user.id;
+}
+
 export function getWishlistItems(collection: MediaItem[], mediaType: MediaType) {
   return collection
     .filter((item) => item.type === mediaType && getWishlistPosition(item) !== null)
@@ -46,6 +56,7 @@ export function buildWishlistPreview(
 }
 
 export async function saveWishlistPreview(preview: WishlistPreview) {
+  const userId = await getCurrentUserId();
   const now = new Date().toISOString();
   const updates = preview.items.map((item, index) =>
     supabase
@@ -55,6 +66,7 @@ export async function saveWishlistPreview(preview: WishlistPreview) {
         wishlist_added_at: item.wishlist_added_at ?? now,
       })
       .eq("id", item.id)
+      .eq("user_id", userId)
   );
 
   if (preview.removedItem) {
@@ -66,6 +78,7 @@ export async function saveWishlistPreview(preview: WishlistPreview) {
           wishlist_added_at: null,
         })
         .eq("id", preview.removedItem.id)
+        .eq("user_id", userId)
     );
   }
 
@@ -84,6 +97,7 @@ export async function moveMediaToWishlist(collection: MediaItem[], item: MediaIt
 }
 
 export async function removeMediaFromWishlist(collection: MediaItem[], item: MediaItem) {
+  const userId = await getCurrentUserId();
   const currentWishlist = getWishlistItems(collection, item.type).filter((wishlistItem) => wishlistItem.id !== item.id);
   const updates = currentWishlist.map((wishlistItem, index) =>
     supabase
@@ -92,6 +106,7 @@ export async function removeMediaFromWishlist(collection: MediaItem[], item: Med
         wishlist_position: index + 1,
       })
       .eq("id", wishlistItem.id)
+      .eq("user_id", userId)
   );
 
   updates.push(
@@ -102,6 +117,7 @@ export async function removeMediaFromWishlist(collection: MediaItem[], item: Med
         wishlist_added_at: null,
       })
       .eq("id", item.id)
+      .eq("user_id", userId)
   );
 
   const results = await Promise.all(updates);

@@ -2,6 +2,8 @@ import type { MediaStatus } from "../../../types";
 
 export interface InitialScreenProps {
   activeTab: string;
+  onSignOut: () => void;
+  userEmail?: string;
 }
 
 export type StatusFilter = "all" | MediaStatus;
