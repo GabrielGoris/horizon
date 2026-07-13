@@ -9,14 +9,20 @@ export function useAuthSession() {
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) {
-        return;
-      }
+    void supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (!isMounted) return;
 
-      setSession(data.session);
-      setIsLoadingSession(false);
-    });
+        setSession(error ? null : data.session);
+        setIsLoadingSession(false);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+
+        setSession(null);
+        setIsLoadingSession(false);
+      });
 
     const {
       data: { subscription },

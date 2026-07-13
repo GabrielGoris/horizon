@@ -2,14 +2,18 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AuthScreen } from './screens/authScreen'
 import { InitialScreen } from './screens/initialScreen/index.tsx'
 import { useAuthSession } from './hooks/useAuthSession'
+import { useMfaAssurance } from './hooks/useMfaAssurance'
 import { supabase } from './lib/supabase'
 import type { InitialScreenProps } from './screens/initialScreen/types'
 import { SettingsScreen } from './screens/settingsScreen'
+import { ResetPasswordScreen } from './screens/resetPasswordScreen'
+import { MfaChallengeScreen } from './screens/mfaChallengeScreen'
 
 function App() {
   const { isLoadingSession, session } = useAuthSession()
+  const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
 
-  if (isLoadingSession) {
+  if (isLoadingSession || isCheckingMfa) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-noir-base text-white">
         <div className="flex flex-col items-center gap-4">
@@ -25,8 +29,8 @@ function App() {
   }
 
   const isAuthenticated = Boolean(session)
-  const handleSignOut = () => {
-    void supabase.auth.signOut()
+  const handleSignOut = async () => {
+    await supabase.auth.signOut({ scope: 'local' })
   }
   const renderLibraryRoute = (activeTab: InitialScreenProps['activeTab']) => {
     if (!isAuthenticated) {
@@ -34,6 +38,14 @@ function App() {
     }
 
     return <InitialScreen activeTab={activeTab} />
+  }
+
+  if (isAuthenticated && isMfaRequired) {
+    return (
+      <MfaChallengeScreen
+        onVerified={resetMfaCheck}
+      />
+    )
   }
 
   return (
@@ -45,6 +57,10 @@ function App() {
       <Route
         path="/auth/callback"
         element={isAuthenticated ? <Navigate to="/" replace /> : <AuthScreen />}
+      />
+      <Route
+        path="/auth/reset-password"
+        element={<ResetPasswordScreen isAuthenticated={isAuthenticated} />}
       />
       <Route path="/" element={renderLibraryRoute("overview")} />
       <Route path="/games" element={renderLibraryRoute("games")} />

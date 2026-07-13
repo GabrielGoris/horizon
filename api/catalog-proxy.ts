@@ -97,7 +97,7 @@ async function getIgdbAccessToken(clientId: string, clientSecret: string) {
   });
 
   if (!response.ok) {
-    throw new Error("Nao foi possivel autenticar na IGDB.");
+    throw new Error("Não foi possível autenticar na IGDB.");
   }
 
   const data = (await response.json()) as TwitchTokenResponse;
@@ -153,7 +153,7 @@ async function fetchSteam(req: ApiRequest, endpoint: string) {
 
 async function fetchTmdb(req: ApiRequest, endpoint: string) {
   if (req.method !== "GET") {
-    return { response: null, error: `Metodo ${req.method} nao permitido para TMDB. Use GET.`, statusCode: 405 };
+    return { response: null, error: `Metodo ${req.method} não permitido para TMDB. Use GET.`, statusCode: 405 };
   }
 
   const tmdbAccessToken = getEnvValue("TMDB_ACCESS_TOKEN", "VITE_TMDB_ACCESS_TOKEN");
@@ -185,7 +185,7 @@ async function fetchTmdb(req: ApiRequest, endpoint: string) {
 
 async function fetchBooks(req: ApiRequest, endpoint: string) {
   if (req.method !== "GET") {
-    return { response: null, error: `Metodo ${req.method} nao permitido para Open Library. Use GET.`, statusCode: 405 };
+    return { response: null, error: `Metodo ${req.method} não permitido para Open Library. Use GET.`, statusCode: 405 };
   }
 
   const response = await fetch(`https://openlibrary.org/${endpoint}`);
@@ -240,7 +240,7 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     console.error("[catalog-proxy]", error);
     sendJson(res, 500, {
       ok: false,
-      message: error instanceof Error ? error.message : "Erro ao consultar catalogo.",
+      message: error instanceof Error ? error.message : "Erro ao consultar catálogo.",
     });
   }
 }

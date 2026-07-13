@@ -1,25 +1,35 @@
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { FcGoogle } from 'react-icons/fc';
+import { CaptchaField } from '../../components/CaptchaField';
+import { getAuthErrorMessage, getPasswordValidationMessage, MIN_PASSWORD_LENGTH } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import type { AuthMode } from './types';
 
 const authCopy = {
   login: {
     eyebrow: 'Acesso ao acervo',
-    title: 'Bem vindo ao Horizon.',
+    title: 'Bem-vindo ao Horizon.',
     description: 'Entre para continuar organizando suas obras preferidas no seu acervo.',
     submit: 'Entrar',
-    swapText: 'Ainda não tem conta?',
+    swapText: 'Ainda nao tem conta?',
     swapAction: 'Criar registro',
   },
   register: {
     eyebrow: 'Novo registro',
-    title: 'Bem vindo ao Horizon.',
+    title: 'Bem-vindo ao Horizon.',
     description: 'Crie sua conta para manter sua biblioteca sempre atualizada.',
     submit: 'Registrar',
-    swapText: 'Já tem uma conta?',
+    swapText: 'Ja tem uma conta?',
     swapAction: 'Fazer login',
+  },
+  forgot: {
+    eyebrow: 'Recuperar acesso',
+    title: 'Redefina sua senha.',
+    description: 'Enviaremos um link seguro para o seu e-mail cadastrado.',
+    submit: 'Enviar link',
+    swapText: 'Lembrou sua senha?',
+    swapAction: 'Voltar ao login',
   },
 } satisfies Record<AuthMode, Record<string, string>>;
 
@@ -30,8 +40,13 @@ export function AuthScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(() => {
+    const oauthError = new URLSearchParams(window.location.search).get('error_description');
+    return oauthError ? getAuthErrorMessage(oauthError) : null;
+  });
   const copy = authCopy[mode];
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -40,17 +55,42 @@ export function AuthScreen() {
     setErrorMessage(null);
     setFeedback(null);
 
-    const credentials = {
-      email: email.trim(),
-      password,
-    };
+    const normalizedEmail = email.trim();
+    let error: { message: string } | null;
 
-    const { error } =
-      mode === 'login'
-        ? await supabase.auth.signInWithPassword(credentials)
-        : await supabase.auth.signUp(credentials);
+    if (mode === 'register') {
+      const passwordError = getPasswordValidationMessage(password);
+      if (passwordError) {
+        setIsSubmitting(false);
+        setErrorMessage(passwordError);
+        return;
+      }
+
+      ({ error } = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          captchaToken: captchaToken ?? undefined,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      }));
+    } else if (mode === 'forgot') {
+      ({ error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        captchaToken: captchaToken ?? undefined,
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      }));
+    } else {
+      ({ error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+        options: {
+          captchaToken: captchaToken ?? undefined,
+        },
+      }));
+    }
 
     setIsSubmitting(false);
+    setCaptchaResetKey((currentKey) => currentKey + 1);
 
     if (error) {
       setErrorMessage(getAuthErrorMessage(error.message));
@@ -59,6 +99,10 @@ export function AuthScreen() {
 
     if (mode === 'register') {
       setFeedback('Registro criado. Confirme seu e-mail antes de entrar.');
+    }
+
+    if (mode === 'forgot') {
+      setFeedback('Se o e-mail estiver cadastrado, enviaremos um link de recuperação.');
     }
   };
 
@@ -80,10 +124,12 @@ export function AuthScreen() {
     }
   };
 
-  const toggleMode = () => {
-    setMode((currentMode) => (currentMode === 'login' ? 'register' : 'login'));
+  const changeMode = (nextMode: AuthMode) => {
+    setMode(nextMode);
+    setPassword('');
     setErrorMessage(null);
     setFeedback(null);
+    setCaptchaResetKey((currentKey) => currentKey + 1);
   };
 
   return (
@@ -141,34 +187,54 @@ export function AuthScreen() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="voce@horizon.app"
                 required
+                autoComplete="email"
                 className="h-[52px] rounded-xl border border-white/10 bg-[#101012] px-4 text-[15px] font-semibold text-white outline-none transition-all placeholder:text-neutral-700 focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
               />
             </label>
 
-            <label className="flex flex-col gap-2">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
-                Senha
-              </span>
-              <span className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="Mínimo de 6 caracteres"
-                  required
-                  minLength={6}
-                  className="h-[52px] w-full rounded-xl border border-white/10 bg-[#101012] px-4 pr-12 text-[15px] font-semibold text-white outline-none transition-all placeholder:text-neutral-700 focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((isVisible) => !isVisible)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 transition-colors hover:text-noir-champagne"
-                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </span>
-            </label>
+            {mode !== 'forgot' && (
+              <label className="flex flex-col gap-2">
+                <span className="flex items-center justify-between gap-3 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+                  Senha
+                  {mode === 'login' && (
+                    <button
+                      type="button"
+                      onClick={() => changeMode('forgot')}
+                      className="normal-case tracking-normal text-noir-gold transition-colors hover:text-noir-champagne"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  )}
+                </span>
+                <span className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder={mode === 'register' ? `Minimo de ${MIN_PASSWORD_LENGTH} caracteres` : 'Sua senha'}
+                    required
+                    minLength={mode === 'register' ? MIN_PASSWORD_LENGTH : 1}
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    className="h-[52px] w-full rounded-xl border border-white/10 bg-[#101012] px-4 pr-12 text-[15px] font-semibold text-white outline-none transition-all placeholder:text-neutral-700 focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((isVisible) => !isVisible)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 transition-colors hover:text-noir-champagne"
+                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </span>
+                {mode === 'register' && (
+                  <span className="text-xs leading-5 text-neutral-600">
+                    Use maiúscula, minúscula, número e símbolo.
+                  </span>
+                )}
+              </label>
+            )}
+
+            <CaptchaField onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
 
             {errorMessage && (
               <p className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
@@ -191,22 +257,24 @@ export function AuthScreen() {
               {copy.submit}
             </button>
 
-            <button
-              type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isGoogleSubmitting || isSubmitting}
-              className="flex h-[52px] items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-6 text-[11px] font-black uppercase tracking-[0.12em] text-noir-champagne transition-all hover:border-white/20 hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isGoogleSubmitting ? <Loader2 size={17} className="animate-spin" /> : <FcGoogle size={18} />}
-              Entrar com Google
-            </button>
+            {mode !== 'forgot' && (
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isGoogleSubmitting || isSubmitting}
+                className="flex h-[52px] items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.025] px-6 text-[11px] font-black uppercase tracking-[0.12em] text-noir-champagne transition-all hover:border-white/20 hover:bg-white/[0.045] disabled:cursor-not-allowed disabled:opacity-70"
+              >
+                {isGoogleSubmitting ? <Loader2 size={17} className="animate-spin" /> : <FcGoogle size={18} />}
+                Entrar com Google
+              </button>
+            )}
           </form>
 
           <div className="mt-8 flex items-center justify-center gap-2 text-sm text-neutral-500">
             <span>{copy.swapText}</span>
             <button
               type="button"
-              onClick={toggleMode}
+              onClick={() => changeMode(mode === 'login' ? 'register' : 'login')}
               className="font-bold text-noir-gold transition-colors hover:text-noir-champagne"
             >
               {copy.swapAction}
@@ -216,22 +284,4 @@ export function AuthScreen() {
       </section>
     </main>
   );
-}
-
-function getAuthErrorMessage(message: string) {
-  const normalizedMessage = message.toLowerCase();
-
-  if (normalizedMessage.includes('invalid login')) {
-    return 'E-mail ou senha incorretos.';
-  }
-
-  if (normalizedMessage.includes('already registered')) {
-    return 'Esse e-mail já está registrado.';
-  }
-
-  if (normalizedMessage.includes('password')) {
-    return 'A senha precisa ter pelo menos 6 caracteres.';
-  }
-
-  return 'Não foi possível concluir a autenticação agora.';
 }
