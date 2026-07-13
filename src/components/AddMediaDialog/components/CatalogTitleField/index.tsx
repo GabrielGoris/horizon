@@ -1,5 +1,5 @@
 import type { ChangeEvent, FocusEvent } from "react";
-import type { CatalogTitleFieldProps, SearchErrorProps, SearchResultButtonProps } from "../types";
+import type { CatalogTitleFieldProps, SearchErrorProps, SearchResultButtonProps } from "../../types";
 
 export function CatalogTitleField({
   bookSearchError,

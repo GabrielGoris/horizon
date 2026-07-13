@@ -1,5 +1,5 @@
-import { typeOptions } from "../consts";
-import type { MediaTypePickerProps } from "../types";
+import { typeOptions } from "../../consts";
+import type { MediaTypePickerProps } from "../../types";
 
 export function MediaTypePicker({ onSelect }: MediaTypePickerProps) {
   return (

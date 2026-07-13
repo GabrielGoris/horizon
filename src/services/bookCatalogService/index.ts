@@ -1,5 +1,6 @@
-import type { CreateMediaDTO } from "../schemas/media";
-import { getCatalogProxyUrl } from "./catalogProxy";
+import type { CreateMediaDTO } from "../../schemas/media";
+import { CatalogCache } from "../catalogCache";
+import { requestCatalog } from "../catalogProxy";
 import type {
   BookCatalogDetails,
   BookCatalogResult,
@@ -10,9 +11,9 @@ import type {
   OpenLibrarySearchItem,
   OpenLibrarySearchResponse,
   OpenLibraryWork,
-} from "./types";
+} from "../types";
 
-const searchCache = new Map<string, BookCatalogResult[]>();
+const searchCache = new CatalogCache<BookCatalogResult[]>();
 const portugueseLanguageCodes = new Set(["por", "pt", "pt-br", "pt_br"]);
 const searchFields = [
   "key",
@@ -109,19 +110,8 @@ function getEditionIsbn(edition?: OpenLibrarySearchEdition | OpenLibraryEdition 
   return workEdition.isbn_13?.[0] || workEdition.isbn_10?.[0] || "";
 }
 
-async function requestBooks<T>(endpoint: string, searchParams?: URLSearchParams) {
-  const response = await fetch(getCatalogProxyUrl("books", endpoint, searchParams));
-  const content = await response.text();
-
-  if (!response.ok) {
-    throw new Error(content || "Nao foi possivel buscar livros agora.");
-  }
-
-  try {
-    return JSON.parse(content) as T;
-  } catch {
-    throw new Error("A Open Library retornou uma resposta invalida para livros.");
-  }
+async function requestBooks<T>(endpoint: string, searchParams?: URLSearchParams, signal?: AbortSignal) {
+  return requestCatalog<T>("books", endpoint, { searchParams, signal });
 }
 
 function getEditionScore(edition: OpenLibrarySearchEdition) {
@@ -189,56 +179,36 @@ function getBestEdition(editions?: OpenLibraryEdition[]) {
   })[0] ?? null;
 }
 
-export async function searchBooks(query: string): Promise<BookCatalogResult[]> {
+export async function searchBooks(query: string, signal?: AbortSignal): Promise<BookCatalogResult[]> {
   const normalizedQuery = normalizeSearchText(query);
+  const cachedResults = searchCache.get(normalizedQuery);
 
-  if (searchCache.has(normalizedQuery)) {
-    return searchCache.get(normalizedQuery) ?? [];
-  }
+  if (cachedResults) return cachedResults;
 
-  let broadSearchError: unknown = null;
-  const [portugueseData, broadData] = await Promise.all([
-    requestBooks<OpenLibrarySearchResponse>(
-      "search.json",
-      new URLSearchParams({
-        q: `${query} language:por`,
-        lang: "pt",
-        limit: "10",
-        fields: searchFields,
-      })
-    ).catch(() => ({ docs: [] })),
-    requestBooks<OpenLibrarySearchResponse>(
-      "search.json",
-      new URLSearchParams({
-        q: query,
-        lang: "pt",
-        limit: "18",
-        fields: searchFields,
-      })
-    ).catch((error) => {
-      broadSearchError = error;
-
-      return { docs: [] };
+  const data = await requestBooks<OpenLibrarySearchResponse>(
+    "search.json",
+    new URLSearchParams({
+      q: query,
+      lang: "pt",
+      limit: "20",
+      fields: searchFields,
     }),
-  ]);
+    signal
+  );
 
-  const results = [...(portugueseData.docs ?? []), ...(broadData.docs ?? [])]
-    .map((item, index) => mapOpenLibraryBook(item, index < (portugueseData.docs?.length ?? 0) ? 200 : 0))
+  const results = (data.docs ?? [])
+    .map((item) => mapOpenLibraryBook(item))
     .filter((item): item is BookCatalogResult => Boolean(item))
     .sort((first, second) => (second.searchScore ?? 0) - (first.searchScore ?? 0))
     .filter((item, index, items) => items.findIndex((current) => current.id === item.id) === index)
     .slice(0, 20) ?? [];
-
-  if (results.length === 0 && broadSearchError) {
-    throw broadSearchError;
-  }
 
   searchCache.set(normalizedQuery, results);
 
   return results;
 }
 
-export async function getBookDetails(book: BookCatalogResult): Promise<BookCatalogDetails> {
+export async function getBookDetails(book: BookCatalogResult, signal?: AbortSignal): Promise<BookCatalogDetails> {
   if (!book.id.startsWith("works/")) {
     return {
       ...book,
@@ -247,14 +217,15 @@ export async function getBookDetails(book: BookCatalogResult): Promise<BookCatal
   }
 
   const [work, editions] = await Promise.all([
-    requestBooks<OpenLibraryWork>(`${book.id}.json`).catch((error) => {
+    requestBooks<OpenLibraryWork>(`${book.id}.json`, undefined, signal).catch((error) => {
       console.warn("Nao foi possivel carregar a obra na Open Library.", error);
 
       return null;
     }),
     requestBooks<OpenLibraryEditionsResponse>(
       `${book.id}/editions.json`,
-      new URLSearchParams({ limit: "20" })
+      new URLSearchParams({ limit: "20" }),
+      signal
     ).catch((error) => {
       console.warn("Nao foi possivel carregar as edicoes na Open Library.", error);
 
@@ -279,7 +250,7 @@ export async function getBookDetails(book: BookCatalogResult): Promise<BookCatal
   };
 }
 
-async function getBookFromSearchByIsbn(normalizedIsbn: string) {
+async function getBookFromSearchByIsbn(normalizedIsbn: string, signal?: AbortSignal) {
   const data = await requestBooks<OpenLibrarySearchResponse>(
     "search.json",
     new URLSearchParams({
@@ -287,8 +258,9 @@ async function getBookFromSearchByIsbn(normalizedIsbn: string) {
       lang: "pt",
       limit: "10",
       fields: searchFields,
-    })
-  ).catch(() => ({ docs: [] }));
+    }),
+    signal
+  );
   const cover = getIsbnCover(normalizedIsbn);
   const book = (data.docs ?? [])
     .map((item, index) => mapOpenLibraryBook(item, 200 - index))
@@ -297,29 +269,23 @@ async function getBookFromSearchByIsbn(normalizedIsbn: string) {
 
   if (!book) return null;
 
-  const details = await getBookDetails({
+  return {
     ...book,
     isbn: normalizedIsbn,
     cover: book.cover || cover,
     backdrop: book.backdrop || book.cover || cover,
-  }).catch(() => ({ ...book, isbn: normalizedIsbn, description: "" }));
-
-  return {
-    ...details,
-    isbn: normalizedIsbn,
-    cover: details.cover || book.cover || cover,
-    backdrop: details.backdrop || details.cover || book.cover || cover,
+    description: "",
   };
 }
 
-async function getBookFromIsbnEndpoint(normalizedIsbn: string) {
-  const edition = await requestBooks<OpenLibraryEdition>(`isbn/${normalizedIsbn}.json`).catch(() => null);
+async function getBookFromIsbnEndpoint(normalizedIsbn: string, signal?: AbortSignal) {
+  const edition = await requestBooks<OpenLibraryEdition>(`isbn/${normalizedIsbn}.json`, undefined, signal).catch(() => null);
 
   if (!edition?.title) return null;
 
   const workKey = edition.works?.[0]?.key?.replace(/^\//, "");
   const work = workKey
-    ? await requestBooks<OpenLibraryWork>(`${workKey}.json`).catch(() => null)
+    ? await requestBooks<OpenLibraryWork>(`${workKey}.json`, undefined, signal).catch(() => null)
     : null;
   const cover = getCover(edition.covers?.[0]) || getIsbnCover(normalizedIsbn);
 
@@ -339,14 +305,14 @@ async function getBookFromIsbnEndpoint(normalizedIsbn: string) {
   } satisfies BookCatalogDetails;
 }
 
-export async function getBookByIsbn(isbn: string): Promise<BookCatalogDetails> {
+export async function getBookByIsbn(isbn: string, signal?: AbortSignal): Promise<BookCatalogDetails> {
   const normalizedIsbn = normalizeIsbn(isbn);
 
   if (!normalizedIsbn) {
     throw new Error("Informe um ISBN válido.");
   }
 
-  const searchBook = await getBookFromSearchByIsbn(normalizedIsbn);
+  const searchBook = await getBookFromSearchByIsbn(normalizedIsbn, signal);
 
   if (searchBook) {
     return searchBook;
@@ -358,12 +324,13 @@ export async function getBookByIsbn(isbn: string): Promise<BookCatalogDetails> {
       bibkeys: `ISBN:${normalizedIsbn}`,
       format: "json",
       jscmd: "data",
-    })
+    }),
+    signal
   ).catch((): OpenLibraryBookApiResponse => ({}));
   const book = data[`ISBN:${normalizedIsbn}`];
 
   if (!book) {
-    const directBook = await getBookFromIsbnEndpoint(normalizedIsbn);
+    const directBook = await getBookFromIsbnEndpoint(normalizedIsbn, signal);
 
     if (directBook) {
       return directBook;

@@ -1,5 +1,5 @@
 import type { ChangeEvent } from "react";
-import type { CoverFieldProps } from "../types";
+import type { CoverFieldProps } from "../../types";
 
 export function CoverField({
   className,

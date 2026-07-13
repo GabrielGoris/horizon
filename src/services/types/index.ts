@@ -48,6 +48,12 @@ export type IgdbGameTimeToBeat = {
   count?: number;
 };
 
+export type IgdbMultiQueryResult<T = unknown> = {
+  name: string;
+  result?: T;
+  count?: number;
+};
+
 export type SteamSearchItem = {
   id: number;
   name: string;

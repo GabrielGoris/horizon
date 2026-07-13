@@ -1,5 +1,5 @@
-import { supabase } from "../lib/supabase";
-import type { MediaItem, MediaType } from "../types";
+import { supabase } from "../../lib/supabase";
+import type { MediaItem, MediaType } from "../../types";
 
 export const WISHLIST_LIMIT = 10;
 
@@ -8,6 +8,20 @@ export type WishlistPreview = {
   removedItem?: MediaItem;
   targetPosition: number;
 };
+
+type WishlistPositionUpdate = {
+  id: string;
+  position: number | null;
+  added_at?: string | null;
+};
+
+async function saveWishlistPositions(updates: WishlistPositionUpdate[]) {
+  const { error } = await supabase.rpc("set_wishlist_positions", {
+    p_updates: updates,
+  });
+
+  if (error) throw error;
+}
 
 function getWishlistPosition(item: MediaItem) {
   const position = Number(item.wishlist_position);
@@ -47,32 +61,21 @@ export function buildWishlistPreview(
 
 export async function saveWishlistPreview(preview: WishlistPreview) {
   const now = new Date().toISOString();
-  const updates = preview.items.map((item, index) =>
-    supabase
-      .from("media_items")
-      .update({
-        wishlist_position: index + 1,
-        wishlist_added_at: item.wishlist_added_at ?? now,
-      })
-      .eq("id", item.id)
-  );
+  const updates: WishlistPositionUpdate[] = preview.items.map((item, index) => ({
+    id: item.id,
+    position: index + 1,
+    added_at: item.wishlist_added_at ?? now,
+  }));
 
   if (preview.removedItem) {
-    updates.push(
-      supabase
-        .from("media_items")
-        .update({
-          wishlist_position: null,
-          wishlist_added_at: null,
-        })
-        .eq("id", preview.removedItem.id)
-    );
+    updates.push({
+      id: preview.removedItem.id,
+      position: null,
+      added_at: null,
+    });
   }
 
-  const results = await Promise.all(updates);
-  const failedResult = results.find((result) => result.error);
-
-  if (failedResult?.error) throw failedResult.error;
+  await saveWishlistPositions(updates);
 }
 
 export async function moveMediaToWishlist(collection: MediaItem[], item: MediaItem, position: number) {
@@ -85,27 +88,11 @@ export async function moveMediaToWishlist(collection: MediaItem[], item: MediaIt
 
 export async function removeMediaFromWishlist(collection: MediaItem[], item: MediaItem) {
   const currentWishlist = getWishlistItems(collection, item.type).filter((wishlistItem) => wishlistItem.id !== item.id);
-  const updates = currentWishlist.map((wishlistItem, index) =>
-    supabase
-      .from("media_items")
-      .update({
-        wishlist_position: index + 1,
-      })
-      .eq("id", wishlistItem.id)
-  );
+  const updates: WishlistPositionUpdate[] = currentWishlist.map((wishlistItem, index) => ({
+    id: wishlistItem.id,
+    position: index + 1,
+  }));
 
-  updates.push(
-    supabase
-      .from("media_items")
-      .update({
-        wishlist_position: null,
-        wishlist_added_at: null,
-      })
-      .eq("id", item.id)
-  );
-
-  const results = await Promise.all(updates);
-  const failedResult = results.find((result) => result.error);
-
-  if (failedResult?.error) throw failedResult.error;
+  updates.push({ id: item.id, position: null, added_at: null });
+  await saveWishlistPositions(updates);
 }

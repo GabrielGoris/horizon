@@ -1,4 +1,4 @@
-import type { MediaStatus, MediaType } from "../types";
+import type { MediaStatus, MediaType } from "../../types";
 
 export const MEDIA_STATUS_OPTIONS: MediaStatus[] = ["queue", "in_progress", "dropped", "complete"];
 
