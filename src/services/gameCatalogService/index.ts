@@ -1,9 +1,10 @@
-import type { CreateMediaDTO } from "../schemas/media";
-import { getCatalogProxyUrl } from "./catalogProxy";
-import type { GameCatalogDetails, GameCatalogResult, IgdbGame, IgdbGameTimeToBeat, IgdbGenre, IgdbInvolvedCompany, IgdbPlatform, IgdbSearchResult, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "./types";
+import type { CreateMediaDTO } from "../../schemas/media";
+import { CatalogCache } from "../catalogCache";
+import { requestCatalog } from "../catalogProxy";
+import type { GameCatalogDetails, GameCatalogResult, IgdbGame, IgdbGameTimeToBeat, IgdbGenre, IgdbInvolvedCompany, IgdbMultiQueryResult, IgdbPlatform, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "../types";
 
 const maxCatalogResults = 50;
-const searchCache = new Map<string, GameCatalogResult[]>();
+const searchCache = new CatalogCache<GameCatalogResult[]>();
 
 const genreTranslations: Record<string, string> = {
   Action: "Ação",
@@ -74,30 +75,6 @@ function applyKnownSearchCorrections(value: string) {
     .split(/\s+/)
     .map((word) => corrections[word.toLowerCase()] ?? word)
     .join(" ");
-}
-
-function getSearchVariations(query: string) {
-  const trimmedQuery = query.trim();
-  const correctedQuery = applyKnownSearchCorrections(trimmedQuery);
-  const variations = [trimmedQuery, correctedQuery];
-  const normalizedCorrectedQuery = normalizeSearchText(correctedQuery);
-  const tokens = getSearchTokens(correctedQuery);
-
-  if (normalizedCorrectedQuery.startsWith("mario ") && !normalizedCorrectedQuery.startsWith("super mario ")) {
-    variations.push(`super ${correctedQuery}`);
-  }
-
-  if (normalizedCorrectedQuery.startsWith("zelda ") && !normalizedCorrectedQuery.startsWith("the legend of zelda ")) {
-    variations.push(`the legend of ${correctedQuery}`);
-  }
-
-  const longestToken = [...tokens].sort((firstToken, secondToken) => secondToken.length - firstToken.length)[0];
-
-  if (longestToken && longestToken.length >= 5) {
-    variations.push(longestToken);
-  }
-
-  return Array.from(new Set(variations.filter(Boolean)));
 }
 
 function normalizeCoverUrl(url?: string) {
@@ -249,40 +226,25 @@ function secondsToDuration(value?: number) {
 }
 
 function getCampaignHoursFromTimeToBeat(timeToBeat?: IgdbGameTimeToBeat) {
-  return secondsToDuration(timeToBeat?.hastily || timeToBeat?.normally || timeToBeat?.completely);
+  return secondsToDuration(timeToBeat?.normally || timeToBeat?.hastily || timeToBeat?.completely);
 }
 
-async function requestIgdb<T>(endpoint: string, query: string) {
-  const response = await fetch(getCatalogProxyUrl("igdb", endpoint), {
+async function requestIgdb<T>(endpoint: string, query: string, signal?: AbortSignal) {
+  return requestCatalog<T>("igdb", endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "text/plain",
     },
     body: query,
+    signal,
   });
-
-  if (!response.ok) {
-    const message = await response.text();
-
-    throw new Error(message || "Nao foi possivel buscar jogos agora.");
-  }
-
-  return (await response.json()) as T;
 }
 
-async function requestSteam<T>(endpoint: string, searchParams: URLSearchParams) {
-  const response = await fetch(getCatalogProxyUrl("steam", endpoint, searchParams));
-
-  if (!response.ok) {
-    const message = await response.text();
-
-    throw new Error(message || "Nao foi possivel consultar a Steam agora.");
-  }
-
-  return (await response.json()) as T;
+async function requestSteam<T>(endpoint: string, searchParams: URLSearchParams, signal?: AbortSignal) {
+  return requestCatalog<T>("steam", endpoint, { searchParams, signal });
 }
 
-async function searchSteamGames(query: string) {
+async function searchSteamGames(query: string, signal?: AbortSignal) {
   const data = await requestSteam<SteamSearchResponse>(
     "api/storesearch/",
     new URLSearchParams({
@@ -290,20 +252,22 @@ async function searchSteamGames(query: string) {
       l: "brazilian",
       cc: "BR",
       count: String(maxCatalogResults),
-    })
+    }),
+    signal
   );
 
   return data.items?.map(mapSteamSearchItem) ?? [];
 }
 
-async function getSteamAppDetails(appId: number, language: "brazilian" | "portuguese") {
+async function getSteamAppDetails(appId: number, language: "brazilian" | "portuguese", signal?: AbortSignal) {
   const data = await requestSteam<SteamAppDetailsResponse>(
     "api/appdetails",
     new URLSearchParams({
       appids: String(appId),
       l: language,
       cc: "BR",
-    })
+    }),
+    signal
   );
 
   const result = data[String(appId)];
@@ -313,106 +277,89 @@ async function getSteamAppDetails(appId: number, language: "brazilian" | "portug
   return result.data;
 }
 
-async function getIgdbTimeToBeat(gameId: number) {
+async function getIgdbTimeToBeat(game: Pick<IgdbGame, "id" | "version_parent">, signal?: AbortSignal) {
+  const gameIds = Array.from(new Set([game.version_parent, game.id].filter((id): id is number => Boolean(id))));
+  const gameIdFilter = gameIds.length === 1 ? String(gameIds[0]) : `(${gameIds.join(",")})`;
   const results = await requestIgdb<IgdbGameTimeToBeat[]>(
     "game_time_to_beats",
     `
       fields game_id, hastily, normally, completely, count;
-      where game_id = ${gameId};
-      limit 1;
-    `
-  ).catch(() => []);
+      where game_id = ${gameIdFilter};
+      limit ${gameIds.length};
+    `,
+    signal
+  ).catch((error) => {
+    if (isAbortError(error)) throw error;
+    return [];
+  });
 
-  return getCampaignHoursFromTimeToBeat(results[0]);
+  const resultsByPreference = gameIds
+    .map((gameId) => results.find((result) => result.game_id === gameId))
+    .filter((result): result is IgdbGameTimeToBeat => Boolean(result));
+  const campaignSeconds = resultsByPreference.find((result) => result.normally)?.normally
+    || resultsByPreference.find((result) => result.hastily)?.hastily
+    || resultsByPreference.find((result) => result.completely)?.completely;
+
+  return secondsToDuration(campaignSeconds);
 }
 
-async function getIgdbGameByTitle(title: string) {
+async function getIgdbGameByTitle(title: string, signal?: AbortSignal) {
   const games = await requestIgdb<IgdbGame[]>(
     "games",
     `
       search "${escapeIgdbSearch(title)}";
       fields name, alternative_names.name, cover.url, first_release_date, genres.name, platforms.name, total_rating_count, version_parent;
-      where version_parent = null;
       limit 5;
-    `
-  ).catch(() => []);
+    `,
+    signal
+  ).catch((error) => {
+    if (isAbortError(error)) throw error;
+    return [];
+  });
 
   return games
     .sort((firstGame, secondGame) => scoreGameSearchResult(secondGame, title) - scoreGameSearchResult(firstGame, title))[0]
     ?? null;
 }
 
-export async function searchGames(query: string): Promise<GameCatalogResult[]> {
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+function getMultiQueryArray<T>(results: IgdbMultiQueryResult[], name: string) {
+  const value = results.find((result) => result.name === name)?.result;
+
+  return Array.isArray(value) ? value as T[] : [];
+}
+
+export async function searchGames(query: string, signal?: AbortSignal): Promise<GameCatalogResult[]> {
   const normalizedQuery = normalizeSearchText(query);
+  const cachedResults = searchCache.get(normalizedQuery);
 
-  if (searchCache.has(normalizedQuery)) {
-    return searchCache.get(normalizedQuery) ?? [];
-  }
+  if (cachedResults) return cachedResults;
 
-  const searchVariations = getSearchVariations(query);
-  const steamPromise = searchSteamGames(query);
-  const igdbGamePromises = searchVariations.map((searchVariation) =>
+  const igdbSearchQuery = applyKnownSearchCorrections(query.trim());
+  const [steamRequest, igdbRequest] = await Promise.allSettled([
+    searchSteamGames(query, signal),
     requestIgdb<IgdbGame[]>(
       "games",
       `
-          search "${escapeIgdbSearch(searchVariation)}";
-          fields name, alternative_names.name, cover.url, first_release_date, genres.name, platforms.name, category, total_rating_count, version_parent;
-          limit ${maxCatalogResults};
-        `
-    )
-  );
-  const igdbSearchPromises = searchVariations.map((searchVariation) =>
-    requestIgdb<IgdbSearchResult[]>(
-      "search",
-      `
-          search "${escapeIgdbSearch(searchVariation)}";
-          fields name, game;
-          where game != null;
-          limit ${maxCatalogResults};
-        `
-    )
-  );
-
-  const [steamResult, igdbGameResults, igdbSearchResults] = await Promise.all([
-    steamPromise.catch(() => []),
-    Promise.allSettled(igdbGamePromises),
-    Promise.allSettled(igdbSearchPromises),
-  ]);
-  const gamesById = new Map<number, IgdbGame>();
-  const searchGameIds = new Set<number>();
-
-  igdbGameResults.forEach((result) => {
-    if (result.status === "fulfilled") {
-      result.value.forEach((game) => gamesById.set(game.id, game));
-    }
-  });
-
-  igdbSearchResults.forEach((result) => {
-    if (result.status === "fulfilled") {
-      result.value.forEach((searchResult) => {
-        if (searchResult.game) {
-          searchGameIds.add(searchResult.game);
-        }
-      });
-    }
-  });
-
-  const missingSearchGameIds = Array.from(searchGameIds).filter((gameId) => !gamesById.has(gameId));
-
-  if (missingSearchGameIds.length > 0) {
-    const games = await requestIgdb<IgdbGame[]>(
-      "games",
-      `
+        search "${escapeIgdbSearch(igdbSearchQuery)}";
         fields name, alternative_names.name, cover.url, first_release_date, genres.name, platforms.name, category, total_rating_count, version_parent;
-        where id = (${missingSearchGameIds.slice(0, maxCatalogResults * 2).join(",")});
-        limit ${maxCatalogResults * 2};
-      `
-    ).catch(() => []);
+        where version_parent = null;
+        limit ${maxCatalogResults};
+      `,
+      signal
+    ),
+  ]);
+  const steamResult = steamRequest.status === "fulfilled" ? steamRequest.value : [];
+  const igdbGames = igdbRequest.status === "fulfilled" ? igdbRequest.value : [];
 
-    games.forEach((game) => gamesById.set(game.id, game));
+  if (steamRequest.status === "rejected" && igdbRequest.status === "rejected") {
+    throw igdbRequest.reason instanceof Error ? igdbRequest.reason : steamRequest.reason;
   }
 
-  const igdbResults = Array.from(gamesById.values())
+  const igdbResults = igdbGames
     .filter((game) => Boolean(game.name))
     .sort((firstGame, secondGame) => scoreGameSearchResult(secondGame, query) - scoreGameSearchResult(firstGame, query))
     .slice(0, 10)
@@ -441,64 +388,82 @@ export async function searchGames(query: string): Promise<GameCatalogResult[]> {
 
   const results = Array.from(resultsByName.values());
 
-  searchCache.set(normalizedQuery, results);
+  if (steamRequest.status === "fulfilled" && igdbRequest.status === "fulfilled") {
+    searchCache.set(normalizedQuery, results);
+  }
 
   return results;
 }
 
-export async function getGameDetails(gameResult: GameCatalogResult): Promise<GameCatalogDetails> {
+export async function getGameDetails(gameResult: GameCatalogResult, signal?: AbortSignal): Promise<GameCatalogDetails> {
   if (gameResult.source === "steam") {
-    const [brazilianDetails, portugueseDetails] = await Promise.all([
-      getSteamAppDetails(gameResult.id, "brazilian").catch(() => null),
-      getSteamAppDetails(gameResult.id, "portuguese").catch(() => null),
-    ]);
+    const brazilianDetails = await getSteamAppDetails(gameResult.id, "brazilian", signal).catch((error) => {
+      if (isAbortError(error)) throw error;
+      return null;
+    });
     const mappedBrazilianDetails = brazilianDetails ? mapSteamDetails(brazilianDetails, gameResult.id) : null;
+    const needsPortugueseFallback = !mappedBrazilianDetails?.description;
+    const portugueseDetails = needsPortugueseFallback
+      ? await getSteamAppDetails(gameResult.id, "portuguese", signal).catch((error) => {
+          if (isAbortError(error)) throw error;
+          return null;
+        })
+      : null;
     const mappedPortugueseDetails = portugueseDetails ? mapSteamDetails(portugueseDetails, gameResult.id) : null;
 
     if (mappedBrazilianDetails) {
-      const igdbGame = await getIgdbGameByTitle(mappedBrazilianDetails.title);
+      const igdbGame = await getIgdbGameByTitle(mappedBrazilianDetails.title, signal);
       const igdbFallbackCover = normalizeCoverUrl(igdbGame?.cover?.url);
 
       return {
         ...mappedBrazilianDetails,
         fallbackCover: gameResult.fallbackCover || igdbFallbackCover,
         description: mappedBrazilianDetails.description || mappedPortugueseDetails?.description || "",
-        campaignHours: igdbGame ? await getIgdbTimeToBeat(igdbGame.id) : "",
+        campaignHours: igdbGame ? await getIgdbTimeToBeat(igdbGame, signal) : "",
       };
     }
 
     if (mappedPortugueseDetails) {
-      const igdbGame = await getIgdbGameByTitle(mappedPortugueseDetails.title);
+      const igdbGame = await getIgdbGameByTitle(mappedPortugueseDetails.title, signal);
       const igdbFallbackCover = normalizeCoverUrl(igdbGame?.cover?.url);
 
       return {
         ...mappedPortugueseDetails,
         fallbackCover: gameResult.fallbackCover || igdbFallbackCover,
-        campaignHours: igdbGame ? await getIgdbTimeToBeat(igdbGame.id) : "",
+        campaignHours: igdbGame ? await getIgdbTimeToBeat(igdbGame, signal) : "",
       };
     }
 
-    throw new Error("Nao foi possivel carregar os detalhes do jogo na Steam.");
+    throw new Error("Não foi possivel carregar os detalhes do jogo na Steam.");
   }
 
-  const games = await requestIgdb<IgdbGame[]>(
-    "games",
+  const detailResults = await requestIgdb<IgdbMultiQueryResult[]>(
+    "multiquery",
     `
-      fields name, summary, storyline, cover.url, first_release_date, genres.name, platforms.name, involved_companies.developer, involved_companies.company.name;
-      where id = ${gameResult.id};
-      limit 1;
-    `
+      query games "game-details" {
+        fields name, summary, storyline, cover.url, first_release_date, genres.name, platforms.name, involved_companies.developer, involved_companies.company.name;
+        where id = ${gameResult.id};
+        limit 1;
+      };
+      query game_time_to_beats "time-to-beat" {
+        fields game_id, hastily, normally, completely, count;
+        where game_id = ${gameResult.id};
+        limit 1;
+      };
+    `,
+    signal
   );
 
-  const igdbGame = games[0];
+  const igdbGame = getMultiQueryArray<IgdbGame>(detailResults, "game-details")[0];
+  const timeToBeat = getMultiQueryArray<IgdbGameTimeToBeat>(detailResults, "time-to-beat")[0];
 
   if (!igdbGame) {
-    throw new Error("Nao foi possivel carregar os detalhes do jogo.");
+    throw new Error("Não foi possivel carregar os detalhes do jogo.");
   }
 
   return {
     ...mapIgdbDetails(igdbGame),
-    campaignHours: await getIgdbTimeToBeat(igdbGame.id),
+    campaignHours: getCampaignHoursFromTimeToBeat(timeToBeat),
   };
 }
 

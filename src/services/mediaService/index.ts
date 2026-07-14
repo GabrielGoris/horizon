@@ -1,10 +1,10 @@
-import { supabase } from "../lib/supabase";
-import type { BookCompletionDTO } from "../schemas/media/dto/book-completion.dto";
-import type { CreateMediaDTO } from "../schemas/media/dto/create-media.dto";
-import type { GameCompletionDTO } from "../schemas/media/dto/game-completion.dto";
-import type { MovieTicketDTO } from "../schemas/media/dto/movie-ticket.dto";
-import type { MediaItem, MediaItemRow } from "../types";
-import { toSupabaseDate } from "../utils/date";
+import { supabase } from "../../lib/supabase";
+import type { BookCompletionDTO } from "../../schemas/media/dto/book-completion.dto";
+import type { CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
+import type { GameCompletionDTO } from "../../schemas/media/dto/game-completion.dto";
+import type { MovieTicketDTO } from "../../schemas/media/dto/movie-ticket.dto";
+import type { MediaItem, MediaItemRow } from "../../types";
+import { toSupabaseDate } from "../../utils/date";
 
 
 

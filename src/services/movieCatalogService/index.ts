@@ -1,5 +1,6 @@
-import type { CreateMediaDTO } from "../schemas/media";
-import { getCatalogProxyUrl } from "./catalogProxy";
+import type { CreateMediaDTO } from "../../schemas/media";
+import { CatalogCache } from "../catalogCache";
+import { requestCatalog } from "../catalogProxy";
 import type {
   MovieCatalogDetails,
   MovieCatalogResult,
@@ -9,10 +10,10 @@ import type {
   TmdbMediaType,
   TmdbSearchItem,
   TmdbSearchResponse,
-} from "./types";
+} from "../types";
 
 const imageBaseUrl = "https://image.tmdb.org/t/p";
-const searchCache = new Map<string, MovieCatalogResult[]>();
+const searchCache = new CatalogCache<MovieCatalogResult[]>();
 let genreCache: Record<TmdbMediaType, TmdbGenre[]> | null = null;
 
 function normalizeSearchText(value: string) {
@@ -97,16 +98,8 @@ function formatMinutes(totalMinutes?: number) {
   return `${hours}h ${minutes} min`;
 }
 
-async function requestTmdb<T>(endpoint: string, searchParams?: URLSearchParams) {
-  const response = await fetch(getCatalogProxyUrl("tmdb", endpoint, searchParams));
-
-  if (!response.ok) {
-    const message = await response.text();
-
-    throw new Error(message || "Nao foi possivel buscar filmes e series agora.");
-  }
-
-  return (await response.json()) as T;
+async function requestTmdb<T>(endpoint: string, searchParams?: URLSearchParams, signal?: AbortSignal) {
+  return requestCatalog<T>("tmdb", endpoint, { searchParams, signal });
 }
 
 async function getGenres() {
@@ -173,16 +166,15 @@ function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCa
   };
 }
 
-export async function searchMovies(query: string): Promise<MovieCatalogResult[]> {
+export async function searchMovies(query: string, signal?: AbortSignal): Promise<MovieCatalogResult[]> {
   const normalizedQuery = normalizeSearchText(query);
+  const cachedResults = searchCache.get(normalizedQuery);
 
-  if (searchCache.has(normalizedQuery)) {
-    return searchCache.get(normalizedQuery) ?? [];
-  }
+  if (cachedResults) return cachedResults;
 
   const [genres, data] = await Promise.all([
     getGenres().catch((error) => {
-      console.warn("Nao foi possivel carregar generos da TMDB.", error);
+      console.warn("Não foi possivel carregar gêneros da TMDB.", error);
 
       return { movie: [], tv: [] };
     }),
@@ -193,7 +185,8 @@ export async function searchMovies(query: string): Promise<MovieCatalogResult[]>
         language: "pt-BR",
         include_adult: "false",
         page: "1",
-      })
+      }),
+      signal
     ),
   ]);
 
@@ -207,13 +200,14 @@ export async function searchMovies(query: string): Promise<MovieCatalogResult[]>
   return results;
 }
 
-export async function getMovieDetails(movie: MovieCatalogResult): Promise<MovieCatalogDetails> {
+export async function getMovieDetails(movie: MovieCatalogResult, signal?: AbortSignal): Promise<MovieCatalogDetails> {
   const details = await requestTmdb<TmdbDetails>(
     `${movie.mediaType}/${movie.id}`,
     new URLSearchParams({
       language: "pt-BR",
       append_to_response: "credits",
-    })
+    }),
+    signal
   );
 
   return mapTmdbDetails(details, movie.mediaType);

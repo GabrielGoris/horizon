@@ -19,6 +19,8 @@ import type { MediaItem, MediaStatus } from "../../../../types";
 
 export function useMediaCollection() {
   const [collection, setCollection] = useState<MediaItem[]>([]);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(true);
+  const [mediaLoadError, setMediaLoadError] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [mediaToDelete, setMediaToDelete] = useState<MediaItem | null>(null);
   const [isDeletingMedia, setIsDeletingMedia] = useState(false);
@@ -30,10 +32,26 @@ export function useMediaCollection() {
       .then((media) => {
         if (isMounted) {
           setCollection(media);
+          setMediaLoadError("");
         }
       })
       .catch((error) => {
         console.error(error);
+        if (isMounted) {
+          const isPermissionError = typeof error === "object"
+            && error !== null
+            && "code" in error
+            && error.code === "42501";
+
+          setMediaLoadError(
+            isPermissionError
+              ? "O Supabase recusou o acesso a biblioteca. Verifique os grants e as políticas RLS."
+              : "Não foi possivel carregar a biblioteca."
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingMedia(false);
       });
 
     return () => {
@@ -42,11 +60,22 @@ export function useMediaCollection() {
   }, []);
 
   const refreshMedia = useCallback(async () => {
-    const media = await fetchMedia();
+    setIsLoadingMedia(true);
 
-    setCollection(media);
+    try {
+      const media = await fetchMedia();
 
-    return media;
+      setCollection(media);
+      setMediaLoadError("");
+
+      return media;
+    } catch (error) {
+      console.error(error);
+      setMediaLoadError("Nao foi possivel atualizar a biblioteca.");
+      throw error;
+    } finally {
+      setIsLoadingMedia(false);
+    }
   }, []);
 
   const updateMedia = useCallback((updatedMedia: MediaItem) => {
@@ -164,7 +193,9 @@ export function useMediaCollection() {
     handleSaveMovieTicket,
     handleUpdateMediaMeta,
     handleUpdateMediaStatus,
+    isLoadingMedia,
     isDeletingMedia,
+    mediaLoadError,
     mediaToDelete,
     refreshMedia,
     selectedMedia,

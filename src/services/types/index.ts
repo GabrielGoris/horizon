@@ -48,6 +48,12 @@ export type IgdbGameTimeToBeat = {
   count?: number;
 };
 
+export type IgdbMultiQueryResult<T = unknown> = {
+  name: string;
+  result?: T;
+  count?: number;
+};
+
 export type SteamSearchItem = {
   id: number;
   name: string;
@@ -259,9 +265,56 @@ export type OpenLibraryEditionsResponse = {
   entries?: OpenLibraryEdition[];
 };
 
+export type GoogleBooksVolumeInfo = {
+  title?: string;
+  subtitle?: string;
+  authors?: string[];
+  publisher?: string;
+  publishedDate?: string;
+  description?: string;
+  industryIdentifiers?: Array<{
+    type?: string;
+    identifier?: string;
+  }>;
+  pageCount?: number;
+  categories?: string[];
+  imageLinks?: {
+    extraLarge?: string;
+    large?: string;
+    medium?: string;
+    small?: string;
+    thumbnail?: string;
+    smallThumbnail?: string;
+  };
+};
+
+export type GoogleBooksVolume = {
+  id?: string;
+  volumeInfo?: GoogleBooksVolumeInfo;
+};
+
+export type GoogleBooksResponse = {
+  totalItems?: number;
+  items?: GoogleBooksVolume[];
+};
+
+export type BrasilApiBookResponse = {
+  isbn?: string;
+  title?: string;
+  subtitle?: string | null;
+  authors?: string[];
+  publisher?: string;
+  synopsis?: string | null;
+  year?: number;
+  page_count?: number;
+  subjects?: string[];
+  cover_url?: string | null;
+  provider?: string;
+};
+
 export type BookCatalogResult = {
   id: string;
-  source: "open-library";
+  source: "brasil-api" | "google-books" | "open-library";
   isbn?: string;
   title: string;
   releaseYear: string;
@@ -271,6 +324,7 @@ export type BookCatalogResult = {
   author: string;
   publisher: string;
   pageCount: string;
+  description?: string;
   searchScore?: number;
 };
 

@@ -1,23 +1,27 @@
-import { useRef, useState } from "react";
-import type { CreateMediaDTO } from "../../../schemas/media/dto/create-media.dto";
+import { useEffect, useRef, useState } from "react";
+import type { CreateMediaDTO } from "../../../../schemas/media/dto/create-media.dto";
 import {
   applyBookCatalogDetails,
   getBookByIsbn,
   getBookDetails,
   searchBooks,
-} from "../../../services/bookCatalogService";
+} from "../../../../services/bookCatalogService";
 import {
   applyGameCatalogDetails,
   getGameDetails,
   searchGames,
-} from "../../../services/gameCatalogService";
+} from "../../../../services/gameCatalogService";
 import {
   applyMovieCatalogDetails,
   getMovieDetails,
   searchMovies,
-} from "../../../services/movieCatalogService";
-import type { BookCatalogResult, GameCatalogResult, MovieCatalogResult } from "../../../services/types";
-import type { UseMediaCatalogSearchParams } from "../types";
+} from "../../../../services/movieCatalogService";
+import type { BookCatalogResult, GameCatalogResult, MovieCatalogResult } from "../../../../services/types";
+import type { UseMediaCatalogSearchParams } from "../../types";
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
 
 export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalogSearchParams) {
   const [gameSearchResults, setGameSearchResults] = useState<GameCatalogResult[]>([]);
@@ -37,9 +41,24 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const movieSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bookSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isbnSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gameSearchControllerRef = useRef<AbortController | null>(null);
+  const movieSearchControllerRef = useRef<AbortController | null>(null);
+  const bookSearchControllerRef = useRef<AbortController | null>(null);
+  const isbnSearchControllerRef = useRef<AbortController | null>(null);
   const gameSearchRequestRef = useRef(0);
   const movieSearchRequestRef = useRef(0);
   const bookSearchRequestRef = useRef(0);
+
+  useEffect(() => () => {
+    if (gameSearchTimeoutRef.current) clearTimeout(gameSearchTimeoutRef.current);
+    if (movieSearchTimeoutRef.current) clearTimeout(movieSearchTimeoutRef.current);
+    if (bookSearchTimeoutRef.current) clearTimeout(bookSearchTimeoutRef.current);
+    if (isbnSearchTimeoutRef.current) clearTimeout(isbnSearchTimeoutRef.current);
+    gameSearchControllerRef.current?.abort();
+    movieSearchControllerRef.current?.abort();
+    bookSearchControllerRef.current?.abort();
+    isbnSearchControllerRef.current?.abort();
+  }, []);
 
   const fillMediaFields = (media: Partial<CreateMediaDTO>) => {
     Object.entries(media).forEach(([key, value]) => {
@@ -52,6 +71,10 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     if (movieSearchTimeoutRef.current) clearTimeout(movieSearchTimeoutRef.current);
     if (bookSearchTimeoutRef.current) clearTimeout(bookSearchTimeoutRef.current);
     if (isbnSearchTimeoutRef.current) clearTimeout(isbnSearchTimeoutRef.current);
+    gameSearchControllerRef.current?.abort();
+    movieSearchControllerRef.current?.abort();
+    bookSearchControllerRef.current?.abort();
+    isbnSearchControllerRef.current?.abort();
 
     gameSearchRequestRef.current += 1;
     movieSearchRequestRef.current += 1;
@@ -75,6 +98,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     const trimmedQuery = query.trim();
 
     if (gameSearchTimeoutRef.current) clearTimeout(gameSearchTimeoutRef.current);
+    gameSearchControllerRef.current?.abort();
 
     gameSearchRequestRef.current += 1;
     setGameSearchError("");
@@ -90,7 +114,10 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     const requestId = gameSearchRequestRef.current;
 
     gameSearchTimeoutRef.current = setTimeout(() => {
-      searchGames(trimmedQuery)
+      const controller = new AbortController();
+      gameSearchControllerRef.current = controller;
+
+      searchGames(trimmedQuery, controller.signal)
         .then((results) => {
           if (requestId !== gameSearchRequestRef.current) return;
 
@@ -99,6 +126,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
         })
         .catch((error) => {
           if (requestId !== gameSearchRequestRef.current) return;
+          if (isAbortError(error)) return;
 
           console.error(error);
           setGameSearchResults([]);
@@ -116,6 +144,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     const trimmedQuery = query.trim();
 
     if (movieSearchTimeoutRef.current) clearTimeout(movieSearchTimeoutRef.current);
+    movieSearchControllerRef.current?.abort();
 
     movieSearchRequestRef.current += 1;
     setMovieSearchError("");
@@ -131,7 +160,10 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     const requestId = movieSearchRequestRef.current;
 
     movieSearchTimeoutRef.current = setTimeout(() => {
-      searchMovies(trimmedQuery)
+      const controller = new AbortController();
+      movieSearchControllerRef.current = controller;
+
+      searchMovies(trimmedQuery, controller.signal)
         .then((results) => {
           if (requestId !== movieSearchRequestRef.current) return;
 
@@ -140,6 +172,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
         })
         .catch((error) => {
           if (requestId !== movieSearchRequestRef.current) return;
+          if (isAbortError(error)) return;
 
           console.error(error);
           setMovieSearchResults([]);
@@ -157,6 +190,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     const trimmedQuery = query.trim();
 
     if (bookSearchTimeoutRef.current) clearTimeout(bookSearchTimeoutRef.current);
+    bookSearchControllerRef.current?.abort();
 
     bookSearchRequestRef.current += 1;
     setBookSearchError("");
@@ -172,7 +206,10 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     const requestId = bookSearchRequestRef.current;
 
     bookSearchTimeoutRef.current = setTimeout(() => {
-      searchBooks(trimmedQuery)
+      const controller = new AbortController();
+      bookSearchControllerRef.current = controller;
+
+      searchBooks(trimmedQuery, controller.signal)
         .then((results) => {
           if (requestId !== bookSearchRequestRef.current) return;
 
@@ -181,6 +218,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
         })
         .catch((error) => {
           if (requestId !== bookSearchRequestRef.current) return;
+          if (isAbortError(error)) return;
 
           console.error(error);
           setBookSearchResults([]);
@@ -337,18 +375,54 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
 
   const searchBookIsbn = (isbn: string) => {
     const normalizedIsbn = isbn.replace(/[^0-9Xx]/g, "");
+    const compactIdentifier = isbn.replace(/[\s-]/g, "").toUpperCase();
 
     if (isbnSearchTimeoutRef.current) clearTimeout(isbnSearchTimeoutRef.current);
+    isbnSearchControllerRef.current?.abort();
 
     setBookSearchError("");
     setBookIsbnSearchError("");
+
+    if (
+      selectedType === "books"
+      && /^[A-Z0-9]{10}$/.test(compactIdentifier)
+      && !/^\d{9}[\dX]$/.test(compactIdentifier)
+    ) {
+      setBookIsbnSearchError("Esse código parece ser um ASIN da Amazon. Informe o ISBN-10 ou ISBN-13 da edição.");
+      return;
+    }
 
     if (selectedType !== "books" || (normalizedIsbn.length !== 10 && normalizedIsbn.length !== 13)) {
       return;
     }
 
     isbnSearchTimeoutRef.current = setTimeout(() => {
-      void handleSelectBookByIsbn(normalizedIsbn);
+      const controller = new AbortController();
+      isbnSearchControllerRef.current = controller;
+
+      setBookSearchError("");
+      setBookIsbnSearchError("");
+      setIsBookIsbnSearchLoading(true);
+      getBookByIsbn(normalizedIsbn, controller.signal)
+        .then((details) => {
+          const backdrop = details.backdrop || details.cover;
+
+          fillMediaFields(applyBookCatalogDetails(details));
+          setValue("isbn", normalizedIsbn, { shouldDirty: true, shouldValidate: true });
+          setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
+          setCoverBackdrop(backdrop);
+          setBookSearchResults([]);
+        })
+        .catch((error) => {
+          if (isAbortError(error)) return;
+          console.error(error);
+          setBookIsbnSearchError(error instanceof Error ? error.message : "Edicao nao encontrada pelo ISBN.");
+        })
+        .finally(() => {
+          if (isbnSearchControllerRef.current === controller) {
+            setIsBookIsbnSearchLoading(false);
+          }
+        });
     }, 350);
   };
 

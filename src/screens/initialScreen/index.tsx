@@ -75,6 +75,22 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
 
         <main className="flex-1 overflow-y-auto p-8 lg:p-12">
           <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 pb-10">
+            {mediaCollection.mediaLoadError && (
+              <div
+                role="alert"
+                className="flex flex-col gap-3 rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-4 text-sm text-red-100 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <span>{mediaCollection.mediaLoadError}</span>
+                <button
+                  type="button"
+                  className="self-start rounded-lg border border-red-300/30 px-3 py-1.5 font-semibold transition hover:bg-red-400/10 disabled:opacity-50 sm:self-auto"
+                  disabled={mediaCollection.isLoadingMedia}
+                  onClick={() => void mediaCollection.refreshMedia().catch(() => undefined)}
+                >
+                  {mediaCollection.isLoadingMedia ? "Tentando..." : "Tentar novamente"}
+                </button>
+              </div>
+            )}
             {activeTab === "overview" ? (
               <OverviewSection
                 onManageWishlist={wishlistPriority.setManagedWishlistType}
