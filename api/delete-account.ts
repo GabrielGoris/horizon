@@ -46,7 +46,7 @@ function getTokenClaims(accessToken: string) {
 export default async function handler(req: ApiRequest, res: ServerResponse) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
-    sendJson(res, 405, { ok: false, message: "Metodo nao permitido." });
+    sendJson(res, 405, { ok: false, message: "Método não permitido." });
     return;
   }
 
@@ -61,7 +61,7 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
 
   const accessToken = getBearerToken(req);
   if (!accessToken) {
-    sendJson(res, 401, { ok: false, message: "Sessao nao informada." });
+    sendJson(res, 401, { ok: false, message: "Sessão não informada." });
     return;
   }
 
@@ -92,19 +92,19 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
 
   const { data: factors, error: factorsError } = await userClient.auth.mfa.listFactors();
   if (factorsError) {
-    sendJson(res, 500, { ok: false, message: "Nao foi possivel validar a segunda etapa." });
+    sendJson(res, 500, { ok: false, message: "não foi possivel validar a segunda etapa." });
     return;
   }
 
   const hasVerifiedFactor = factors.all.some((factor) => factor.status === "verified");
   if (hasVerifiedFactor && tokenClaims.assuranceLevel !== "aal2") {
-    sendJson(res, 403, { ok: false, message: "Conclua a verificacao em duas etapas antes de excluir a conta." });
+    sendJson(res, 403, { ok: false, message: "Conclua a verificação em duas etapas antes de excluir a conta." });
     return;
   }
 
   const { error: deleteError } = await adminClient.auth.admin.deleteUser(data.user.id);
   if (deleteError) {
-    sendJson(res, 500, { ok: false, message: "Nao foi possivel excluir a conta." });
+    sendJson(res, 500, { ok: false, message: "não foi possivel excluir a conta." });
     return;
   }
 
