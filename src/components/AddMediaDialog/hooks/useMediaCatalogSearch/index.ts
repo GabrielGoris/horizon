@@ -314,11 +314,18 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
     setGameSearchError("");
     setGameSearchResults([]);
     setIsGameSearchLoading(false);
-    setIsCampaignHoursLoading(game.source === "steam");
+    setIsCampaignHoursLoading(true);
     setIsCatalogSelectionLoading(true);
 
+    const handleCampaignHours = (campaignHours: string) => {
+      if (requestId !== catalogSelectionRequestRef.current || !campaignHours) return;
+
+      setValue("campaign_hours", campaignHours, { shouldDirty: true, shouldValidate: true });
+      setIsCampaignHoursLoading(false);
+    };
+
     const enrichmentPromise = game.source === "steam"
-      ? getGameEnrichment(game, controller.signal).catch((error) => {
+      ? getGameEnrichment(game, controller.signal, handleCampaignHours).catch((error) => {
           if (!isAbortError(error)) console.error(error);
           return null;
         })
@@ -357,7 +364,7 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
     }
 
     try {
-      const details = await getGameDetails(game, controller.signal);
+      const details = await getGameDetails(game, controller.signal, handleCampaignHours);
       if (requestId !== catalogSelectionRequestRef.current) return;
 
       const fallbackCover = details.fallbackCover || game.fallbackCover || "";
@@ -386,6 +393,7 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
       setGameSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
     } finally {
       if (requestId === catalogSelectionRequestRef.current) {
+        if (!enrichmentPromise) setIsCampaignHoursLoading(false);
         setIsCatalogSelectionLoading(false);
       }
     }

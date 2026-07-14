@@ -52,6 +52,20 @@ export type IgdbMultiQueryResult<T = unknown> = {
   result?: T;
 };
 
+export type HltbSearchItem = {
+  alias?: string;
+  id: number;
+  mainTime?: number;
+  name: string;
+  releaseYear?: number;
+  similarity: number;
+  type: string;
+};
+
+export type HltbSearchResponse = {
+  items?: HltbSearchItem[];
+};
+
 export type SteamSearchItem = {
   id: number;
   name: string;
@@ -112,6 +126,7 @@ export type GameCatalogDetails = GameCatalogResult & {
 };
 
 export type GameCatalogSearchListener = (results: GameCatalogResult[]) => void;
+export type GameCampaignHoursListener = (campaignHours: string) => void;
 
 export type GameCatalogEnrichment = {
   campaignHours: string;

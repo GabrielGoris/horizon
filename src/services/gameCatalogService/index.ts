@@ -1,7 +1,8 @@
 import type { CreateMediaDTO } from "../../schemas/media";
 import { CatalogCache } from "../catalogCache";
 import { requestCatalog } from "../catalogProxy";
-import type { GameCatalogDetails, GameCatalogEnrichment, GameCatalogResult, GameCatalogSearchListener, IgdbGame, IgdbGameCacheEntry, IgdbGameTimeToBeat, IgdbGenre, IgdbInvolvedCompany, IgdbMultiQueryResult, IgdbPlatform, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "../types";
+import { getHltbCampaignHours } from "../hltbCatalogService";
+import type { GameCampaignHoursListener, GameCatalogDetails, GameCatalogEnrichment, GameCatalogResult, GameCatalogSearchListener, IgdbGame, IgdbGameCacheEntry, IgdbGameTimeToBeat, IgdbGenre, IgdbInvolvedCompany, IgdbMultiQueryResult, IgdbPlatform, SteamAppDetails, SteamAppDetailsResponse, SteamSearchItem, SteamSearchResponse } from "../types";
 import { campaignParentGameTypes, excludedIgdbSearchGameTypes, gameCatalogWarmupTtlMs, maxCatalogResults, maxIgdbPrefetchResults, maxIgdbSearchResults } from "./consts";
 
 const searchCache = new CatalogCache<GameCatalogResult[]>();
@@ -318,6 +319,17 @@ function secondsToDuration(value?: number) {
 
 function getCampaignHoursFromTimeToBeat(timeToBeat?: IgdbGameTimeToBeat) {
   return secondsToDuration(timeToBeat?.hastily || timeToBeat?.normally);
+}
+
+async function getPreferredCampaignHours(game: GameCatalogResult, igdbCampaignHours: string, signal?: AbortSignal) {
+  try {
+    return await getHltbCampaignHours(game, signal) || igdbCampaignHours;
+  } catch (error) {
+    if (isAbortError(error)) throw error;
+
+    console.warn("Não foi possível consultar o tempo de campanha no HLTB.", error);
+    return igdbCampaignHours;
+  }
 }
 
 function getPreferredTimeToBeat(results: IgdbGameTimeToBeat[], gameIds: number[]) {
@@ -693,7 +705,11 @@ export async function searchGames(
   return results;
 }
 
-export async function getGameDetails(gameResult: GameCatalogResult, signal?: AbortSignal): Promise<GameCatalogDetails> {
+export async function getGameDetails(
+  gameResult: GameCatalogResult,
+  signal?: AbortSignal,
+  onCampaignHours?: GameCampaignHoursListener,
+): Promise<GameCatalogDetails> {
   if (gameResult.source === "steam") {
     const brazilianDetails = await getSteamAppDetails(gameResult.id, signal).catch((error) => {
       if (isAbortError(error)) throw error;
@@ -720,23 +736,46 @@ export async function getGameDetails(gameResult: GameCatalogResult, signal?: Abo
     };
   }
 
-  const igdbDetails = await getCachedIgdbDetails(gameResult, signal);
+  const igdbDetailsPromise = getCachedIgdbDetails(gameResult, signal);
+  const hltbCampaignPromise = getPreferredCampaignHours(gameResult, "", signal).then((campaignHours) => {
+    if (campaignHours) onCampaignHours?.(campaignHours);
+
+    return campaignHours;
+  });
+  const igdbDetails = await igdbDetailsPromise;
 
   if (!igdbDetails) {
     throw new Error("Não foi possivel carregar os detalhes do jogo.");
   }
 
-  return igdbDetails;
+  return {
+    ...igdbDetails,
+    campaignHours: await hltbCampaignPromise || igdbDetails.campaignHours,
+  };
 }
 
 export async function getGameEnrichment(
   game: GameCatalogResult,
   signal?: AbortSignal,
+  onCampaignHours?: GameCampaignHoursListener,
 ): Promise<GameCatalogEnrichment> {
-  const igdbDetails = await getCachedIgdbDetails(game, signal);
+  const igdbDetailsPromise = getCachedIgdbDetails(game, signal);
+  const hltbCampaignPromise = getHltbCampaignHours(game, signal)
+    .then((campaignHours) => {
+      if (campaignHours) onCampaignHours?.(campaignHours);
+
+      return campaignHours;
+    })
+    .catch((error) => {
+      if (isAbortError(error)) throw error;
+
+      console.warn("Não foi possível consultar o tempo de campanha no HLTB.", error);
+      return "";
+    });
+  const [igdbDetails, hltbCampaignHours] = await Promise.all([igdbDetailsPromise, hltbCampaignPromise]);
 
   return {
-    campaignHours: igdbDetails?.campaignHours || "",
+    campaignHours: hltbCampaignHours || igdbDetails?.campaignHours || "",
     category: igdbDetails?.category || "",
     creator: igdbDetails?.creator || "",
     description: igdbDetails?.description || "",

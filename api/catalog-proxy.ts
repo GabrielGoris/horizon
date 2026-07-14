@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { HowLongToBeatService, SearchModifier } from "howlongtobeat-ts";
 
 if (!process.env.VERCEL) {
   try {
@@ -12,7 +13,7 @@ type ApiRequest = IncomingMessage & {
   body?: unknown;
 };
 type ApiResponse = ServerResponse;
-type CatalogProxyService = "books" | "brasil-api" | "google-books" | "igdb" | "steam" | "tmdb";
+type CatalogProxyService = "books" | "brasil-api" | "google-books" | "hltb" | "igdb" | "steam" | "tmdb";
 
 type TwitchTokenResponse = {
   access_token: string;
@@ -29,6 +30,11 @@ const upstreamTimeoutMs = 8_000;
 const maxRequestBodyBytes = 32_000;
 const rateLimitWindowMs = 60_000;
 const rateLimitMaxRequests = 60;
+const hltbService = new HowLongToBeatService({
+  minSimilarity: 0.45,
+  retries: 0,
+  timeout: upstreamTimeoutMs,
+});
 
 let igdbAccessToken = "";
 let igdbTokenExpiresAt = 0;
@@ -90,7 +96,7 @@ async function pipeFetchResponse(res: ApiResponse, response: Response, cacheable
 }
 
 function isCatalogProxyService(value: string | null): value is CatalogProxyService {
-  return value === "books" || value === "brasil-api" || value === "google-books" || value === "igdb" || value === "steam" || value === "tmdb";
+  return value === "books" || value === "brasil-api" || value === "google-books" || value === "hltb" || value === "igdb" || value === "steam" || value === "tmdb";
 }
 
 function getRequestParams(req: ApiRequest) {
@@ -114,6 +120,10 @@ function isAllowedEndpoint(service: CatalogProxyService, endpoint: string) {
 
   if (service === "steam") {
     return path === "api/storesearch/" || path === "api/appdetails";
+  }
+
+  if (service === "hltb") {
+    return path === "search";
   }
 
   if (service === "tmdb") {
@@ -312,6 +322,40 @@ async function fetchSteam(req: ApiRequest, endpoint: string): Promise<ProxyFetch
   return { response, error: "", statusCode: response.status };
 }
 
+async function fetchHltb(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
+  if (req.method !== "GET") {
+    return { response: null, error: `Metodo ${req.method} nao permitido para HLTB. Use GET.`, statusCode: 405 };
+  }
+
+  const url = new URL(endpoint, "https://horizon.local");
+  const title = url.searchParams.get("title")?.trim() ?? "";
+
+  if (title.length < 2 || title.length > 150) {
+    return { response: null, error: "Informe um titulo valido para o HLTB.", statusCode: 400 };
+  }
+
+  const result = await hltbService.search(title, { modifier: SearchModifier.HIDE_DLC });
+
+  if (!result.success) {
+    return { response: null, error: "Não foi possivel consultar o HowLongToBeat.", statusCode: 502 };
+  }
+
+  const items = result.data.slice(0, 10).map((item) => ({
+    alias: item.alias,
+    id: item.id,
+    mainTime: item.mainTime,
+    name: item.name,
+    releaseYear: item.releaseYear,
+    similarity: item.similarity,
+    type: item.type,
+  }));
+  const response = new Response(JSON.stringify({ items }), {
+    headers: { "Content-Type": "application/json; charset=utf-8" },
+  });
+
+  return { response, error: "", statusCode: 200 };
+}
+
 async function fetchTmdb(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
   if (req.method !== "GET") {
     return { response: null, error: `Metodo ${req.method} não permitido para TMDB. Use GET.`, statusCode: 405 };
@@ -413,6 +457,7 @@ async function fetchBooks(req: ApiRequest, endpoint: string): Promise<ProxyFetch
 async function fetchCatalogService(service: CatalogProxyService, req: ApiRequest, endpoint: string) {
   if (service === "igdb") return fetchIgdb(req, endpoint);
   if (service === "steam") return fetchSteam(req, endpoint);
+  if (service === "hltb") return fetchHltb(req, endpoint);
   if (service === "tmdb") return fetchTmdb(req, endpoint);
   if (service === "google-books") return fetchGoogleBooks(req, endpoint);
   if (service === "brasil-api") return fetchBrasilApi(req, endpoint);
