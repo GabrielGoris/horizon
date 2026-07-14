@@ -14,6 +14,11 @@ export interface AddMediaDialogProps {
   initialType?: MediaType | null;
 }
 
+export interface PendingDuplicateMedia {
+  data: CreateMediaDTO;
+  shouldPrioritize: boolean;
+}
+
 export interface MediaTypePickerProps {
   onSelect: (type: MediaType) => void;
 }

@@ -37,6 +37,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const [isMovieSearchLoading, setIsMovieSearchLoading] = useState(false);
   const [isBookSearchLoading, setIsBookSearchLoading] = useState(false);
   const [isBookIsbnSearchLoading, setIsBookIsbnSearchLoading] = useState(false);
+  const [isCatalogSelectionLoading, setIsCatalogSelectionLoading] = useState(false);
   const gameSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movieSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bookSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -48,6 +49,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const gameSearchRequestRef = useRef(0);
   const movieSearchRequestRef = useRef(0);
   const bookSearchRequestRef = useRef(0);
+  const catalogSelectionRequestRef = useRef(0);
 
   useEffect(() => () => {
     if (gameSearchTimeoutRef.current) clearTimeout(gameSearchTimeoutRef.current);
@@ -79,6 +81,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     gameSearchRequestRef.current += 1;
     movieSearchRequestRef.current += 1;
     bookSearchRequestRef.current += 1;
+    catalogSelectionRequestRef.current += 1;
     setGameSearchResults([]);
     setMovieSearchResults([]);
     setBookSearchResults([]);
@@ -92,6 +95,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     setIsMovieSearchLoading(false);
     setIsBookSearchLoading(false);
     setIsBookIsbnSearchLoading(false);
+    setIsCatalogSelectionLoading(false);
   };
 
   const scheduleGameSearch = (query: string) => {
@@ -265,11 +269,24 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   };
 
   const handleSelectGame = async (game: GameCatalogResult) => {
+    const requestId = ++catalogSelectionRequestRef.current;
+
     setGameSearchError("");
-    setIsGameSearchLoading(true);
+    setGameSearchResults([]);
+    setIsCatalogSelectionLoading(true);
+
+    const basicGame = { ...game, creator: "", description: "", campaignHours: "" };
+    const basicBackdrop = game.backdrop || game.cover;
+
+    fillMediaFields(applyGameCatalogDetails(basicGame));
+    setValue("backdrop", basicBackdrop, { shouldDirty: true, shouldValidate: true });
+    setCoverBackdrop(basicBackdrop);
+    setCoverFallback(game.fallbackCover || "");
 
     try {
       const details = await getGameDetails(game);
+      if (requestId !== catalogSelectionRequestRef.current) return;
+
       const fallbackCover = details.fallbackCover || game.fallbackCover || "";
       const backdrop = details.backdrop || game.backdrop || details.cover || game.cover;
 
@@ -279,6 +296,8 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       setCoverFallback(fallbackCover);
       setGameSearchResults([]);
     } catch (error) {
+      if (requestId !== catalogSelectionRequestRef.current) return;
+
       console.error(error);
       const fallbackCover = game.fallbackCover || "";
       const backdrop = game.backdrop || game.cover;
@@ -289,16 +308,23 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       setCoverFallback(fallbackCover);
       setGameSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
     } finally {
-      setIsGameSearchLoading(false);
+      if (requestId === catalogSelectionRequestRef.current) {
+        setIsCatalogSelectionLoading(false);
+      }
     }
   };
 
   const handleSelectMovie = async (movie: MovieCatalogResult) => {
+    const requestId = ++catalogSelectionRequestRef.current;
+
     setMovieSearchError("");
-    setIsMovieSearchLoading(true);
+    setMovieSearchResults([]);
+    setIsCatalogSelectionLoading(true);
 
     try {
       const details = await getMovieDetails(movie);
+      if (requestId !== catalogSelectionRequestRef.current) return;
+
       const backdrop = details.backdrop || movie.backdrop || details.cover || movie.cover;
 
       fillMediaFields(applyMovieCatalogDetails(details));
@@ -306,6 +332,8 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       setCoverBackdrop(backdrop);
       setMovieSearchResults([]);
     } catch (error) {
+      if (requestId !== catalogSelectionRequestRef.current) return;
+
       console.error(error);
       const backdrop = movie.backdrop || movie.cover;
 
@@ -314,16 +342,23 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       setCoverBackdrop(backdrop);
       setMovieSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
     } finally {
-      setIsMovieSearchLoading(false);
+      if (requestId === catalogSelectionRequestRef.current) {
+        setIsCatalogSelectionLoading(false);
+      }
     }
   };
 
   const handleSelectBook = async (book: BookCatalogResult) => {
+    const requestId = ++catalogSelectionRequestRef.current;
+
     setBookSearchError("");
-    setIsBookSearchLoading(true);
+    setBookSearchResults([]);
+    setIsCatalogSelectionLoading(true);
 
     try {
       const details = await getBookDetails(book);
+      if (requestId !== catalogSelectionRequestRef.current) return;
+
       const backdrop = details.backdrop || book.backdrop || details.cover || book.cover;
 
       fillMediaFields(applyBookCatalogDetails(details));
@@ -331,6 +366,8 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       setCoverBackdrop(backdrop);
       setBookSearchResults([]);
     } catch (error) {
+      if (requestId !== catalogSelectionRequestRef.current) return;
+
       console.error(error);
       const backdrop = book.backdrop || book.cover;
 
@@ -339,7 +376,9 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       setCoverBackdrop(backdrop);
       setBookSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
     } finally {
-      setIsBookSearchLoading(false);
+      if (requestId === catalogSelectionRequestRef.current) {
+        setIsCatalogSelectionLoading(false);
+      }
     }
   };
 
@@ -442,6 +481,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     handleSelectMovie,
     isBookIsbnSearchLoading,
     isBookSearchLoading,
+    isCatalogSelectionLoading,
     isGameSearchLoading,
     isMovieSearchLoading,
     movieSearchError,

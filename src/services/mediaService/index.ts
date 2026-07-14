@@ -5,8 +5,8 @@ import type { GameCompletionDTO } from "../../schemas/media/dto/game-completion.
 import type { MovieTicketDTO } from "../../schemas/media/dto/movie-ticket.dto";
 import type { MediaItem, MediaItemRow } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
-
-
+import { isSameMedia } from "./helpers";
+import type { ExistingMediaIdentity } from "./types";
 
 function getCompletion<T>(completion: T[] | T | null | undefined) {
   if (Array.isArray(completion)) return completion[0];
@@ -65,6 +65,19 @@ function toNullableText(value: string | undefined) {
   const trimmedValue = value?.trim();
 
   return trimmedValue ? trimmedValue : null;
+}
+
+export async function hasDuplicateMedia(data: CreateMediaDTO) {
+  const userId = await getCurrentUserId();
+  const { data: existingItems, error } = await supabase
+    .from("media_items")
+    .select("title, release_year, meta, movie_kind, creator")
+    .eq("user_id", userId)
+    .eq("type", data.type);
+
+  if (error) throw error;
+
+  return (existingItems ?? []).some((item) => isSameMedia(item as ExistingMediaIdentity, data));
 }
 
 async function getCurrentUserId() {

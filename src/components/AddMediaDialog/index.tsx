@@ -3,19 +3,22 @@ import { X } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
-import { createMedia } from "../../services/mediaService";
+import { createMedia, hasDuplicateMedia } from "../../services/mediaService";
 import type { MediaType } from "../../types";
+import { DuplicateMediaDialog } from "../DuplicateMediaDialog";
 import { BasicInfoFields } from "./components/BasicInfoFields";
 import { CoverDetailsFields } from "./components/CoverDetailsFields";
 import { FormActions } from "./components/FormActions";
 import { MediaTypePicker } from "./components/MediaTypePicker";
 import { fieldCopy, getDefaultValues } from "./consts";
 import { useMediaCatalogSearch } from "./hooks/useMediaCatalogSearch";
-import type { AddMediaDialogProps } from "./types";
+import type { AddMediaDialogProps, PendingDuplicateMedia } from "./types";
 
 export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, initialType }: AddMediaDialogProps) {
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
   const [movieKind, setMovieKind] = useState<"movie" | "series">("movie");
+  const [pendingDuplicate, setPendingDuplicate] = useState<PendingDuplicateMedia | null>(null);
+  const [isConfirmingDuplicate, setIsConfirmingDuplicate] = useState(false);
   const {
     control,
     formState: { errors, isSubmitting },
@@ -43,6 +46,8 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   const clearDialogState = (type = initialType ?? "games") => {
     setManualSelectedType(null);
     setMovieKind("movie");
+    setPendingDuplicate(null);
+    setIsConfirmingDuplicate(false);
     reset(getDefaultValues(type));
     catalogSearch.clearCatalogSearch();
   };
@@ -69,18 +74,19 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     setValue("episode_count", "", { shouldDirty: true, shouldValidate: true });
   };
 
-  const onSubmit = async (data: CreateMediaDTO, shouldPrioritize = false) => {
-    if (!selectedType) return;
-
+  const persistMedia = async (data: CreateMediaDTO, shouldPrioritize: boolean, allowDuplicate = false) => {
     try {
-      const nextData = selectedType === "movies"
-        ? { ...data, type: selectedType, movie_kind: movieKind }
-        : { ...data, type: selectedType };
+      if (!allowDuplicate && await hasDuplicateMedia(data)) {
+        setPendingDuplicate({ data, shouldPrioritize });
+        return;
+      }
 
-      const createdMedia = await createMedia(nextData);
+      const createdMedia = await createMedia(data);
+      if (!createdMedia) return;
 
+      setPendingDuplicate(null);
       await onSuccess();
-      clearDialogState(selectedType);
+      clearDialogState(data.type);
       onClose();
 
       if (shouldPrioritize && createdMedia) {
@@ -91,6 +97,29 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
       alert("Erro ao guardar a obra.");
     }
   };
+
+  const onSubmit = async (data: CreateMediaDTO, shouldPrioritize = false) => {
+    if (!selectedType || catalogSearch.isCatalogSelectionLoading) return;
+
+    const nextData = selectedType === "movies"
+      ? { ...data, type: selectedType, movie_kind: movieKind }
+      : { ...data, type: selectedType };
+
+    await persistMedia(nextData, shouldPrioritize);
+  };
+
+  const confirmDuplicate = async () => {
+    if (!pendingDuplicate || isConfirmingDuplicate) return;
+
+    setIsConfirmingDuplicate(true);
+    try {
+      await persistMedia(pendingDuplicate.data, pendingDuplicate.shouldPrioritize, true);
+    } finally {
+      setIsConfirmingDuplicate(false);
+    }
+  };
+
+  const isFormBusy = isSubmitting || catalogSearch.isCatalogSelectionLoading;
 
   if (!isOpen) return null;
 
@@ -189,13 +218,24 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
             </div>
 
             <FormActions
-              isSubmitting={isSubmitting}
+              isCatalogSelectionLoading={catalogSearch.isCatalogSelectionLoading}
+              isSubmitting={isFormBusy}
               onCancel={closeDialog}
               onSubmitWithPriority={handleSubmit((data) => onSubmit(data, true))}
             />
           </form>
         )}
       </div>
+
+      {pendingDuplicate && (
+        <DuplicateMediaDialog
+          cover={pendingDuplicate.data.cover}
+          isConfirming={isConfirmingDuplicate}
+          onCancel={() => setPendingDuplicate(null)}
+          onConfirm={confirmDuplicate}
+          title={pendingDuplicate.data.title}
+        />
+      )}
     </div>
   );
 }

@@ -36,6 +36,7 @@ export type CoverDetailsFieldsProps = {
 };
 
 export type FormActionsProps = {
+  isCatalogSelectionLoading: boolean;
   isSubmitting: boolean;
   onCancel: () => void;
   onSubmitWithPriority: () => void;
