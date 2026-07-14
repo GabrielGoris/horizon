@@ -1,4 +1,5 @@
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Settings } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 import { SidebarItem } from './SideBarItem';
 import type { SidebarProps } from './types';
 
@@ -38,6 +39,20 @@ export function Sidebar({ categories }: SidebarProps) {
           ))}
         </nav>
       </div>
+
+      <NavLink
+        to="/settings"
+        aria-label="Configurações"
+        className={({ isActive }) =>
+          `flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
+            isActive
+              ? 'border-noir-gold/45 bg-noir-gold/15 text-noir-gold'
+              : 'border-white/5 bg-white/[0.025] text-neutral-500 hover:bg-white/[0.05] hover:text-noir-champagne'
+          }`
+        }
+      >
+        <Settings size={16} strokeWidth={2.2} />
+      </NavLink>
     </aside>
   );
 }

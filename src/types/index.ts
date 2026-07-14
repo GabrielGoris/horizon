@@ -4,6 +4,7 @@ export type MovieKind = 'movie' | 'series';
 
 export interface MediaItem {
   id: string;
+  user_id?: string;
   title: string;
   creator: string;
   director?: string;
@@ -58,6 +59,7 @@ export type GameCompletionRow = CompletionRow & {
 };
 
 export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating" | "status"> & {
+  user_id?: string | null;
   release_year?: string | null;
   status: MediaStatus;
   movie_kind?: MovieKind | null;

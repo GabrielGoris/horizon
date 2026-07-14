@@ -67,8 +67,19 @@ function toNullableText(value: string | undefined) {
   return trimmedValue ? trimmedValue : null;
 }
 
-function getCreateMediaPayload(data: CreateMediaDTO) {
+async function getCurrentUserId() {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    throw new Error("Usuário não autenticado.");
+  }
+
+  return data.user.id;
+}
+
+function getCreateMediaPayload(data: CreateMediaDTO, userId: string) {
   return {
+    user_id: userId,
     title: data.title,
     type: data.type,
     movie_kind: data.type === "movies" ? data.movie_kind ?? "movie" : null,
@@ -99,6 +110,7 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
 
   return {
     id: item.id,
+    user_id: item.user_id ?? undefined,
     title: item.title,
     creator: item.creator ?? "",
     director: item.director ?? "",
@@ -131,9 +143,11 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
 }
 
 export async function fetchMedia() {
+  const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("media_items")
     .select("*, movie_completions(*), book_completions(*), game_completions(*)")
+    .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -142,9 +156,10 @@ export async function fetchMedia() {
 }
 
 export async function createMedia(data: CreateMediaDTO) {
+  const userId = await getCurrentUserId();
   const { data: createdMedia, error } = await supabase
     .from("media_items")
-    .insert([getCreateMediaPayload(data)])
+    .insert([getCreateMediaPayload(data, userId)])
     .select("*")
     .single();
 
@@ -176,15 +191,18 @@ export async function createMedia(data: CreateMediaDTO) {
 }
 
 export async function completeMedia(itemId: string) {
+  const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("media_items")
     .update({ status: "complete", completed_year: new Date().getFullYear() })
-    .eq("id", itemId);
+    .eq("id", itemId)
+    .eq("user_id", userId);
 
   if (error) throw error;
 }
 
 export async function updateMediaStatus(itemId: string, status: MediaItem["status"]) {
+  const userId = await getCurrentUserId();
   const payload = status === "complete"
     ? { status, completed_year: new Date().getFullYear() }
     : { status, completed_year: null };
@@ -192,25 +210,30 @@ export async function updateMediaStatus(itemId: string, status: MediaItem["statu
   const { error } = await supabase
     .from("media_items")
     .update(payload)
-    .eq("id", itemId);
+    .eq("id", itemId)
+    .eq("user_id", userId);
 
   if (error) throw error;
 }
 
 export async function updateMediaMeta(itemId: string, meta: string) {
+  const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("media_items")
     .update({ meta: toNullableText(meta) })
-    .eq("id", itemId);
+    .eq("id", itemId)
+    .eq("user_id", userId);
 
   if (error) throw error;
 }
 
 export async function deleteMedia(itemId: string) {
+  const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("media_items")
     .delete()
-    .eq("id", itemId);
+    .eq("id", itemId)
+    .eq("user_id", userId);
 
   if (error) throw error;
 }

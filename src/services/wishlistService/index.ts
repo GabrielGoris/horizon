@@ -35,6 +35,16 @@ function normalizeWishlistPosition(position: number) {
   return Math.min(WISHLIST_LIMIT, Math.max(1, Math.round(position)));
 }
 
+async function getCurrentUserId() {
+  const { data, error } = await supabase.auth.getUser();
+
+  if (error || !data.user) {
+    throw new Error("Usuário não autenticado.");
+  }
+
+  return data.user.id;
+}
+
 export function getWishlistItems(collection: MediaItem[], mediaType: MediaType) {
   return collection
     .filter((item) => item.type === mediaType && getWishlistPosition(item) !== null)
@@ -60,6 +70,7 @@ export function buildWishlistPreview(
 }
 
 export async function saveWishlistPreview(preview: WishlistPreview) {
+  await getCurrentUserId();
   const now = new Date().toISOString();
   const updates: WishlistPositionUpdate[] = preview.items.map((item, index) => ({
     id: item.id,
@@ -87,6 +98,7 @@ export async function moveMediaToWishlist(collection: MediaItem[], item: MediaIt
 }
 
 export async function removeMediaFromWishlist(collection: MediaItem[], item: MediaItem) {
+  await getCurrentUserId();
   const currentWishlist = getWishlistItems(collection, item.type).filter((wishlistItem) => wishlistItem.id !== item.id);
   const updates: WishlistPositionUpdate[] = currentWishlist.map((wishlistItem, index) => ({
     id: wishlistItem.id,
