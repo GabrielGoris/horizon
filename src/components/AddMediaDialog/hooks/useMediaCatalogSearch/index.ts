@@ -375,12 +375,22 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
 
   const searchBookIsbn = (isbn: string) => {
     const normalizedIsbn = isbn.replace(/[^0-9Xx]/g, "");
+    const compactIdentifier = isbn.replace(/[\s-]/g, "").toUpperCase();
 
     if (isbnSearchTimeoutRef.current) clearTimeout(isbnSearchTimeoutRef.current);
     isbnSearchControllerRef.current?.abort();
 
     setBookSearchError("");
     setBookIsbnSearchError("");
+
+    if (
+      selectedType === "books"
+      && /^[A-Z0-9]{10}$/.test(compactIdentifier)
+      && !/^\d{9}[\dX]$/.test(compactIdentifier)
+    ) {
+      setBookIsbnSearchError("Esse código parece ser um ASIN da Amazon. Informe o ISBN-10 ou ISBN-13 da edição.");
+      return;
+    }
 
     if (selectedType !== "books" || (normalizedIsbn.length !== 10 && normalizedIsbn.length !== 13)) {
       return;

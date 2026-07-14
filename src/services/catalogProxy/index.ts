@@ -1,4 +1,4 @@
-export type CatalogProxyService = "books" | "igdb" | "steam" | "tmdb";
+export type CatalogProxyService = "books" | "brasil-api" | "google-books" | "igdb" | "steam" | "tmdb";
 
 type CatalogRequestOptions = Omit<RequestInit, "signal"> & {
   searchParams?: URLSearchParams;

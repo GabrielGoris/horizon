@@ -12,7 +12,7 @@ type ApiRequest = IncomingMessage & {
   body?: unknown;
 };
 type ApiResponse = ServerResponse;
-type CatalogProxyService = "books" | "igdb" | "steam" | "tmdb";
+type CatalogProxyService = "books" | "brasil-api" | "google-books" | "igdb" | "steam" | "tmdb";
 
 type TwitchTokenResponse = {
   access_token: string;
@@ -90,7 +90,7 @@ async function pipeFetchResponse(res: ApiResponse, response: Response, cacheable
 }
 
 function isCatalogProxyService(value: string | null): value is CatalogProxyService {
-  return value === "books" || value === "igdb" || value === "steam" || value === "tmdb";
+  return value === "books" || value === "brasil-api" || value === "google-books" || value === "igdb" || value === "steam" || value === "tmdb";
 }
 
 function getRequestParams(req: ApiRequest) {
@@ -119,6 +119,14 @@ function isAllowedEndpoint(service: CatalogProxyService, endpoint: string) {
   if (service === "tmdb") {
     return ["genre/movie/list", "genre/tv/list", "search/multi"].includes(path)
       || /^(movie|tv)\/\d+$/.test(path);
+  }
+
+  if (service === "google-books") {
+    return path === "volumes";
+  }
+
+  if (service === "brasil-api") {
+    return /^isbn\/v1\/[0-9X]+$/i.test(path);
   }
 
   return path === "search.json"
@@ -328,6 +336,46 @@ async function fetchTmdb(req: ApiRequest, endpoint: string): Promise<ProxyFetchR
   return { response, error: "", statusCode: response.status };
 }
 
+async function fetchGoogleBooks(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
+  if (req.method !== "GET") {
+    return { response: null, error: `Metodo ${req.method} nao permitido para Google Books. Use GET.`, statusCode: 405 };
+  }
+
+  const url = new URL(endpoint, "https://www.googleapis.com/books/v1/");
+  const apiKey = getEnvValue("GOOGLE_BOOKS_API_KEY");
+
+  if (!apiKey) {
+    const response = new Response(JSON.stringify({ totalItems: 0, items: [] }), {
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+    });
+
+    return { response, error: "", statusCode: 200 };
+  }
+
+  url.searchParams.set("key", apiKey);
+
+  const response = await fetchWithRetry(url, {
+    headers: { Accept: "application/json" },
+  });
+
+  return { response, error: "", statusCode: response.status };
+}
+
+async function fetchBrasilApi(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
+  if (req.method !== "GET") {
+    return { response: null, error: `Metodo ${req.method} nao permitido para BrasilAPI. Use GET.`, statusCode: 405 };
+  }
+
+  const response = await fetchWithRetry(`https://brasilapi.com.br/api/${endpoint}`, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Horizon/1.0",
+    },
+  });
+
+  return { response, error: "", statusCode: response.status };
+}
+
 async function waitForBooksRequestSlot(intervalMs: number) {
   const scheduled = booksSchedule.then(async () => {
     const waitTime = Math.max(0, nextBooksRequestAt - Date.now());
@@ -363,6 +411,8 @@ async function fetchCatalogService(service: CatalogProxyService, req: ApiRequest
   if (service === "igdb") return fetchIgdb(req, endpoint);
   if (service === "steam") return fetchSteam(req, endpoint);
   if (service === "tmdb") return fetchTmdb(req, endpoint);
+  if (service === "google-books") return fetchGoogleBooks(req, endpoint);
+  if (service === "brasil-api") return fetchBrasilApi(req, endpoint);
 
   return fetchBooks(req, endpoint);
 }
