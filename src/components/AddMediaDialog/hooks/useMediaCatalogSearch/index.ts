@@ -9,7 +9,9 @@ import {
 import {
   applyGameCatalogDetails,
   getGameDetails,
+  getGameEnrichment,
   searchGames,
+  warmGameCatalog,
 } from "../../../../services/gameCatalogService";
 import {
   applyMovieCatalogDetails,
@@ -23,7 +25,7 @@ function isAbortError(error: unknown) {
   return error instanceof Error && error.name === "AbortError";
 }
 
-export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalogSearchParams) {
+export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValue }: UseMediaCatalogSearchParams) {
   const [gameSearchResults, setGameSearchResults] = useState<GameCatalogResult[]>([]);
   const [movieSearchResults, setMovieSearchResults] = useState<MovieCatalogResult[]>([]);
   const [bookSearchResults, setBookSearchResults] = useState<BookCatalogResult[]>([]);
@@ -38,6 +40,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const [isBookSearchLoading, setIsBookSearchLoading] = useState(false);
   const [isBookIsbnSearchLoading, setIsBookIsbnSearchLoading] = useState(false);
   const [isCatalogSelectionLoading, setIsCatalogSelectionLoading] = useState(false);
+  const [isCampaignHoursLoading, setIsCampaignHoursLoading] = useState(false);
   const gameSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const movieSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bookSearchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -46,10 +49,17 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   const movieSearchControllerRef = useRef<AbortController | null>(null);
   const bookSearchControllerRef = useRef<AbortController | null>(null);
   const isbnSearchControllerRef = useRef<AbortController | null>(null);
+  const catalogSelectionControllerRef = useRef<AbortController | null>(null);
   const gameSearchRequestRef = useRef(0);
   const movieSearchRequestRef = useRef(0);
   const bookSearchRequestRef = useRef(0);
   const catalogSelectionRequestRef = useRef(0);
+
+  useEffect(() => {
+    if (!isOpen || selectedType !== "games") return;
+
+    void warmGameCatalog();
+  }, [isOpen, selectedType]);
 
   useEffect(() => () => {
     if (gameSearchTimeoutRef.current) clearTimeout(gameSearchTimeoutRef.current);
@@ -60,11 +70,30 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     movieSearchControllerRef.current?.abort();
     bookSearchControllerRef.current?.abort();
     isbnSearchControllerRef.current?.abort();
+    catalogSelectionControllerRef.current?.abort();
   }, []);
 
   const fillMediaFields = (media: Partial<CreateMediaDTO>) => {
     Object.entries(media).forEach(([key, value]) => {
       setValue(key as keyof CreateMediaDTO, value ?? "", { shouldDirty: true, shouldValidate: true });
+    });
+  };
+
+  const fillAvailableMediaFields = (media: Partial<CreateMediaDTO>) => {
+    Object.entries(media).forEach(([key, value]) => {
+      if (!String(value ?? "").trim()) return;
+
+      setValue(key as keyof CreateMediaDTO, value ?? "", { shouldDirty: true, shouldValidate: true });
+    });
+  };
+
+  const fillEmptyMediaFields = (media: Partial<CreateMediaDTO>) => {
+    Object.entries(media).forEach(([key, value]) => {
+      const field = key as keyof CreateMediaDTO;
+
+      if (!String(value ?? "").trim() || String(getValues(field) ?? "").trim()) return;
+
+      setValue(field, value ?? "", { shouldDirty: true, shouldValidate: true });
     });
   };
 
@@ -77,6 +106,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     movieSearchControllerRef.current?.abort();
     bookSearchControllerRef.current?.abort();
     isbnSearchControllerRef.current?.abort();
+    catalogSelectionControllerRef.current?.abort();
 
     gameSearchRequestRef.current += 1;
     movieSearchRequestRef.current += 1;
@@ -96,6 +126,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     setIsBookSearchLoading(false);
     setIsBookIsbnSearchLoading(false);
     setIsCatalogSelectionLoading(false);
+    setIsCampaignHoursLoading(false);
   };
 
   const scheduleGameSearch = (query: string) => {
@@ -121,7 +152,12 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
       const controller = new AbortController();
       gameSearchControllerRef.current = controller;
 
-      searchGames(trimmedQuery, controller.signal)
+      searchGames(trimmedQuery, controller.signal, (results) => {
+        if (requestId !== gameSearchRequestRef.current) return;
+
+        setGameSearchResults(results);
+        setGameSearchError("");
+      })
         .then((results) => {
           if (requestId !== gameSearchRequestRef.current) return;
 
@@ -269,11 +305,32 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   };
 
   const handleSelectGame = async (game: GameCatalogResult) => {
+    catalogSelectionControllerRef.current?.abort();
+    const controller = new AbortController();
+    catalogSelectionControllerRef.current = controller;
     const requestId = ++catalogSelectionRequestRef.current;
 
+    gameSearchRequestRef.current += 1;
     setGameSearchError("");
     setGameSearchResults([]);
+    setIsGameSearchLoading(false);
+    setIsCampaignHoursLoading(game.source === "steam");
     setIsCatalogSelectionLoading(true);
+
+    const enrichmentPromise = game.source === "steam"
+      ? getGameEnrichment(game, controller.signal).catch((error) => {
+          if (!isAbortError(error)) console.error(error);
+          return null;
+        })
+      : null;
+
+    if (enrichmentPromise) {
+      void enrichmentPromise.finally(() => {
+        if (requestId === catalogSelectionRequestRef.current) {
+          setIsCampaignHoursLoading(false);
+        }
+      });
+    }
 
     const basicGame = { ...game, creator: "", description: "", campaignHours: "" };
     const basicBackdrop = game.backdrop || game.cover;
@@ -283,17 +340,37 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     setCoverBackdrop(basicBackdrop);
     setCoverFallback(game.fallbackCover || "");
 
+    if (enrichmentPromise) {
+      void enrichmentPromise.then((enrichment) => {
+        if (requestId !== catalogSelectionRequestRef.current || !enrichment) return;
+
+        fillEmptyMediaFields({
+          campaign_hours: enrichment.campaignHours,
+          category: enrichment.category,
+          creator: enrichment.creator,
+          description: enrichment.description,
+          release_year: enrichment.releaseYear,
+        });
+
+        setCoverFallback(enrichment.fallbackCover || game.fallbackCover || "");
+      });
+    }
+
     try {
-      const details = await getGameDetails(game);
+      const details = await getGameDetails(game, controller.signal);
       if (requestId !== catalogSelectionRequestRef.current) return;
 
       const fallbackCover = details.fallbackCover || game.fallbackCover || "";
       const backdrop = details.backdrop || game.backdrop || details.cover || game.cover;
 
-      fillMediaFields(applyGameCatalogDetails(details));
+      if (details.source === "steam") {
+        fillAvailableMediaFields(applyGameCatalogDetails(details));
+      } else {
+        fillMediaFields(applyGameCatalogDetails(details));
+      }
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
-      setCoverFallback(fallbackCover);
+      if (fallbackCover) setCoverFallback(fallbackCover);
       setGameSearchResults([]);
     } catch (error) {
       if (requestId !== catalogSelectionRequestRef.current) return;
@@ -315,14 +392,18 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   };
 
   const handleSelectMovie = async (movie: MovieCatalogResult) => {
+    catalogSelectionControllerRef.current?.abort();
+    const controller = new AbortController();
+    catalogSelectionControllerRef.current = controller;
     const requestId = ++catalogSelectionRequestRef.current;
 
     setMovieSearchError("");
     setMovieSearchResults([]);
+    setIsCampaignHoursLoading(false);
     setIsCatalogSelectionLoading(true);
 
     try {
-      const details = await getMovieDetails(movie);
+      const details = await getMovieDetails(movie, controller.signal);
       if (requestId !== catalogSelectionRequestRef.current) return;
 
       const backdrop = details.backdrop || movie.backdrop || details.cover || movie.cover;
@@ -349,14 +430,18 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
   };
 
   const handleSelectBook = async (book: BookCatalogResult) => {
+    catalogSelectionControllerRef.current?.abort();
+    const controller = new AbortController();
+    catalogSelectionControllerRef.current = controller;
     const requestId = ++catalogSelectionRequestRef.current;
 
     setBookSearchError("");
     setBookSearchResults([]);
+    setIsCampaignHoursLoading(false);
     setIsCatalogSelectionLoading(true);
 
     try {
-      const details = await getBookDetails(book);
+      const details = await getBookDetails(book, controller.signal);
       if (requestId !== catalogSelectionRequestRef.current) return;
 
       const backdrop = details.backdrop || book.backdrop || details.cover || book.cover;
@@ -481,6 +566,7 @@ export function useMediaCatalogSearch({ selectedType, setValue }: UseMediaCatalo
     handleSelectMovie,
     isBookIsbnSearchLoading,
     isBookSearchLoading,
+    isCampaignHoursLoading,
     isCatalogSelectionLoading,
     isGameSearchLoading,
     isMovieSearchLoading,

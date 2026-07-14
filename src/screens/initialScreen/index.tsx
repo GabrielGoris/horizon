@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AddMediaDialog } from "../../components/AddMediaDialog";
 import { DeleteMediaDialog } from "../../components/DeleteMediaDialog";
 import { Header } from "../../components/Header";
@@ -6,6 +6,7 @@ import { MediaDossier } from "../../components/MediaDossier";
 import { Sidebar } from "../../components/Sidebar";
 import { WishlistPriorityDialog } from "../../components/WishlistPriorityDialog";
 import { getWishlistItems } from "../../services/wishlistService";
+import { warmGameCatalog } from "../../services/gameCatalogService";
 import { CategorySection } from "./components/CategorySection";
 import { OverviewSection } from "./components/OverviewSection";
 import { CATEGORIES } from "./consts";
@@ -24,6 +25,12 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
     collection: mediaCollection.collection,
     refreshMedia: mediaCollection.refreshMedia,
   });
+
+  useEffect(() => {
+    if (activeTab !== "games") return;
+
+    void warmGameCatalog();
+  }, [activeTab]);
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
   const activeLabel = activeTab === "overview" ? "Visão Geral" : activeCategory?.plural ?? "Nova Categoria";

@@ -15,6 +15,7 @@ export function TypeSpecificFields({
   copy,
   errors,
   inputClass,
+  isCampaignHoursLoading,
   labelClass,
   errorClass,
   register,
@@ -107,9 +108,17 @@ export function TypeSpecificFields({
 
         {selectedType === "games" && (
           <label className={labelClass}>
-            Tempo da campanha
+            <span className="flex items-center justify-between gap-3">
+              Tempo da campanha
+              {isCampaignHoursLoading && (
+                <span className="animate-pulse font-mono text-[10px] font-normal normal-case tracking-normal text-noir-gold">
+                  Buscando campanha...
+                </span>
+              )}
+            </span>
             <input
-              placeholder="Ex: 48h 30 min"
+              aria-busy={isCampaignHoursLoading}
+              placeholder={isCampaignHoursLoading ? "Buscando tempo da campanha..." : "Ex: 48h 30 min"}
               {...register("campaign_hours")}
               className={inputClass}
             />

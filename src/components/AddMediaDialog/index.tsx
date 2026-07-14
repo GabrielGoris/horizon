@@ -32,7 +32,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     defaultValues: getDefaultValues(initialType ?? "games"),
   });
   const selectedType = initialType ?? manualSelectedType;
-  const catalogSearch = useMediaCatalogSearch({ selectedType, setValue });
+  const catalogSearch = useMediaCatalogSearch({ getValues, isOpen, selectedType, setValue });
   const coverValue = useWatch({ control, name: "cover" });
   const metaValue = useWatch({ control, name: "meta" });
   const ratingValue = useWatch({ control, name: "rating" });

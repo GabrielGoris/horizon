@@ -25,7 +25,8 @@ export type IgdbGame = {
   summary?: string;
   storyline?: string;
   first_release_date?: number;
-  category?: number;
+  game_type?: number;
+  parent_game?: number;
   total_rating_count?: number;
   version_parent?: number;
   alternative_names?: Array<{ name?: string }>;
@@ -44,14 +45,11 @@ export type IgdbGameTimeToBeat = {
   game_id?: number;
   hastily?: number;
   normally?: number;
-  completely?: number;
-  count?: number;
 };
 
 export type IgdbMultiQueryResult<T = unknown> = {
   name: string;
   result?: T;
-  count?: number;
 };
 
 export type SteamSearchItem = {
@@ -94,6 +92,10 @@ export type SteamAppDetailsResponse = Record<string, {
 export type GameCatalogResult = {
   id: number;
   source: "steam" | "igdb";
+  igdbId?: number;
+  igdbGameType?: number;
+  igdbParentGame?: number;
+  igdbVersionParent?: number;
   title: string;
   releaseYear: string;
   cover: string;
@@ -107,6 +109,22 @@ export type GameCatalogDetails = GameCatalogResult & {
   creator: string;
   description: string;
   campaignHours: string;
+};
+
+export type GameCatalogSearchListener = (results: GameCatalogResult[]) => void;
+
+export type GameCatalogEnrichment = {
+  campaignHours: string;
+  category: string;
+  creator: string;
+  description: string;
+  fallbackCover: string;
+  releaseYear: string;
+};
+
+export type IgdbGameCacheEntry = {
+  details: GameCatalogDetails;
+  hasTimeToBeatLookup: boolean;
 };
 
 export type TmdbMediaType = "movie" | "tv";

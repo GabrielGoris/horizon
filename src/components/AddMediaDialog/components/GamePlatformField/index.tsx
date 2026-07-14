@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
 import { GamePlatformLogo } from "../../../GamePlatformLogo";
 import { GAME_PLATFORM_OPTIONS, getGamePlatformOption } from "../../../../consts/gamePlatforms";
 import type { GamePlatformFieldProps } from "../types";
@@ -37,13 +38,14 @@ export function GamePlatformField({ metaValue, setValue }: GamePlatformFieldProp
       </span>
 
       <div className="relative">
-        <div className={`flex items-center gap-3 rounded-lg border bg-[#131315] px-4 py-3 transition-all ${
+        <label className={`flex cursor-pointer items-center gap-3 rounded-lg border bg-[#131315] px-4 py-3 transition-all ${
           isOpen ? "border-noir-gold ring-1 ring-noir-gold" : "border-white/10"
         }`}>
           {selectedPlatform && !isOpen && (
             <GamePlatformLogo platform={selectedPlatform} className="h-6 w-9 shrink-0 text-[#ebdcb9]" />
           )}
           <input
+            aria-label="Plataforma principal"
             value={inputValue}
             onChange={(event) => {
               setSearchTerm(event.target.value);
@@ -59,7 +61,11 @@ export function GamePlatformField({ metaValue, setValue }: GamePlatformFieldProp
             placeholder="Digite ou escolha uma plataforma..."
             className="min-w-0 flex-1 bg-transparent text-sm font-bold text-white placeholder-neutral-600 outline-none"
           />
-        </div>
+          <ChevronDown
+            aria-hidden="true"
+            className={`h-4 w-4 shrink-0 text-neutral-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          />
+        </label>
 
         {isOpen && (
           <div className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-40 max-h-72 overflow-y-auto rounded-xl border border-white/10 bg-[#151519] p-2 shadow-2xl">

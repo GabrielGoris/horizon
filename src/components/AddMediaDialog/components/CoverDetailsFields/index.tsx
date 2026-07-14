@@ -45,6 +45,7 @@ export function CoverDetailsFields({
         errorClass={errorClass}
         errors={errors}
         inputClass={inputClass}
+        isCampaignHoursLoading={catalogSearch.isCampaignHoursLoading}
         labelClass={labelClass}
         metaValue={metaValue}
         movieKind={movieKind}

@@ -1,4 +1,4 @@
-import type { FieldError, FieldErrors, UseFormRegister, UseFormRegisterReturn, UseFormSetValue } from "react-hook-form";
+import type { FieldError, FieldErrors, UseFormGetValues, UseFormRegister, UseFormRegisterReturn, UseFormSetValue } from "react-hook-form";
 import type { CreateMediaDTO } from "../../../schemas/media/dto/create-media.dto";
 import type { BookCatalogResult, GameCatalogResult, MovieCatalogResult } from "../../../services/types";
 import type { MediaItem, MediaType } from "../../../types";
@@ -24,6 +24,8 @@ export interface MediaTypePickerProps {
 }
 
 export interface UseMediaCatalogSearchParams {
+  getValues: UseFormGetValues<CreateMediaDTO>;
+  isOpen: boolean;
   selectedType: MediaType | null;
   setValue: UseFormSetValue<CreateMediaDTO>;
 }
@@ -83,6 +85,7 @@ export interface TypeSpecificFieldsProps {
   copy: AddMediaFieldCopy;
   errors: FieldErrors<CreateMediaDTO>;
   inputClass: string;
+  isCampaignHoursLoading: boolean;
   labelClass: string;
   errorClass: string;
   register: UseFormRegister<CreateMediaDTO>;
