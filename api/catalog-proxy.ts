@@ -400,9 +400,6 @@ async function fetchBooks(req: ApiRequest, endpoint: string): Promise<ProxyFetch
   const contact = getEnvValue("OPEN_LIBRARY_CONTACT");
   await waitForBooksRequestSlot(contact ? 350 : 1_000);
 
-  const contact = getEnvValue("OPEN_LIBRARY_CONTACT");
-  await waitForBooksRequestSlot(contact ? 350 : 1_000);
-
   const response = await fetchWithRetry(`https://openlibrary.org/${endpoint}`, {
     headers: {
       Accept: "application/json",
@@ -469,7 +466,6 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
     console.error("[catalog-proxy]", error);
     sendJson(res, isAbortError(error) ? 504 : 500, {
       ok: false,
-      message: error instanceof Error ? error.message : "Erro ao consultar catálogo.",
       message: isAbortError(error)
         ? "O servico de catálogo demorou demais para responder."
         : error instanceof Error ? error.message : "Erro ao consultar catálogo.",
