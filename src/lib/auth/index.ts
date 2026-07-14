@@ -6,7 +6,7 @@ export function getPasswordValidationMessage(password: string) {
   }
 
   if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/\d/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
-    return 'Inclua letra maiuscula, minuscula, numero e simbolo.';
+    return 'Inclua letra maiúscula, minúscula, número e símbolo.';
   }
 
   return null;
@@ -28,7 +28,7 @@ export function getAuthErrorMessage(message: string) {
   }
 
   if (normalizedMessage.includes('captcha')) {
-    return 'Conclua a verificacao de seguranca e tente novamente.';
+    return 'Conclua a verificação de segurança e tente novamente.';
   }
 
   if (normalizedMessage.includes('same password')) {
@@ -40,7 +40,7 @@ export function getAuthErrorMessage(message: string) {
   }
 
   if (normalizedMessage.includes('password')) {
-    return 'A senha nao atende aos requisitos de seguranca.';
+    return 'A senha não atende aos requisitos de segurança.';
   }
 
   if (normalizedMessage.includes('rate limit') || normalizedMessage.includes('too many')) {
@@ -48,8 +48,8 @@ export function getAuthErrorMessage(message: string) {
   }
 
   if (normalizedMessage.includes('otp') || normalizedMessage.includes('challenge')) {
-    return 'O codigo informado e invalido ou expirou.';
+    return 'O código informado e inválido ou expirou.';
   }
 
-  return 'Nao foi possivel concluir a autenticacao agora.';
+  return 'Não foi possível concluir a autenticação agora.';
 }

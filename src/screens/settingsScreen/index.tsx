@@ -14,8 +14,8 @@ import type {
 
 const settingsLinks = [
   { label: 'Conta', icon: <User size={15} strokeWidth={2.3} />, to: '/settings', end: true },
-  { label: 'Seguranca', icon: <Shield size={15} strokeWidth={2.3} />, to: '/settings/security' },
-  { label: 'Notificacoes', icon: <Bell size={15} strokeWidth={2.3} />, to: '/settings/notifications' },
+  { label: 'Segurança', icon: <Shield size={15} strokeWidth={2.3} />, to: '/settings/security' },
+  { label: 'Notificações', icon: <Bell size={15} strokeWidth={2.3} />, to: '/settings/notifications' },
   { label: 'Plano', icon: <CreditCard size={15} strokeWidth={2.3} />, to: '/settings/billing' },
 ];
 
@@ -44,7 +44,7 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
       let accessToken = session.access_token;
 
       if (needsPasswordReauthentication) {
-        if (!session.user.email) throw new Error('Sua conta nao possui um e-mail confirmado.');
+        if (!session.user.email) throw new Error('Sua conta não possui um e-mail confirmado.');
 
         const { data, error } = await supabase.auth.signInWithPassword({
           email: session.user.email,
@@ -69,10 +69,10 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
       });
       const result = await response.json() as { message?: string };
 
-      if (!response.ok) throw new Error(result.message ?? 'Nao foi possivel excluir a conta.');
+      if (!response.ok) throw new Error(result.message ?? 'não foi possivel excluir a conta.');
       await supabase.auth.signOut({ scope: 'local' });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Nao foi possivel excluir a conta.');
+      setErrorMessage(error instanceof Error ? error.message : 'não foi possivel excluir a conta.');
       setIsDeletingAccount(false);
       setDeleteCaptchaResetKey((currentKey) => currentKey + 1);
     }
@@ -104,8 +104,8 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
       <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-14">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
           <header className="border-b border-white/5 pb-7">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-noir-gold">Configuracoes</p>
-            <h1 className="mt-3 text-3xl font-bold text-white">{isSecuritySection ? 'Seguranca' : 'Conta'}</h1>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-noir-gold">Configurações</p>
+            <h1 className="mt-3 text-3xl font-bold text-white">{isSecuritySection ? 'Segurança' : 'Conta'}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-400">
               {isSecuritySection
                 ? 'Fortaleca sua senha e configure uma segunda etapa de verificação.'
@@ -149,9 +149,9 @@ function AccountSettings({ onOpenDelete, onSignOut, userEmail }: AccountSettings
   return (
     <>
       <section className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1e]">
-        <SettingsRow label="E-mail" description="Endereco usado para acessar sua conta." value={userEmail} />
+        <SettingsRow label="E-mail" description="Endereço usado para acessar sua conta." value={userEmail} />
         <SettingsRow
-          label="Sessao"
+          label="Sessão"
           description="Encerre o acesso neste dispositivo."
           action={(
             <button
@@ -194,8 +194,8 @@ function SettingsSidebar() {
         <span className="mt-1 rounded border border-noir-gold/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.24em] text-noir-gold/70">Noir</span>
       </div>
 
-      <nav className="mt-[66px] flex flex-col gap-[14px]" aria-label="Configuracoes">
-        <span className="mb-1 ml-4 text-[10px] font-bold uppercase tracking-[0.28em] text-neutral-600">Configuracoes</span>
+      <nav className="mt-[66px] flex flex-col gap-[14px]" aria-label="Configurações">
+        <span className="mb-1 ml-4 text-[10px] font-bold uppercase tracking-[0.28em] text-neutral-600">Configurações</span>
         {settingsLinks.map((link) => (
           <NavLink
             key={link.to}
@@ -251,7 +251,7 @@ function DeleteAccountDialog({
         </div>
 
         <div className="px-6 py-6">
-          <p className="text-sm leading-6 text-neutral-300">Voce esta prestes a excluir a conta <strong className="font-semibold text-white">{userEmail}</strong>. Esta acao nao pode ser desfeita.</p>
+          <p className="text-sm leading-6 text-neutral-300">Você está prestes a excluir a conta <strong className="font-semibold text-white">{userEmail}</strong>. Esta ação não pode ser desfeita.</p>
           <label className="mt-5 flex flex-col gap-2">
             <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-500">Digite seu e-mail para confirmar</span>
             <input type="email" value={emailConfirmation} onChange={(event) => setEmailConfirmation(event.target.value)} autoComplete="off" className="h-11 rounded-lg border border-white/10 bg-[#101012] px-4 text-sm outline-none focus:border-red-300/50" />

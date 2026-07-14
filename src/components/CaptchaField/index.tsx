@@ -86,5 +86,5 @@ export function CaptchaField({ onTokenChange, resetKey }: CaptchaFieldProps) {
 
   if (!siteKey) return null;
 
-  return <div ref={containerRef} className="min-h-[65px]" aria-label="Verificacao de seguranca" />;
+  return <div ref={containerRef} className="min-h-[65px]" aria-label="Verificação de segurança" />;
 }

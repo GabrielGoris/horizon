@@ -273,7 +273,7 @@ async function requestIgdb(clientId: string, token: string, endpoint: string, bo
 
 async function fetchIgdb(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
   if (req.method !== "POST") {
-    return { response: null, error: `Metodo ${req.method} nao permitido para IGDB. Use POST.`, statusCode: 405 };
+    return { response: null, error: `Metodo ${req.method} não permitido para IGDB. Use POST.`, statusCode: 405 };
   }
 
   const clientId = getEnvValue("IGDB_CLIENT_ID", "VITE_IGDB_CLIENT_ID");
@@ -304,7 +304,7 @@ async function fetchIgdb(req: ApiRequest, endpoint: string): Promise<ProxyFetchR
 
 async function fetchSteam(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
   if (req.method !== "GET") {
-    return { response: null, error: `Metodo ${req.method} nao permitido para Steam. Use GET.`, statusCode: 405 };
+    return { response: null, error: `Metodo ${req.method} não permitido para Steam. Use GET.`, statusCode: 405 };
   }
 
   const response = await fetchWithRetry(`https://store.steampowered.com/${endpoint}`);
@@ -341,7 +341,7 @@ async function fetchTmdb(req: ApiRequest, endpoint: string): Promise<ProxyFetchR
 
 async function fetchGoogleBooks(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
   if (req.method !== "GET") {
-    return { response: null, error: `Metodo ${req.method} nao permitido para Google Books. Use GET.`, statusCode: 405 };
+    return { response: null, error: `Metodo ${req.method} não permitido para Google Books. Use GET.`, statusCode: 405 };
   }
 
   const url = new URL(endpoint, "https://www.googleapis.com/books/v1/");
@@ -366,7 +366,7 @@ async function fetchGoogleBooks(req: ApiRequest, endpoint: string): Promise<Prox
 
 async function fetchBrasilApi(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
   if (req.method !== "GET") {
-    return { response: null, error: `Metodo ${req.method} nao permitido para BrasilAPI. Use GET.`, statusCode: 405 };
+    return { response: null, error: `Metodo ${req.method} não permitido para BrasilAPI. Use GET.`, statusCode: 405 };
   }
 
   const response = await fetchWithRetry(`https://brasilapi.com.br/api/${endpoint}`, {
