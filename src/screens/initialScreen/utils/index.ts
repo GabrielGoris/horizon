@@ -43,6 +43,12 @@ function getDateSortValue(value?: string | number) {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
+function getPrioritySortValue(item: MediaItem) {
+  const position = Number(item.wishlist_position);
+
+  return Number.isFinite(position) && position > 0 ? position : Number.POSITIVE_INFINITY;
+}
+
 function getDurationMinutes(value?: string | number, numericUnit: "hours" | "minutes" = "minutes") {
   if (typeof value === "number") {
     return numericUnit === "hours" ? value * 60 : value;
@@ -119,4 +125,10 @@ export function sortMediaItems(items: MediaItem[], sortMode: SortMode) {
 
     return getDateSortValue(secondItem.added_at) - getDateSortValue(firstItem.added_at);
   });
+}
+
+export function sortMediaItemsByPriority(items: MediaItem[]) {
+  return [...items].sort(
+    (firstItem, secondItem) => getPrioritySortValue(firstItem) - getPrioritySortValue(secondItem)
+  );
 }

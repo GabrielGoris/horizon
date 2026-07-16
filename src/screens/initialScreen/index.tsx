@@ -15,6 +15,7 @@ import { useLibraryFilters } from "./hooks/useLibraryFilters";
 import { useMediaCollection } from "./hooks/useMediaCollection";
 import { useWishlistPriority } from "./hooks/useWishlistPriority";
 import type { InitialScreenProps } from "./types";
+import { sortMediaItemsByPriority } from "./utils";
 
 export function InitialScreen({ activeTab }: InitialScreenProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,13 +53,15 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
 
     const normalizedSearch = searchQuery.trim().toLowerCase();
 
-    return mediaCollection.collection.filter((item) => {
+    const itemsInProgress = mediaCollection.collection.filter((item) => {
       const matchesType = item.type === activeTab;
       const matchesStatus = item.status === "in_progress";
       const matchesSearch = !normalizedSearch || item.title.toLowerCase().includes(normalizedSearch);
 
       return matchesType && matchesStatus && matchesSearch;
     });
+
+    return sortMediaItemsByPriority(itemsInProgress);
   }, [activeTab, mediaCollection.collection, searchQuery]);
   const overviewPriorityItems = useMemo(() => {
     return new Map(

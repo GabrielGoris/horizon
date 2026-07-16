@@ -8,7 +8,7 @@ export const GAME_PLATFORM_OPTIONS = [
   { label: "PS3", aliases: ["ps3", "playstation 3"], kind: "ps3" },
   { label: "PS4", aliases: ["ps4", "playstation 4"], kind: "ps4" },
   { label: "PS5", aliases: ["ps5", "playstation 5"], kind: "ps5" },
-  { label: "PSP", aliases: ["psp"], kind: "psp" },
+  { label: "PSP", aliases: ["psp", "playstation portable"], kind: "psp" },
   { label: "PS Vita", aliases: ["vita", "ps vita", "playstation vita"], kind: "psvita" },
   { label: "Xbox", aliases: ["xbox"], kind: "xbox" },
   { label: "Xbox 360", aliases: ["xbox 360"], kind: "xbox" },
@@ -42,11 +42,17 @@ export function getGamePlatformOption(value?: string | null) {
 
   if (!normalizedValue) return null;
 
-  const exactMatch = GAME_PLATFORM_OPTIONS.find((option) => normalizedValue === option.label.toLowerCase());
+  const matches = GAME_PLATFORM_OPTIONS.flatMap((option) => {
+    const terms = new Set([option.label.toLowerCase(), ...option.aliases]);
 
-  if (exactMatch) return exactMatch;
+    return [...terms]
+      .map((term) => ({ option, term, index: normalizedValue.indexOf(term) }))
+      .filter((match) => match.index >= 0);
+  });
 
-  return GAME_PLATFORM_OPTIONS.find((option) => (
-    option.aliases.some((alias) => normalizedValue.includes(alias))
-  )) ?? null;
+  matches.sort((firstMatch, secondMatch) => (
+    firstMatch.index - secondMatch.index || secondMatch.term.length - firstMatch.term.length
+  ));
+
+  return matches[0]?.option ?? null;
 }
