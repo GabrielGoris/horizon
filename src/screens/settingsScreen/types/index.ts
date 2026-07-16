@@ -20,13 +20,9 @@ export type SettingsRowProps = {
 };
 
 export type DeleteAccountDialogProps = {
-  captchaResetKey: number;
   errorMessage: string | null;
   isDeleting: boolean;
-  isSocialReauthenticated: boolean;
   onCancel: () => void;
-  onConfirm: (password: string, captchaToken: string | null) => void | Promise<void>;
-  onSocialReauthenticate: () => void | Promise<void>;
-  requiresPassword: boolean;
+  onConfirm: (email: string, password: string) => void | Promise<void>;
   userEmail: string;
 };

@@ -11,36 +11,50 @@ if (!process.env.VERCEL) {
 
 type ApiRequest = IncomingMessage & { body?: unknown };
 
+type DeleteAccountBody = {
+  email?: unknown;
+  password?: unknown;
+};
+
 function sendJson(res: ServerResponse, statusCode: number, body: unknown) {
   res.statusCode = statusCode;
-  res.setHeader("Content-Type", "application/json");
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(body));
 }
 
 function getBearerToken(req: ApiRequest) {
   const authorization = req.headers.authorization ?? "";
-  if (!authorization.startsWith("Bearer ")) return "";
-  return authorization.slice("Bearer ".length).trim();
+
+  return authorization.startsWith("Bearer ")
+    ? authorization.slice("Bearer ".length).trim()
+    : "";
 }
 
-function getTokenClaims(accessToken: string) {
-  try {
-    const payload = accessToken.split(".")[1];
-    if (!payload) return null;
+async function readRequestBody(req: ApiRequest): Promise<DeleteAccountBody | null> {
+  let body = req.body;
 
-    const decodedPayload = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
-      aal?: unknown;
-      iat?: unknown;
-    };
+  if (body === undefined) {
+    const chunks: Buffer[] = [];
 
-    return {
-      assuranceLevel: typeof decodedPayload.aal === "string" ? decodedPayload.aal : null,
-      issuedAt: typeof decodedPayload.iat === "number" ? decodedPayload.iat : null,
-    };
-  } catch {
-    return null;
+    for await (const chunk of req) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+
+    body = Buffer.concat(chunks).toString("utf8");
   }
+
+  if (Buffer.isBuffer(body)) body = body.toString("utf8");
+
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body) as unknown;
+    } catch {
+      return null;
+    }
+  }
+
+  return body && typeof body === "object" ? body as DeleteAccountBody : null;
 }
 
 export default async function handler(req: ApiRequest, res: ServerResponse) {
@@ -51,60 +65,70 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
   }
 
   const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabasePublicKey = process.env.SUPABASE_ANON_KEY
+    ?? process.env.SUPABASE_PUBLISHABLE_KEY
+    ?? process.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseSecretKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ?? process.env.SUPABASE_SECRET_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
-    sendJson(res, 500, { ok: false, message: "Servico de exclusao indisponivel." });
+  if (!supabaseUrl || !supabasePublicKey || !supabaseSecretKey) {
+    console.error("[delete-account] Missing Supabase server credentials.");
+    sendJson(res, 500, { ok: false, message: "Serviço de exclusão indisponível." });
     return;
   }
 
   const accessToken = getBearerToken(req);
+  const body = await readRequestBody(req);
+  const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+  const password = typeof body?.password === "string" ? body.password : "";
+
   if (!accessToken) {
-    sendJson(res, 401, { ok: false, message: "Sessão não informada." });
+    sendJson(res, 401, { ok: false, message: "Sua sessão expirou. Entre novamente e tente excluir a conta." });
     return;
   }
 
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+  if (!email || !password) {
+    sendJson(res, 400, { ok: false, message: "Informe seu e-mail e sua senha." });
+    return;
+  }
+
+  const sessionClient = createClient(supabaseUrl, supabasePublicKey, {
     auth: { autoRefreshToken: false, persistSession: false },
     global: { headers: { Authorization: `Bearer ${accessToken}` } },
   });
-  const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  const credentialsClient = createClient(supabaseUrl, supabasePublicKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data, error: userError } = await userClient.auth.getUser();
+  const adminClient = createClient(supabaseUrl, supabaseSecretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: sessionData, error: sessionError } = await sessionClient.auth.getUser();
 
-  if (userError || !data.user) {
-    sendJson(res, 401, { ok: false, message: "Sessao invalida." });
+  if (sessionError || !sessionData.user) {
+    sendJson(res, 401, { ok: false, message: "Sua sessão expirou. Entre novamente e tente excluir a conta." });
     return;
   }
 
-  const tokenClaims = getTokenClaims(accessToken);
-  const maximumAuthenticationAgeInSeconds = 5 * 60;
-
-  if (!tokenClaims?.issuedAt || Math.floor(Date.now() / 1000) - tokenClaims.issuedAt > maximumAuthenticationAgeInSeconds) {
-    sendJson(res, 403, {
-      ok: false,
-      message: "Confirme sua identidade novamente antes de excluir a conta.",
-    });
+  if (sessionData.user.email?.toLowerCase() !== email) {
+    sendJson(res, 400, { ok: false, message: "O e-mail informado não corresponde à conta atual." });
     return;
   }
 
-  const { data: factors, error: factorsError } = await userClient.auth.mfa.listFactors();
-  if (factorsError) {
-    sendJson(res, 500, { ok: false, message: "não foi possivel validar a segunda etapa." });
+  const { data: credentialsData, error: credentialsError } = await credentialsClient.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (credentialsError || credentialsData.user?.id !== sessionData.user.id) {
+    sendJson(res, 401, { ok: false, message: "E-mail ou senha incorretos." });
     return;
   }
 
-  const hasVerifiedFactor = factors.all.some((factor) => factor.status === "verified");
-  if (hasVerifiedFactor && tokenClaims.assuranceLevel !== "aal2") {
-    sendJson(res, 403, { ok: false, message: "Conclua a verificação em duas etapas antes de excluir a conta." });
-    return;
-  }
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(sessionData.user.id);
 
-  const { error: deleteError } = await adminClient.auth.admin.deleteUser(data.user.id);
   if (deleteError) {
-    sendJson(res, 500, { ok: false, message: "não foi possivel excluir a conta." });
+    console.error("[delete-account] Supabase deleteUser failed:", deleteError.message);
+    sendJson(res, 500, { ok: false, message: "Não foi possível excluir a conta agora." });
     return;
   }
 

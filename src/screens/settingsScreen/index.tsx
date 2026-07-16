@@ -1,9 +1,6 @@
 import { AlertTriangle, Bell, CreditCard, LogOut, Shield, Trash2, User, X } from 'lucide-react';
 import { useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
-import { CaptchaField } from '../../components/CaptchaField';
-import { getAuthErrorMessage } from '../../lib/auth';
-import { supabase } from '../../lib/supabase';
+import { NavLink, useLocation } from 'react-router-dom';
 import { SecuritySettings } from './components/SecuritySettings';
 import type {
   AccountSettingsProps,
@@ -21,80 +18,38 @@ const settingsLinks = [
 
 export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
   const location = useLocation();
-  const navigate = useNavigate();
   const [isDeleteDialogRequested, setIsDeleteDialogRequested] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const [deleteCaptchaResetKey, setDeleteCaptchaResetKey] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const userEmail = session.user.email ?? 'Conta Horizon';
   const isSecuritySection = location.pathname === '/settings/security';
-  const isSocialReauthenticated = new URLSearchParams(location.search).get('reauth') === 'delete';
-  const providers = Array.isArray(session.user.app_metadata.providers)
-    ? session.user.app_metadata.providers as string[]
-    : [];
-  const requiresPassword = providers.includes('email');
-  const isDeleteDialogOpen = isDeleteDialogRequested || isSocialReauthenticated;
-  const needsPasswordReauthentication = requiresPassword && !isSocialReauthenticated;
 
-  const handleDeleteAccount = async (password: string, captchaToken: string | null) => {
+  const handleDeleteAccount = async (email: string, password: string) => {
     setIsDeletingAccount(true);
     setErrorMessage(null);
 
     try {
-      let accessToken = session.access_token;
-
-      if (needsPasswordReauthentication) {
-        if (!session.user.email) throw new Error('Sua conta não possui um e-mail confirmado.');
-
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: session.user.email,
-          password,
-          options: { captchaToken: captchaToken ?? undefined },
-        });
-
-        if (error || !data.session) throw new Error('A senha atual esta incorreta.');
-        accessToken = data.session.access_token;
-
-        const { data: assurance } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (assurance?.nextLevel === 'aal2' && assurance.currentLevel !== 'aal2') {
-          setIsDeletingAccount(false);
-          navigate('/settings?reauth=delete', { replace: true });
-          return;
-        }
-      }
-
       const response = await fetch('/api/delete-account', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${accessToken}` },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
       const result = await response.json() as { message?: string };
 
       if (!response.ok) throw new Error(result.message ?? 'não foi possivel excluir a conta.');
-      await supabase.auth.signOut({ scope: 'local' });
+      await onSignOut();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'não foi possivel excluir a conta.');
       setIsDeletingAccount(false);
-      setDeleteCaptchaResetKey((currentKey) => currentKey + 1);
     }
-  };
-
-  const handleSocialReauthentication = async () => {
-    setErrorMessage(null);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        queryParams: { prompt: 'select_account' },
-        redirectTo: `${window.location.origin}/settings?reauth=delete`,
-      },
-    });
-
-    if (error) setErrorMessage(getAuthErrorMessage(error.message));
   };
 
   const closeDeleteDialog = () => {
     if (isDeletingAccount) return;
     setIsDeleteDialogRequested(false);
-    if (isSocialReauthenticated) navigate('/settings', { replace: true });
   };
 
   return (
@@ -128,16 +83,12 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
         </div>
       </main>
 
-      {isDeleteDialogOpen && (
+      {isDeleteDialogRequested && (
         <DeleteAccountDialog
           errorMessage={errorMessage}
-          captchaResetKey={deleteCaptchaResetKey}
           isDeleting={isDeletingAccount}
-          isSocialReauthenticated={isSocialReauthenticated}
           onCancel={closeDeleteDialog}
           onConfirm={handleDeleteAccount}
-          onSocialReauthenticate={handleSocialReauthentication}
-          requiresPassword={needsPasswordReauthentication}
           userEmail={userEmail}
         />
       )}
@@ -222,21 +173,16 @@ function SettingsRow({ action, description, label, value }: SettingsRowProps) {
 }
 
 function DeleteAccountDialog({
-  captchaResetKey,
   errorMessage,
   isDeleting,
-  isSocialReauthenticated,
   onCancel,
   onConfirm,
-  onSocialReauthenticate,
-  requiresPassword,
   userEmail,
 }: DeleteAccountDialogProps) {
   const [emailConfirmation, setEmailConfirmation] = useState('');
   const [password, setPassword] = useState('');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const isEmailConfirmed = emailConfirmation.trim().toLowerCase() === userEmail.trim().toLowerCase();
-  const canDelete = isEmailConfirmed && (requiresPassword ? Boolean(password) : isSocialReauthenticated);
+  const canDelete = isEmailConfirmed && Boolean(password);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-5 backdrop-blur-[5px]">
@@ -257,28 +203,17 @@ function DeleteAccountDialog({
             <input type="email" value={emailConfirmation} onChange={(event) => setEmailConfirmation(event.target.value)} autoComplete="off" className="h-11 rounded-lg border border-white/10 bg-[#101012] px-4 text-sm outline-none focus:border-red-300/50" />
           </label>
 
-          {requiresPassword && (
-            <>
-              <label className="mt-4 flex flex-col gap-2">
-                <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-500">Senha atual</span>
-                <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className="h-11 rounded-lg border border-white/10 bg-[#101012] px-4 text-sm outline-none focus:border-red-300/50" />
-              </label>
-              <div className="mt-4">
-                <CaptchaField onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
-              </div>
-            </>
-          )}
-
-          {!requiresPassword && !isSocialReauthenticated && (
-            <button type="button" onClick={onSocialReauthenticate} disabled={isDeleting} className="mt-5 flex h-11 w-full items-center justify-center rounded-lg border border-white/10 bg-white/[0.04] font-mono text-xs font-bold uppercase tracking-wider text-white">Confirmar identidade com Google</button>
-          )}
+          <label className="mt-4 flex flex-col gap-2">
+            <span className="font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-neutral-500">Senha atual</span>
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="current-password" className="h-11 rounded-lg border border-white/10 bg-[#101012] px-4 text-sm outline-none focus:border-red-300/50" />
+          </label>
 
           {errorMessage && <p className="mt-4 rounded-lg border border-red-300/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-100">{errorMessage}</p>}
         </div>
 
         <footer className="flex gap-3 border-t border-white/10 bg-black/10 p-5">
           <button type="button" onClick={onCancel} disabled={isDeleting} className="flex h-11 flex-1 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 font-mono text-xs font-bold uppercase tracking-wide text-neutral-300 disabled:opacity-60">Cancelar</button>
-          <button type="button" onClick={() => onConfirm(password, captchaToken)} disabled={isDeleting || !canDelete} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-red-400/30 bg-red-500/15 px-4 font-mono text-xs font-bold uppercase tracking-wide text-red-200 disabled:opacity-40"><Trash2 size={16} />{isDeleting ? 'Excluindo' : 'Excluir'}</button>
+          <button type="button" onClick={() => onConfirm(emailConfirmation, password)} disabled={isDeleting || !canDelete} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-red-400/30 bg-red-500/15 px-4 font-mono text-xs font-bold uppercase tracking-wide text-red-200 disabled:opacity-40"><Trash2 size={16} />{isDeleting ? 'Excluindo' : 'Excluir'}</button>
         </footer>
       </section>
     </div>
