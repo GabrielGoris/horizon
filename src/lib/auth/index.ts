@@ -24,7 +24,7 @@ export function getAuthErrorMessage(message: string) {
   }
 
   if (normalizedMessage.includes('already registered') || normalizedMessage.includes('already been registered')) {
-    return 'Esse e-mail ja esta registrado.';
+    return 'Este e-mail já possui uma conta. Faça login para continuar.';
   }
 
   if (normalizedMessage.includes('captcha')) {

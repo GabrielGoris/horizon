@@ -4,6 +4,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { CaptchaField } from '../../components/CaptchaField';
 import { getAuthErrorMessage, getPasswordValidationMessage, MIN_PASSWORD_LENGTH } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { emailHasAccount } from '../../services/authService';
 import type { AuthMode } from './types';
 
 const authCopy = {
@@ -37,7 +38,9 @@ export function AuthScreen() {
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleSubmitting, setIsGoogleSubmitting] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
@@ -66,14 +69,40 @@ export function AuthScreen() {
         return;
       }
 
-      ({ error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
-        options: {
-          captchaToken: captchaToken ?? undefined,
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      }));
+      if (password !== confirmPassword) {
+        setIsSubmitting(false);
+        setErrorMessage('As senhas não coincidem.');
+        return;
+      }
+
+      try {
+        const alreadyRegistered = await emailHasAccount(normalizedEmail);
+
+        if (alreadyRegistered) {
+          error = { message: 'Email already registered' };
+        } else {
+          const signUpResult = await supabase.auth.signUp({
+            email: normalizedEmail,
+            password,
+            options: {
+              captchaToken: captchaToken ?? undefined,
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+          });
+
+          error = signUpResult.error;
+
+          if (!error && signUpResult.data.user?.identities?.length === 0) {
+            error = { message: 'Email already registered' };
+          }
+        }
+      } catch (checkError) {
+        error = {
+          message: checkError instanceof Error
+            ? checkError.message
+            : 'Não foi possível verificar o e-mail agora.',
+        };
+      }
     } else if (mode === 'forgot') {
       ({ error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         captchaToken: captchaToken ?? undefined,
@@ -127,6 +156,9 @@ export function AuthScreen() {
   const changeMode = (nextMode: AuthMode) => {
     setMode(nextMode);
     setPassword('');
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
     setErrorMessage(null);
     setFeedback(null);
     setCaptchaResetKey((currentKey) => currentKey + 1);
@@ -193,44 +225,74 @@ export function AuthScreen() {
             </label>
 
             {mode !== 'forgot' && (
-              <label className="flex flex-col gap-2">
-                <span className="flex items-center justify-between gap-3 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
-                  Senha
-                  {mode === 'login' && (
+              <div className="flex flex-col gap-2">
+                <label className="flex flex-col gap-2">
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+                    Senha
+                  </span>
+                  <span className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder={mode === 'register' ? `Minimo de ${MIN_PASSWORD_LENGTH} caracteres` : 'Sua senha'}
+                      required
+                      minLength={mode === 'register' ? MIN_PASSWORD_LENGTH : 1}
+                      autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                      className="h-[52px] w-full rounded-xl border border-white/10 bg-[#101012] px-4 pr-12 text-[15px] font-semibold text-white outline-none transition-all placeholder:text-neutral-700 focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
+                    />
                     <button
                       type="button"
-                      onClick={() => changeMode('forgot')}
-                      className="normal-case tracking-normal text-noir-gold transition-colors hover:text-noir-champagne"
+                      onClick={() => setShowPassword((isVisible) => !isVisible)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 transition-colors hover:text-noir-champagne"
+                      aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
                     >
-                      Esqueci minha senha
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
+                  </span>
+                  {mode === 'register' && (
+                    <span className="text-xs leading-5 text-neutral-600">
+                      Use maiúscula, minúscula, número e símbolo.
+                    </span>
                   )}
+                </label>
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={() => changeMode('forgot')}
+                    className="self-end text-xs font-semibold text-noir-gold transition-colors hover:text-noir-champagne"
+                  >
+                    Esqueci minha senha
+                  </button>
+                )}
+              </div>
+            )}
+
+            {mode === 'register' && (
+              <label className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
+                  Confirme sua senha
                 </span>
                 <span className="relative">
                   <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    placeholder={mode === 'register' ? `Minimo de ${MIN_PASSWORD_LENGTH} caracteres` : 'Sua senha'}
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="Digite a senha novamente"
                     required
-                    minLength={mode === 'register' ? MIN_PASSWORD_LENGTH : 1}
-                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    minLength={MIN_PASSWORD_LENGTH}
+                    autoComplete="new-password"
                     className="h-[52px] w-full rounded-xl border border-white/10 bg-[#101012] px-4 pr-12 text-[15px] font-semibold text-white outline-none transition-all placeholder:text-neutral-700 focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowPassword((isVisible) => !isVisible)}
+                    onClick={() => setShowConfirmPassword((isVisible) => !isVisible)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 transition-colors hover:text-noir-champagne"
-                    aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                    aria-label={showConfirmPassword ? 'Ocultar confirmação de senha' : 'Mostrar confirmação de senha'}
                   >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </span>
-                {mode === 'register' && (
-                  <span className="text-xs leading-5 text-neutral-600">
-                    Use maiúscula, minúscula, número e símbolo.
-                  </span>
-                )}
               </label>
             )}
 
