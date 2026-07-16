@@ -3,9 +3,9 @@ import type { LibraryFilterState } from "../../types";
 
 export type UseFilteredCollectionParams = {
   activeTab: string;
-  addedYearFilter: string;
   collection: MediaItem[];
   completedYearFilter: string;
+  gamePlatformFilter: LibraryFilterState["gamePlatformFilter"];
   movieKindFilter: LibraryFilterState["movieKindFilter"];
   searchQuery: string;
   sortMode: LibraryFilterState["sortMode"];

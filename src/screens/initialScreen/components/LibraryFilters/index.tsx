@@ -1,13 +1,14 @@
 import { SlidersHorizontal } from "lucide-react";
+import { GAME_PLATFORM_OPTIONS } from "../../../../consts/gamePlatforms";
 import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../../../consts/mediaStatus";
-import type { SortMode } from "../../types";
+import type { GamePlatformFilter, SortMode } from "../../types";
 import { MovieKindFilters } from "../MovieKindFilters/index";
 import type { LibraryFiltersProps, SortOption } from "../types";
 
 function getSortOptions(activeTab: string): SortOption[] {
   const defaultOptions: SortOption[] = [
-    { value: "added_desc", label: "Mais recentes" },
-    { value: "added_asc", label: "Mais antigos" },
+    { value: "title_asc", label: "Título: A–Z" },
+    { value: "title_desc", label: "Título: Z–A" },
     { value: "rating_desc", label: "Melhor avaliados" },
     { value: "rating_asc", label: "Pior avaliados" },
   ];
@@ -54,15 +55,15 @@ export function LibraryFilters({
   isOpen,
   hasActiveFilters,
   statusFilter,
-  addedYearFilter,
   completedYearFilter,
+  gamePlatformFilter,
   movieKindFilter,
   sortMode,
   onToggle,
   onClose,
   onStatusFilterChange,
-  onAddedYearFilterChange,
   onCompletedYearFilterChange,
+  onGamePlatformFilterChange,
   onMovieKindFilterChange,
   onSortModeChange,
   onClearFilters,
@@ -150,35 +151,13 @@ export function LibraryFilters({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                Adicionado em
-                <input
-                  value={addedYearFilter}
-                  onChange={(event) => onAddedYearFilterChange(event.target.value)}
-                  placeholder="Ex: 2026"
-                  inputMode="numeric"
-                  className="rounded-lg border border-white/10 bg-[#131315] px-3 py-2 text-sm text-white placeholder-neutral-700 outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                {getCompletionYearLabel(activeTab)}
-                <input
-                  value={completedYearFilter}
-                  onChange={(event) => onCompletedYearFilterChange(event.target.value)}
-                  placeholder="Ex: 2026"
-                  inputMode="numeric"
-                  className="rounded-lg border border-white/10 bg-[#131315] px-3 py-2 text-sm text-white placeholder-neutral-700 outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
-                />
-              </label>
-
-              <label className="flex flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+            <div className={`grid grid-cols-1 gap-3 ${activeTab === "games" ? "md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.35fr)_minmax(0,0.8fr)]" : "md:grid-cols-2"}`}>
+              <label className="flex min-w-0 flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                 Ordenar por
                 <select
                   value={sortMode}
                   onChange={(event) => onSortModeChange(event.target.value as SortMode)}
-                  className="rounded-lg border border-white/10 bg-[#131315] px-3 py-2 text-sm text-white outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
+                  className="w-full min-w-0 rounded-lg border border-white/10 bg-[#131315] py-2 pl-3 pr-9 text-sm text-white outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
                 >
                   {sortOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -186,6 +165,35 @@ export function LibraryFilters({
                     </option>
                   ))}
                 </select>
+              </label>
+
+              {activeTab === "games" && (
+                <label className="flex min-w-0 flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                  Plataforma
+                  <select
+                    value={gamePlatformFilter}
+                    onChange={(event) => onGamePlatformFilterChange(event.target.value as GamePlatformFilter)}
+                    className="w-full min-w-0 rounded-lg border border-white/10 bg-[#131315] py-2 pl-3 pr-9 text-sm text-white outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
+                  >
+                    <option value="all">Todas as plataformas</option>
+                    {GAME_PLATFORM_OPTIONS.map((platform) => (
+                      <option key={platform.label} value={platform.label}>
+                        {platform.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
+              <label className="flex min-w-0 flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+                {getCompletionYearLabel(activeTab)}
+                <input
+                  value={completedYearFilter}
+                  onChange={(event) => onCompletedYearFilterChange(event.target.value)}
+                  placeholder="Ex: 2026"
+                  inputMode="numeric"
+                  className="w-full min-w-0 rounded-lg border border-white/10 bg-[#131315] px-3 py-2 text-sm text-white placeholder-neutral-700 outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
+                />
               </label>
             </div>
           </div>

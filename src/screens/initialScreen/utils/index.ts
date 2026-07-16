@@ -30,19 +30,6 @@ function getRatingValue(item: MediaItem) {
   return Number.isFinite(rating) && rating > 0 ? rating : null;
 }
 
-function getDateSortValue(value?: string | number) {
-  if (value === undefined || value === null || value === "") return 0;
-
-  const dateValue = String(value);
-  const brDateMatch = dateValue.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  const sortableDate = brDateMatch
-    ? `${brDateMatch[3]}-${brDateMatch[2]}-${brDateMatch[1]}T00:00:00`
-    : dateValue;
-  const timestamp = new Date(sortableDate).getTime();
-
-  return Number.isFinite(timestamp) ? timestamp : 0;
-}
-
 function getPrioritySortValue(item: MediaItem) {
   const position = Number(item.wishlist_position);
 
@@ -87,8 +74,13 @@ function getRuntimeMinutes(item: MediaItem) {
 
 export function sortMediaItems(items: MediaItem[], sortMode: SortMode) {
   return [...items].sort((firstItem, secondItem) => {
-    if (sortMode === "added_asc") {
-      return getDateSortValue(firstItem.added_at) - getDateSortValue(secondItem.added_at);
+    if (sortMode === "title_asc" || sortMode === "title_desc") {
+      const comparison = firstItem.title.localeCompare(secondItem.title, "pt-BR", {
+        numeric: true,
+        sensitivity: "base",
+      });
+
+      return sortMode === "title_asc" ? comparison : -comparison;
     }
 
     if (sortMode === "rating_asc") {
@@ -123,7 +115,10 @@ export function sortMediaItems(items: MediaItem[], sortMode: SortMode) {
       return getNumericValue(secondItem.page_count) - getNumericValue(firstItem.page_count);
     }
 
-    return getDateSortValue(secondItem.added_at) - getDateSortValue(firstItem.added_at);
+    return firstItem.title.localeCompare(secondItem.title, "pt-BR", {
+      numeric: true,
+      sensitivity: "base",
+    });
   });
 }
 

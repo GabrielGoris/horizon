@@ -5,6 +5,7 @@ import { Header } from "../../components/Header";
 import { MediaDossier } from "../../components/MediaDossier";
 import { Sidebar } from "../../components/Sidebar";
 import { WishlistPriorityDialog } from "../../components/WishlistPriorityDialog";
+import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { getWishlistItems } from "../../services/wishlistService";
 import { warmGameCatalog } from "../../services/gameCatalogService";
 import { CategorySection } from "./components/CategorySection";
@@ -38,9 +39,9 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   const addMediaInitialType = activeTab === "overview" ? null : activeCategory?.id;
   const filteredCollection = useFilteredCollection({
     activeTab,
-    addedYearFilter: filters.addedYearFilter,
     collection: mediaCollection.collection,
     completedYearFilter: filters.completedYearFilter,
+    gamePlatformFilter: filters.gamePlatformFilter,
     movieKindFilter: filters.movieKindFilter,
     searchQuery,
     sortMode: filters.sortMode,
@@ -57,12 +58,16 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
       const matchesType = item.type === activeTab;
       const matchesStatus = item.status === "in_progress";
       const matchesSearch = !normalizedSearch || item.title.toLowerCase().includes(normalizedSearch);
+      const matchesGamePlatform =
+        activeTab !== "games" ||
+        filters.gamePlatformFilter === "all" ||
+        getGamePlatformOption(item.meta)?.label === filters.gamePlatformFilter;
 
-      return matchesType && matchesStatus && matchesSearch;
+      return matchesType && matchesStatus && matchesSearch && matchesGamePlatform;
     });
 
     return sortMediaItemsByPriority(itemsInProgress);
-  }, [activeTab, mediaCollection.collection, searchQuery]);
+  }, [activeTab, filters.gamePlatformFilter, mediaCollection.collection, searchQuery]);
   const overviewPriorityItems = useMemo(() => {
     return new Map(
       CATEGORIES.map((category) => [

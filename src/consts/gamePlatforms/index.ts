@@ -2,6 +2,8 @@ export const GAME_PLATFORM_OPTIONS = [
   { label: "Steam", aliases: ["steam"], kind: "steam" },
   { label: "Epic", aliases: ["epic", "epic games"], kind: "epic" },
   { label: "GOG", aliases: ["gog"], kind: "gog" },
+  { label: "Amazon Luna", aliases: ["luna", "luna gaming", "amazon luna", "prime gaming", "prime video gaming"], kind: "luna" },
+  { label: "Game Pass", aliases: ["game pass", "gamepass", "xbox game pass", "pc game pass"], kind: "gamepass" },
   { label: "Outros", aliases: ["outros", "pirata", "other"], kind: "pirate" },
   { label: "PS1", aliases: ["ps1", "playstation", "playstation 1"], kind: "playstation" },
   { label: "PS2", aliases: ["ps2", "playstation 2"], kind: "ps2" },

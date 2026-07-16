@@ -1,12 +1,13 @@
 import { useMemo } from "react";
-import { getCompletionYear, getYear, isSeriesItem, sortMediaItems } from "../../utils";
+import { getGamePlatformOption } from "../../../../consts/gamePlatforms";
+import { getCompletionYear, isSeriesItem, sortMediaItems } from "../../utils";
 import type { UseFilteredCollectionParams } from "../types";
 
 export function useFilteredCollection({
   activeTab,
-  addedYearFilter,
   collection,
   completedYearFilter,
+  gamePlatformFilter,
   movieKindFilter,
   searchQuery,
   sortMode,
@@ -22,12 +23,15 @@ export function useFilteredCollection({
         activeTab !== "movies" ||
         movieKindFilter === "all" ||
         (movieKindFilter === "series" ? isSeriesItem(item) : !isSeriesItem(item));
-      const matchesAddedYear = !addedYearFilter || getYear(item.added_at) === addedYearFilter;
+      const matchesGamePlatform =
+        activeTab !== "games" ||
+        gamePlatformFilter === "all" ||
+        getGamePlatformOption(item.meta)?.label === gamePlatformFilter;
       const matchesCompletedYear = !completedYearFilter || getCompletionYear(item) === completedYearFilter;
 
-      return matchesTab && matchesSearch && matchesStatus && matchesMovieKind && matchesAddedYear && matchesCompletedYear;
+      return matchesTab && matchesSearch && matchesStatus && matchesMovieKind && matchesGamePlatform && matchesCompletedYear;
     });
 
     return activeTab === "overview" ? filteredItems : sortMediaItems(filteredItems, sortMode);
-  }, [activeTab, addedYearFilter, collection, completedYearFilter, movieKindFilter, searchQuery, sortMode, statusFilter]);
+  }, [activeTab, collection, completedYearFilter, gamePlatformFilter, movieKindFilter, searchQuery, sortMode, statusFilter]);
 }

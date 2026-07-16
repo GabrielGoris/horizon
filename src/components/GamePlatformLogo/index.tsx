@@ -1,4 +1,4 @@
-import { FaAndroid, FaApple, FaXbox } from "react-icons/fa";
+import { FaAmazon, FaAndroid, FaApple, FaXbox } from "react-icons/fa";
 import {
   SiEpicgames,
   SiGogdotcom,
@@ -112,6 +112,8 @@ const iconByKind: Partial<Record<GamePlatformOption["kind"], IconType>> = {
   steam: SiSteam,
   epic: SiEpicgames,
   gog: SiGogdotcom,
+  luna: FaAmazon,
+  gamepass: FaXbox,
   playstation: SiPlaystation,
   ps2: SiPlaystation2,
   ps3: SiPlaystation3,

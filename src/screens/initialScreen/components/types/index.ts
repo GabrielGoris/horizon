@@ -1,19 +1,19 @@
 import type { MediaItem, MediaType } from "../../../../types";
-import type { LibraryFilterState, MovieKindFilter, SortMode, StatusFilter } from "../../types";
+import type { GamePlatformFilter, LibraryFilterState, MovieKindFilter, SortMode, StatusFilter } from "../../types";
 
 export type CategorySectionProps = {
   activeItems: MediaItem[];
   activeLabel: string;
   activeTab: string;
   filters: {
-    addedYearFilter: string;
     clearFilters: () => void;
     completedYearFilter: string;
+    gamePlatformFilter: LibraryFilterState["gamePlatformFilter"];
     hasActiveFilters: boolean;
     isFiltersOpen: boolean;
     movieKindFilter: LibraryFilterState["movieKindFilter"];
-    setAddedYearFilter: (value: string) => void;
     setCompletedYearFilter: (value: string) => void;
+    setGamePlatformFilter: (value: LibraryFilterState["gamePlatformFilter"]) => void;
     setIsFiltersOpen: (value: boolean) => void;
     setMovieKindFilter: (value: LibraryFilterState["movieKindFilter"]) => void;
     setSortMode: (value: LibraryFilterState["sortMode"]) => void;
@@ -46,15 +46,15 @@ export interface LibraryFiltersProps {
   isOpen: boolean;
   hasActiveFilters: boolean;
   statusFilter: StatusFilter;
-  addedYearFilter: string;
   completedYearFilter: string;
+  gamePlatformFilter: GamePlatformFilter;
   movieKindFilter: MovieKindFilter;
   sortMode: SortMode;
   onToggle: () => void;
   onClose: () => void;
   onStatusFilterChange: (status: StatusFilter) => void;
-  onAddedYearFilterChange: (year: string) => void;
   onCompletedYearFilterChange: (year: string) => void;
+  onGamePlatformFilterChange: (platform: GamePlatformFilter) => void;
   onMovieKindFilterChange: (movieKind: MovieKindFilter) => void;
   onSortModeChange: (sortMode: SortMode) => void;
   onClearFilters: () => void;

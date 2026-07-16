@@ -1,3 +1,4 @@
+import type { GamePlatformOption } from "../../../consts/gamePlatforms";
 import type { MediaStatus } from "../../../types";
 
 export interface InitialScreenProps {
@@ -6,10 +7,9 @@ export interface InitialScreenProps {
 
 export type StatusFilter = "all" | MediaStatus;
 export type MovieKindFilter = "all" | "movie" | "series";
+export type GamePlatformFilter = "all" | GamePlatformOption["label"];
 
 export type SortMode =
-  | "added_asc"
-  | "added_desc"
   | "campaign_asc"
   | "campaign_desc"
   | "rating_asc"
@@ -17,12 +17,14 @@ export type SortMode =
   | "pages_asc"
   | "pages_desc"
   | "runtime_asc"
-  | "runtime_desc";
+  | "runtime_desc"
+  | "title_asc"
+  | "title_desc";
 
 export interface LibraryFilterState {
   activeTab: string;
-  addedYearFilter: string;
   completedYearFilter: string;
+  gamePlatformFilter: GamePlatformFilter;
   isFiltersOpen: boolean;
   movieKindFilter: MovieKindFilter;
   sortMode: SortMode;
