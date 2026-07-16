@@ -16,7 +16,7 @@ import type { AddMediaDialogProps, PendingDuplicateMedia } from "./types";
 
 export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, initialType }: AddMediaDialogProps) {
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
-  const [movieKind, setMovieKind] = useState<"movie" | "series">("movie");
+  const [mediaFormat, setMediaFormat] = useState<"movie" | "series">("movie");
   const [pendingDuplicate, setPendingDuplicate] = useState<PendingDuplicateMedia | null>(null);
   const [isConfirmingDuplicate, setIsConfirmingDuplicate] = useState(false);
   const {
@@ -45,7 +45,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
 
   const clearDialogState = (type = initialType ?? "games") => {
     setManualSelectedType(null);
-    setMovieKind("movie");
+    setMediaFormat("movie");
     setPendingDuplicate(null);
     setIsConfirmingDuplicate(false);
     reset(getDefaultValues(type));
@@ -54,10 +54,10 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
 
   const selectType = (type: MediaType) => {
     setManualSelectedType(type);
-    setMovieKind("movie");
+    setMediaFormat("movie");
     reset(getDefaultValues(type));
     setValue("type", type);
-    setValue("movie_kind", "movie");
+    setValue("media_format", "movie");
     catalogSearch.clearCatalogSearch();
   };
 
@@ -66,9 +66,9 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     onClose();
   };
 
-  const updateMovieKind = (nextMovieKind: "movie" | "series") => {
-    setMovieKind(nextMovieKind);
-    setValue("movie_kind", nextMovieKind, { shouldDirty: true, shouldValidate: true });
+  const updateMediaFormat = (nextMediaFormat: "movie" | "series") => {
+    setMediaFormat(nextMediaFormat);
+    setValue("media_format", nextMediaFormat, { shouldDirty: true, shouldValidate: true });
     setValue("runtime_minutes", "", { shouldDirty: true, shouldValidate: true });
     setValue("season_count", "", { shouldDirty: true, shouldValidate: true });
     setValue("episode_count", "", { shouldDirty: true, shouldValidate: true });
@@ -101,8 +101,8 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   const onSubmit = async (data: CreateMediaDTO, shouldPrioritize = false) => {
     if (!selectedType || catalogSearch.isCatalogSelectionLoading) return;
 
-    const nextData = selectedType === "movies"
-      ? { ...data, type: selectedType, movie_kind: movieKind }
+    const nextData = selectedType === "movies" || selectedType === "animes"
+      ? { ...data, type: selectedType, media_format: mediaFormat }
       : { ...data, type: selectedType };
 
     await persistMedia(nextData, shouldPrioritize);
@@ -181,7 +181,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
                   getValues={getValues}
                   inputClass={inputClass}
                   labelClass={labelClass}
-                  onMovieKindChange={setMovieKind}
+                  onMediaFormatChange={setMediaFormat}
                   register={register}
                   selectedType={selectedType}
                   setValue={setValue}
@@ -196,8 +196,8 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
                   inputClass={inputClass}
                   labelClass={labelClass}
                   metaValue={metaValue}
-                  movieKind={movieKind}
-                  onMovieKindChange={updateMovieKind}
+                  mediaFormat={mediaFormat}
+                  onMediaFormatChange={updateMediaFormat}
                   ratingValue={ratingValue}
                   register={register}
                   selectedType={selectedType}

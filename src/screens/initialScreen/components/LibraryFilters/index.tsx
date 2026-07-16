@@ -2,7 +2,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { GAME_PLATFORM_OPTIONS } from "../../../../consts/gamePlatforms";
 import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../../../consts/mediaStatus";
 import type { GamePlatformFilter, SortMode } from "../../types";
-import { MovieKindFilters } from "../MovieKindFilters/index";
+import { MediaFormatFilters } from "../MediaFormatFilters/index";
 import type { LibraryFiltersProps, SortOption } from "../types";
 
 function getSortOptions(activeTab: string): SortOption[] {
@@ -21,7 +21,7 @@ function getSortOptions(activeTab: string): SortOption[] {
     ];
   }
 
-  if (activeTab === "movies") {
+  if (activeTab === "movies" || activeTab === "animes") {
     return [
       ...defaultOptions,
       { value: "runtime_asc", label: "Menor duração" },
@@ -42,7 +42,7 @@ function getSortOptions(activeTab: string): SortOption[] {
 
 function getCompletionYearLabel(activeTab: string) {
   if (activeTab === "games") return "Ano que zerou";
-  if (activeTab === "movies") return "Ano que assistiu";
+  if (activeTab === "movies" || activeTab === "animes") return "Ano que assistiu";
   if (activeTab === "books") return "Ano que leu";
 
   return "Ano finalizado";
@@ -57,14 +57,14 @@ export function LibraryFilters({
   statusFilter,
   completedYearFilter,
   gamePlatformFilter,
-  movieKindFilter,
+  mediaFormatFilter,
   sortMode,
   onToggle,
   onClose,
   onStatusFilterChange,
   onCompletedYearFilterChange,
   onGamePlatformFilterChange,
-  onMovieKindFilterChange,
+  onMediaFormatFilterChange,
   onSortModeChange,
   onClearFilters,
 }: LibraryFiltersProps) {
@@ -111,10 +111,10 @@ export function LibraryFilters({
               </button>
             </div>
 
-            {activeTab === "movies" && (
-              <MovieKindFilters
-                movieKindFilter={movieKindFilter}
-                onChange={onMovieKindFilterChange}
+            {(activeTab === "movies" || activeTab === "animes") && (
+              <MediaFormatFilters
+                mediaFormatFilter={mediaFormatFilter}
+                onChange={onMediaFormatFilterChange}
               />
             )}
 

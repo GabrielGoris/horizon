@@ -170,6 +170,7 @@ export type TmdbSearchItem = {
   genre_ids?: number[];
   overview?: string;
   origin_country?: string[];
+  original_language?: string;
 };
 
 export type TmdbSearchResponse = {

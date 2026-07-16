@@ -90,9 +90,9 @@ export interface TypeSpecificFieldsProps {
   errorClass: string;
   register: UseFormRegister<CreateMediaDTO>;
   selectedType: MediaType;
-  movieKind: "movie" | "series";
+  mediaFormat: "movie" | "series";
   metaValue?: string;
-  onMovieKindChange: (movieKind: "movie" | "series") => void;
+  onMediaFormatChange: (mediaFormat: "movie" | "series") => void;
   ratingValue?: string;
   setValue: UseFormSetValue<CreateMediaDTO>;
   statusValue?: CreateMediaDTO["status"];

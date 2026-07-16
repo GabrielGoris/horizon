@@ -12,8 +12,8 @@ export function CoverDetailsFields({
   inputClass,
   labelClass,
   metaValue,
-  movieKind,
-  onMovieKindChange,
+  mediaFormat,
+  onMediaFormatChange,
   ratingValue,
   register,
   selectedType,
@@ -48,8 +48,8 @@ export function CoverDetailsFields({
         isCampaignHoursLoading={catalogSearch.isCampaignHoursLoading}
         labelClass={labelClass}
         metaValue={metaValue}
-        movieKind={movieKind}
-        onMovieKindChange={onMovieKindChange}
+        mediaFormat={mediaFormat}
+        onMediaFormatChange={onMediaFormatChange}
         ratingValue={ratingValue}
         register={register}
         selectedType={selectedType}

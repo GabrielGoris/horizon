@@ -34,11 +34,12 @@ function getGameTimeFact(item: MediaItem): Fact {
 }
 
 function getDossierFacts(item: MediaItem, mediaDisplayType: string): Fact[] {
-  const isSeries = mediaDisplayType === "Série";
+  const isSeries = item.media_format === "series";
+  const isAudiovisual = item.type === "movies" || item.type === "animes";
 
-  if (item.type === "movies" && isSeries) {
+  if (isAudiovisual && isSeries) {
     return [
-      { label: "Tipo", value: "Série" },
+      { label: "Tipo", value: item.type === "animes" ? "Anime (Série)" : mediaDisplayType },
       { label: "Temporadas", value: item.season_count || "Não informado" },
       { label: "Episódios", value: item.episode_count || "Não informado" },
       { label: "Criador", value: item.director || item.creator },
@@ -47,9 +48,9 @@ function getDossierFacts(item: MediaItem, mediaDisplayType: string): Fact[] {
     ];
   }
 
-  if (item.type === "movies") {
+  if (isAudiovisual) {
     return [
-      { label: "Tipo", value: "Filme" },
+      { label: "Tipo", value: item.type === "animes" ? "Anime (Filme)" : mediaDisplayType },
       { label: "Duração", value: item.runtime_minutes ? `${item.runtime_minutes} min` : "" },
       { label: "Diretor", value: item.director },
       { label: "Ano", value: item.releaseYear },

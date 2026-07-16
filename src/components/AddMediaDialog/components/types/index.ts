@@ -11,7 +11,7 @@ export type BasicInfoFieldsProps = {
   getValues: UseFormGetValues<CreateMediaDTO>;
   inputClass: string;
   labelClass: string;
-  onMovieKindChange: (movieKind: "movie" | "series") => void;
+  onMediaFormatChange: (mediaFormat: "movie" | "series") => void;
   register: UseFormRegister<CreateMediaDTO>;
   selectedType: CreateMediaDTO["type"];
   setValue: UseFormSetValue<CreateMediaDTO>;
@@ -26,8 +26,8 @@ export type CoverDetailsFieldsProps = {
   inputClass: string;
   labelClass: string;
   metaValue?: string;
-  movieKind: "movie" | "series";
-  onMovieKindChange: (movieKind: "movie" | "series") => void;
+  mediaFormat: "movie" | "series";
+  onMediaFormatChange: (mediaFormat: "movie" | "series") => void;
   ratingValue?: string;
   register: UseFormRegister<CreateMediaDTO>;
   selectedType: CreateMediaDTO["type"];

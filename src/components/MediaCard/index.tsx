@@ -4,7 +4,8 @@ import { GamePlatformLogo } from "../GamePlatformLogo";
 import type { MediaCardProps } from "./types";
 
 function getTypeLabel(item: MediaCardProps["item"]) {
-  if (item.type === "movies" && item.movie_kind === "series") return "Série";
+  if (item.type === "animes") return "Anime";
+  if (item.type === "movies" && item.media_format === "series") return "Série";
   if (item.type === "movies") return "Filme";
   if (item.type === "games") return "Jogo";
 

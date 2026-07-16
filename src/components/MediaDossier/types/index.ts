@@ -1,4 +1,4 @@
-import type { BookCompletionDTO, GameCompletionDTO, MovieTicketDTO } from "../../../schemas/media";
+import type { AudiovisualCompletionDTO, BookCompletionDTO, GameCompletionDTO } from "../../../schemas/media";
 import type { MediaItem, MediaStatus } from "../../../types";
 
 export interface MediaDossierProps {
@@ -8,7 +8,7 @@ export interface MediaDossierProps {
   onDelete: (item: MediaItem) => void | Promise<void>;
   onMetaChange: (item: MediaItem, meta: string) => void | Promise<void>;
   onStatusChange: (item: MediaItem, status: MediaStatus) => void | Promise<void>;
-  onSaveTicket: (item: MediaItem, ticket: MovieTicketDTO) => void | Promise<void>;
+  onSaveAudiovisualCompletion: (item: MediaItem, completion: AudiovisualCompletionDTO) => void | Promise<void>;
   onSaveBookCompletion: (item: MediaItem, completion: BookCompletionDTO) => void | Promise<void>;
   onSaveGameCompletion: (item: MediaItem, completion: GameCompletionDTO) => void | Promise<void>;
 }

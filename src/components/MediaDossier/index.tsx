@@ -16,18 +16,20 @@ export function MediaDossier({
   onDelete,
   onMetaChange,
   onStatusChange,
-  onSaveTicket,
+  onSaveAudiovisualCompletion,
   onSaveBookCompletion,
   onSaveGameCompletion,
 }: MediaDossierProps) {
-  const isSeries = item.type === "movies" && item.movie_kind === "series";
-  const mediaDisplayType = isSeries
-    ? "Série"
-    : item.type === "movies"
-      ? "Filme"
-      : item.type === "games"
-        ? "Jogo"
-        : "Livro";
+  const isSeries = (item.type === "movies" || item.type === "animes") && item.media_format === "series";
+  const mediaDisplayType = item.type === "animes"
+    ? "Anime"
+    : isSeries
+      ? "Série"
+      : item.type === "movies"
+        ? "Filme"
+        : item.type === "games"
+          ? "Jogo"
+          : "Livro";
   const category = item.category || (item.type === "games" ? typeLabels[item.type] : item.meta || typeLabels[item.type]);
   const isComplete = item.status === "complete";
   const gamePlatform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
@@ -179,7 +181,7 @@ export function MediaDossier({
 
           <CompletionArtifacts
             item={item}
-            onSaveTicket={onSaveTicket}
+            onSaveAudiovisualCompletion={onSaveAudiovisualCompletion}
             onSaveBookCompletion={onSaveBookCompletion}
             onSaveGameCompletion={onSaveGameCompletion}
           />

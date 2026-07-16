@@ -15,7 +15,7 @@ export function getCompletionYear(item: MediaItem) {
 }
 
 export function isSeriesItem(item: MediaItem) {
-  return item.type === "movies" && item.movie_kind === "series";
+  return (item.type === "movies" || item.type === "animes") && item.media_format === "series";
 }
 
 function getNumericValue(value?: string | number) {

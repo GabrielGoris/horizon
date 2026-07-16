@@ -6,7 +6,7 @@ export type UseFilteredCollectionParams = {
   collection: MediaItem[];
   completedYearFilter: string;
   gamePlatformFilter: LibraryFilterState["gamePlatformFilter"];
-  movieKindFilter: LibraryFilterState["movieKindFilter"];
+  mediaFormatFilter: LibraryFilterState["mediaFormatFilter"];
   searchQuery: string;
   sortMode: LibraryFilterState["sortMode"];
   statusFilter: LibraryFilterState["statusFilter"];

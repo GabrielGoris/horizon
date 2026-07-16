@@ -6,7 +6,7 @@ export interface InitialScreenProps {
 }
 
 export type StatusFilter = "all" | MediaStatus;
-export type MovieKindFilter = "all" | "movie" | "series";
+export type MediaFormatFilter = "all" | "movie" | "series";
 export type GamePlatformFilter = "all" | GamePlatformOption["label"];
 
 export type SortMode =
@@ -26,7 +26,7 @@ export interface LibraryFilterState {
   completedYearFilter: string;
   gamePlatformFilter: GamePlatformFilter;
   isFiltersOpen: boolean;
-  movieKindFilter: MovieKindFilter;
+  mediaFormatFilter: MediaFormatFilter;
   sortMode: SortMode;
   statusFilter: StatusFilter;
 }

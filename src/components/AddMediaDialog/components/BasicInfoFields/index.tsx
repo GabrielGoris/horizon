@@ -11,7 +11,7 @@ export function BasicInfoFields({
   getValues,
   inputClass,
   labelClass,
-  onMovieKindChange,
+  onMediaFormatChange,
   register,
   selectedType,
   setValue,
@@ -19,10 +19,10 @@ export function BasicInfoFields({
   const titleInput = register("title");
 
   const selectMovie = (movie: MovieCatalogResult) => {
-    const nextMovieKind = movie.mediaType === "tv" ? "series" : "movie";
+    const nextMediaFormat = movie.mediaType === "tv" ? "series" : "movie";
 
-    onMovieKindChange(nextMovieKind);
-    setValue("movie_kind", nextMovieKind, { shouldDirty: true, shouldValidate: true });
+    onMediaFormatChange(nextMediaFormat);
+    setValue("media_format", nextMediaFormat, { shouldDirty: true, shouldValidate: true });
     void catalogSearch.handleSelectMovie(movie);
   };
 
@@ -64,11 +64,11 @@ export function BasicInfoFields({
         </label>
       </div>
 
-      {selectedType === "movies" && (
+      {(selectedType === "movies" || selectedType === "animes") && (
         <label className={labelClass}>
-          {fieldCopy.movies.directorLabel}
+          {selectedType === "animes" ? fieldCopy.animes.directorLabel : fieldCopy.movies.directorLabel}
           <input
-            placeholder={fieldCopy.movies.directorPlaceholder}
+            placeholder={selectedType === "animes" ? fieldCopy.animes.directorPlaceholder : fieldCopy.movies.directorPlaceholder}
             {...register("director")}
             className={inputClass}
           />

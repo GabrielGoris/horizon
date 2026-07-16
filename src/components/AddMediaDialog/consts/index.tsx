@@ -1,4 +1,4 @@
-import { BookOpen, Film, Gamepad2 } from "lucide-react";
+import { BookOpen, Film, Gamepad2, Tv } from "lucide-react";
 import type { CreateMediaDTO } from "../../../schemas/media/dto/create-media.dto";
 import type { MediaType } from "../../../types";
 
@@ -9,16 +9,22 @@ export const typeOptions: Array<{
   icon: typeof Gamepad2;
 }> = [
   {
-    type: "games",
-    title: "Jogo",
-    description: "Estudio, plataforma, gênero e capa.",
-    icon: Gamepad2,
+    type: "animes",
+    title: "Anime",
+    description: "Estúdio, formato, gênero e pôster.",
+    icon: Tv,
   },
   {
     type: "movies",
     title: "Filme / Série",
     description: "Diretor, produtora, gênero e poster.",
     icon: Film,
+  },
+  {
+    type: "games",
+    title: "Jogo",
+    description: "Estudio, plataforma, gênero e capa.",
+    icon: Gamepad2,
   },
   {
     type: "books",
@@ -29,6 +35,27 @@ export const typeOptions: Array<{
 ];
 
 export const fieldCopy = {
+  animes: {
+    title: "Adicionar Anime",
+    nameLabel: "Título do Anime *",
+    namePlaceholder: "Ex: Frieren, Cowboy Bebop...",
+    creatorLabel: "Estúdio",
+    creatorPlaceholder: "Ex: Madhouse, MAPPA...",
+    directorLabel: "Diretor / Criador",
+    directorPlaceholder: "Ex: Keiichirō Saitō...",
+    metaLabel: "Origem / Idioma",
+    metaPlaceholder: "Ex: Japão, Japonês...",
+    categoryPlaceholder: "Ex: Aventura, Fantasia...",
+    coverLabel: "URL do Pôster",
+    descriptionLabel: "Sinopse",
+    descriptionPlaceholder: "Sobre o que é este anime?",
+    statusOptions: {
+      queue: "Na Fila (Quero assistir)",
+      in_progress: "Assistindo",
+      dropped: "Dropado",
+      complete: "Finalizado / Assistido",
+    },
+  },
   games: {
     title: "Adicionar Jogo",
     nameLabel: "Titulo do Jogo *",
@@ -96,7 +123,7 @@ export function getDefaultValues(type: MediaType): CreateMediaDTO {
     creator: "",
     director: "",
     type,
-    movie_kind: "movie",
+    media_format: "movie",
     category: "",
     cover: "",
     backdrop: "",

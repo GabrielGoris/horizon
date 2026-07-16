@@ -49,10 +49,10 @@ export function CatalogTitleField({
       />
       {error && <span className={errorClass}>{error.message}</span>}
       {selectedType === "games" && isGameSearchLoading && <SearchLoading />}
-      {selectedType === "movies" && isMovieSearchLoading && <SearchLoading />}
+      {(selectedType === "movies" || selectedType === "animes") && isMovieSearchLoading && <SearchLoading />}
       {selectedType === "books" && isBookSearchLoading && <SearchLoading />}
       {selectedType === "games" && gameSearchError && <SearchError message={gameSearchError} />}
-      {selectedType === "movies" && movieSearchError && <SearchError message={movieSearchError} />}
+      {(selectedType === "movies" || selectedType === "animes") && movieSearchError && <SearchError message={movieSearchError} />}
       {selectedType === "books" && bookSearchError && <SearchError message={bookSearchError} />}
       {selectedType === "games" && gameSearchResults.length > 0 && (
         <div
@@ -71,7 +71,7 @@ export function CatalogTitleField({
           ))}
         </div>
       )}
-      {selectedType === "movies" && movieSearchResults.length > 0 && (
+      {(selectedType === "movies" || selectedType === "animes") && movieSearchResults.length > 0 && (
         <div
           data-movie-search-results
           className="absolute left-0 right-0 top-[74px] z-20 max-h-[28rem] overflow-y-auto rounded-xl border border-white/10 bg-[#111114] p-2 shadow-2xl shadow-black/50"

@@ -1,6 +1,6 @@
-export type MediaType = 'games' | 'movies' | 'books';
+export type MediaType = 'animes' | 'movies' | 'games' | 'books';
 export type MediaStatus = 'complete' | 'dropped' | 'in_progress' | 'queue';
-export type MovieKind = 'movie' | 'series';
+export type MediaFormat = 'movie' | 'series';
 
 export interface MediaItem {
   id: string;
@@ -12,7 +12,7 @@ export interface MediaItem {
   cover: string;
   backdrop?: string;
   type: MediaType;
-  movie_kind?: MovieKind;
+  media_format?: MediaFormat;
   status: MediaStatus;
   releaseYear: string;
   meta: string;
@@ -43,7 +43,7 @@ export type CompletionRow = {
   rating?: number | string | null;
 };
 
-export type MovieCompletionRow = CompletionRow & {
+export type AudiovisualCompletionRow = CompletionRow & {
   watched_at?: string | null;
 };
 
@@ -62,7 +62,7 @@ export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating" | "status"> 
   user_id?: string | null;
   release_year?: string | null;
   status: MediaStatus;
-  movie_kind?: MovieKind | null;
+  media_format?: MediaFormat | null;
   added_at?: string | null;
   completed_year?: number | string | null;
   page_count?: number | string | null;
@@ -73,7 +73,7 @@ export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating" | "status"> 
   wishlist_position?: number | string | null;
   wishlist_added_at?: string | null;
   rating?: string | number | null;
-  movie_completions?: MovieCompletionRow[] | MovieCompletionRow | null;
+  audiovisual_completions?: AudiovisualCompletionRow[] | AudiovisualCompletionRow | null;
   book_completions?: BookCompletionRow[] | BookCompletionRow | null;
   game_completions?: GameCompletionRow[] | GameCompletionRow | null;
 };

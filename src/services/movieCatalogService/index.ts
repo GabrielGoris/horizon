@@ -14,6 +14,7 @@ import type {
 
 const imageBaseUrl = "https://image.tmdb.org/t/p";
 const searchCache = new CatalogCache<MovieCatalogResult[]>();
+const animeSearchCache = new CatalogCache<MovieCatalogResult[]>();
 let genreCache: Record<TmdbMediaType, TmdbGenre[]> | null = null;
 
 function normalizeSearchText(value: string) {
@@ -140,8 +141,15 @@ function mapTmdbSearchItem(item: TmdbSearchItem, genres: Record<TmdbMediaType, T
     cover: getImageUrl(item.poster_path, "w500"),
     backdrop: getImageUrl(item.backdrop_path, "w1280"),
     category: getGenreNamesById(item.genre_ids, genres[item.media_type]),
-    meta: getOriginLabel(item.origin_country),
+    meta: getOriginLabel(item.origin_country, item.original_language),
   };
+}
+
+function isAnimeSearchItem(item: TmdbSearchItem) {
+  const isAnimation = item.genre_ids?.includes(16) ?? false;
+  const isJapanese = item.origin_country?.includes("JP") || item.original_language === "ja";
+
+  return isAnimation && isJapanese;
 }
 
 function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCatalogDetails {
@@ -166,9 +174,10 @@ function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCa
   };
 }
 
-export async function searchMovies(query: string, signal?: AbortSignal): Promise<MovieCatalogResult[]> {
+async function searchTmdbTitles(query: string, signal: AbortSignal | undefined, animeOnly: boolean) {
   const normalizedQuery = normalizeSearchText(query);
-  const cachedResults = searchCache.get(normalizedQuery);
+  const targetCache = animeOnly ? animeSearchCache : searchCache;
+  const cachedResults = targetCache.get(normalizedQuery);
 
   if (cachedResults) return cachedResults;
 
@@ -190,14 +199,23 @@ export async function searchMovies(query: string, signal?: AbortSignal): Promise
     ),
   ]);
 
-  const results = data.results
-    ?.map((item) => mapTmdbSearchItem(item, genres))
+  const results = (data.results ?? [])
+    .filter((item) => !animeOnly || isAnimeSearchItem(item))
+    .map((item) => mapTmdbSearchItem(item, genres))
     .filter((item): item is MovieCatalogResult => Boolean(item))
-    .slice(0, 20) ?? [];
+    .slice(0, 20);
 
-  searchCache.set(normalizedQuery, results);
+  targetCache.set(normalizedQuery, results);
 
   return results;
+}
+
+export function searchMovies(query: string, signal?: AbortSignal) {
+  return searchTmdbTitles(query, signal, false);
+}
+
+export function searchAnimes(query: string, signal?: AbortSignal) {
+  return searchTmdbTitles(query, signal, true);
 }
 
 export async function getMovieDetails(movie: MovieCatalogResult, signal?: AbortSignal): Promise<MovieCatalogDetails> {
@@ -216,7 +234,7 @@ export async function getMovieDetails(movie: MovieCatalogResult, signal?: AbortS
 export function applyMovieCatalogDetails(movie: MovieCatalogDetails): Partial<CreateMediaDTO> {
   return {
     title: movie.title,
-    movie_kind: movie.mediaType === "tv" ? "series" : "movie",
+    media_format: movie.mediaType === "tv" ? "series" : "movie",
     creator: movie.creator,
     director: movie.director,
     category: movie.category,

@@ -1,5 +1,5 @@
 import type { MediaItem, MediaType } from "../../../../types";
-import type { GamePlatformFilter, LibraryFilterState, MovieKindFilter, SortMode, StatusFilter } from "../../types";
+import type { GamePlatformFilter, LibraryFilterState, MediaFormatFilter, SortMode, StatusFilter } from "../../types";
 
 export type CategorySectionProps = {
   activeItems: MediaItem[];
@@ -11,11 +11,11 @@ export type CategorySectionProps = {
     gamePlatformFilter: LibraryFilterState["gamePlatformFilter"];
     hasActiveFilters: boolean;
     isFiltersOpen: boolean;
-    movieKindFilter: LibraryFilterState["movieKindFilter"];
+    mediaFormatFilter: LibraryFilterState["mediaFormatFilter"];
     setCompletedYearFilter: (value: string) => void;
     setGamePlatformFilter: (value: LibraryFilterState["gamePlatformFilter"]) => void;
     setIsFiltersOpen: (value: boolean) => void;
-    setMovieKindFilter: (value: LibraryFilterState["movieKindFilter"]) => void;
+    setMediaFormatFilter: (value: LibraryFilterState["mediaFormatFilter"]) => void;
     setSortMode: (value: LibraryFilterState["sortMode"]) => void;
     setStatusFilter: (value: LibraryFilterState["statusFilter"]) => void;
     sortMode: LibraryFilterState["sortMode"];
@@ -48,22 +48,22 @@ export interface LibraryFiltersProps {
   statusFilter: StatusFilter;
   completedYearFilter: string;
   gamePlatformFilter: GamePlatformFilter;
-  movieKindFilter: MovieKindFilter;
+  mediaFormatFilter: MediaFormatFilter;
   sortMode: SortMode;
   onToggle: () => void;
   onClose: () => void;
   onStatusFilterChange: (status: StatusFilter) => void;
   onCompletedYearFilterChange: (year: string) => void;
   onGamePlatformFilterChange: (platform: GamePlatformFilter) => void;
-  onMovieKindFilterChange: (movieKind: MovieKindFilter) => void;
+  onMediaFormatFilterChange: (mediaFormat: MediaFormatFilter) => void;
   onSortModeChange: (sortMode: SortMode) => void;
   onClearFilters: () => void;
 };
 
 
-export interface MovieKindFiltersProps {
-  movieKindFilter: MovieKindFilter;
-  onChange: (movieKind: MovieKindFilter) => void;
+export interface MediaFormatFiltersProps {
+  mediaFormatFilter: MediaFormatFilter;
+  onChange: (mediaFormat: MediaFormatFilter) => void;
 };
 
 export type OverviewSectionProps = {

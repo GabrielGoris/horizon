@@ -6,7 +6,7 @@ import type { TypeSpecificFieldsProps } from "../../types";
 
 function getCompletionLabel(selectedType: TypeSpecificFieldsProps["selectedType"]) {
   if (selectedType === "games") return "Data em que zerou";
-  if (selectedType === "movies") return "Data assistida";
+  if (selectedType === "movies" || selectedType === "animes") return "Data assistida";
 
   return "Data em que leu";
 }
@@ -20,9 +20,9 @@ export function TypeSpecificFields({
   errorClass,
   register,
   selectedType,
-  movieKind,
+  mediaFormat,
   metaValue,
-  onMovieKindChange,
+  onMediaFormatChange,
   ratingValue,
   statusValue,
   setValue,
@@ -32,7 +32,7 @@ export function TypeSpecificFields({
   return (
     <>
       <div className="flex flex-col gap-6">
-        {selectedType === "movies" && (
+        {(selectedType === "movies" || selectedType === "animes") && (
           <>
             <div className="flex flex-col gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
@@ -46,9 +46,9 @@ export function TypeSpecificFields({
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => onMovieKindChange(option.value as "movie" | "series")}
+                    onClick={() => onMediaFormatChange(option.value as "movie" | "series")}
                     className={`rounded-md px-3 py-2 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors ${
-                      movieKind === option.value
+                      mediaFormat === option.value
                         ? "bg-noir-gold text-black"
                         : "text-neutral-500 hover:bg-white/[0.04] hover:text-white"
                     }`}
@@ -59,7 +59,7 @@ export function TypeSpecificFields({
               </div>
             </div>
 
-            {movieKind === "movie" ? (
+            {mediaFormat === "movie" ? (
               <label className={labelClass}>
                 Duração
                 <input
@@ -172,7 +172,7 @@ export function TypeSpecificFields({
             <input
               placeholder="Ex: 2026 ou 06/07/2026"
               inputMode="numeric"
-              {...register(selectedType === "movies" ? "watched_at" : "completed_year", {
+              {...register(selectedType === "movies" || selectedType === "animes" ? "watched_at" : "completed_year", {
                 onChange: (event) => {
                   event.target.value = formatDateInput(event.target.value);
                 },

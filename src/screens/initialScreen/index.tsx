@@ -6,7 +6,7 @@ import { MediaDossier } from "../../components/MediaDossier";
 import { Sidebar } from "../../components/Sidebar";
 import { WishlistPriorityDialog } from "../../components/WishlistPriorityDialog";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
-import { getWishlistItems } from "../../services/wishlistService";
+import { getWishlistItems, WISHLIST_LIMIT } from "../../services/wishlistService";
 import { warmGameCatalog } from "../../services/gameCatalogService";
 import { CategorySection } from "./components/CategorySection";
 import { OverviewSection } from "./components/OverviewSection";
@@ -42,7 +42,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
     collection: mediaCollection.collection,
     completedYearFilter: filters.completedYearFilter,
     gamePlatformFilter: filters.gamePlatformFilter,
-    movieKindFilter: filters.movieKindFilter,
+    mediaFormatFilter: filters.mediaFormatFilter,
     searchQuery,
     sortMode: filters.sortMode,
     statusFilter: filters.statusFilter,
@@ -72,7 +72,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
     return new Map(
       CATEGORIES.map((category) => [
         category.id,
-        getWishlistItems(filteredCollection, category.id).slice(0, 5),
+        getWishlistItems(filteredCollection, category.id).slice(0, WISHLIST_LIMIT),
       ])
     );
   }, [filteredCollection]);
@@ -147,7 +147,7 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
           onDelete={mediaCollection.setMediaToDelete}
           onMetaChange={mediaCollection.handleUpdateMediaMeta}
           onStatusChange={mediaCollection.handleUpdateMediaStatus}
-          onSaveTicket={mediaCollection.handleSaveMovieTicket}
+          onSaveAudiovisualCompletion={mediaCollection.handleSaveAudiovisualCompletion}
           onSaveBookCompletion={mediaCollection.handleSaveBookCompletion}
           onSaveGameCompletion={mediaCollection.handleSaveGameCompletion}
         />

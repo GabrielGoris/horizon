@@ -2,6 +2,7 @@ import { MediaCard } from "../../../../components/MediaCard";
 import type { ActiveMediaSectionProps } from "../types";
 
 const ACTIVE_SECTION_LABELS = {
+  animes: "Assistindo",
   games: "Jogando",
   movies: "Assistindo",
   books: "Lendo",

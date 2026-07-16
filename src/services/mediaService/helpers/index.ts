@@ -28,8 +28,8 @@ export function isSameMedia(existingItem: ExistingMediaIdentity, newItem: Create
     return optionalIdentityPartMatches(existingItem.meta, newItem.meta);
   }
 
-  if (newItem.type === "movies") {
-    return (existingItem.movie_kind ?? "movie") === (newItem.movie_kind ?? "movie");
+  if (newItem.type === "movies" || newItem.type === "animes") {
+    return (existingItem.media_format ?? "movie") === (newItem.media_format ?? "movie");
   }
 
   return optionalIdentityPartMatches(existingItem.creator, newItem.creator);

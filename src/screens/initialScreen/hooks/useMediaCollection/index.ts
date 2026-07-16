@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import type { BookCompletionDTO, GameCompletionDTO, MovieTicketDTO } from "../../../../schemas/media";
+import type { AudiovisualCompletionDTO, BookCompletionDTO, GameCompletionDTO } from "../../../../schemas/media";
 import {
+  applyAudiovisualCompletion,
   applyBookCompletion,
   applyGameCompletion,
-  applyMovieTicket,
   completeMedia,
   deleteMedia,
   fetchMedia,
   markMediaAsComplete,
+  saveAudiovisualCompletion,
   saveBookCompletion,
   saveGameCompletion,
-  saveMovieTicket,
   updateMediaMeta,
   updateMediaStatus,
 } from "../../../../services/mediaService";
@@ -117,16 +117,16 @@ export function useMediaCollection() {
     await handleUpdateMediaStatus(item, "complete");
   }, [handleUpdateMediaStatus]);
 
-  const handleSaveMovieTicket = useCallback(async (item: MediaItem, ticket: MovieTicketDTO) => {
+  const handleSaveAudiovisualCompletion = useCallback(async (item: MediaItem, completion: AudiovisualCompletionDTO) => {
     try {
-      await saveMovieTicket(item.id, ticket);
+      await saveAudiovisualCompletion(item.id, completion);
     } catch (error) {
       console.error(error);
       alert("Erro ao salvar o ticket.");
       return;
     }
 
-    updateMedia(applyMovieTicket(item, ticket));
+    updateMedia(applyAudiovisualCompletion(item, completion));
   }, [updateMedia]);
 
   const handleSaveBookCompletion = useCallback(async (item: MediaItem, completion: BookCompletionDTO) => {
@@ -190,7 +190,7 @@ export function useMediaCollection() {
     handleCompleteMedia,
     handleSaveBookCompletion,
     handleSaveGameCompletion,
-    handleSaveMovieTicket,
+    handleSaveAudiovisualCompletion,
     handleUpdateMediaMeta,
     handleUpdateMediaStatus,
     isLoadingMedia,

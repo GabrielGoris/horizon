@@ -7,7 +7,7 @@ function getDefaultFilterState(activeTab: string): LibraryFilterState {
     completedYearFilter: "",
     gamePlatformFilter: "all",
     isFiltersOpen: false,
-    movieKindFilter: "all",
+    mediaFormatFilter: "all",
     sortMode: "title_asc",
     statusFilter: "all",
   };
@@ -32,13 +32,13 @@ export function useLibraryFilters(activeTab: string) {
     completedYearFilter,
     gamePlatformFilter,
     isFiltersOpen,
-    movieKindFilter,
+    mediaFormatFilter,
     sortMode,
     statusFilter,
   } = activeFilterState;
   const hasActiveFilters =
     statusFilter !== "all" ||
-    movieKindFilter !== "all" ||
+    mediaFormatFilter !== "all" ||
     gamePlatformFilter !== "all" ||
     Boolean(completedYearFilter) ||
     sortMode !== "title_asc";
@@ -49,11 +49,11 @@ export function useLibraryFilters(activeTab: string) {
     gamePlatformFilter,
     hasActiveFilters,
     isFiltersOpen,
-    movieKindFilter,
+    mediaFormatFilter,
     setCompletedYearFilter: (nextCompletedYearFilter: string) => updateFilterState(activeTab, setFilterState, { completedYearFilter: nextCompletedYearFilter }),
     setGamePlatformFilter: (nextGamePlatformFilter: LibraryFilterState["gamePlatformFilter"]) => updateFilterState(activeTab, setFilterState, { gamePlatformFilter: nextGamePlatformFilter }),
     setIsFiltersOpen: (nextIsFiltersOpen: boolean) => updateFilterState(activeTab, setFilterState, { isFiltersOpen: nextIsFiltersOpen }),
-    setMovieKindFilter: (nextMovieKindFilter: "all" | "movie" | "series") => updateFilterState(activeTab, setFilterState, { movieKindFilter: nextMovieKindFilter }),
+    setMediaFormatFilter: (nextMediaFormatFilter: "all" | "movie" | "series") => updateFilterState(activeTab, setFilterState, { mediaFormatFilter: nextMediaFormatFilter }),
     setSortMode: (nextSortMode: LibraryFilterState["sortMode"]) => updateFilterState(activeTab, setFilterState, { sortMode: nextSortMode }),
     setStatusFilter: (nextStatusFilter: LibraryFilterState["statusFilter"]) => updateFilterState(activeTab, setFilterState, { statusFilter: nextStatusFilter }),
     sortMode,

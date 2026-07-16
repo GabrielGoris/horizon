@@ -7,7 +7,7 @@ import type { CompletionArtifactProps } from "./types";
 
 export function CompletionArtifacts({
   item,
-  onSaveTicket,
+  onSaveAudiovisualCompletion,
   onSaveBookCompletion,
   onSaveGameCompletion,
 }: CompletionArtifactProps) {
@@ -18,11 +18,11 @@ export function CompletionArtifacts({
 
   if (item.status !== "complete") return null;
 
-  const saveTicket = async (values?: { watchedAt?: string; rating?: number }) => {
+  const saveAudiovisual = async (values?: { watchedAt?: string; rating?: number }) => {
     const nextWatchedAt = values?.watchedAt ?? finishedAt;
     const nextRating = values?.rating ?? rating;
 
-    await onSaveTicket(item, {
+    await onSaveAudiovisualCompletion(item, {
       watchedAt: nextWatchedAt,
       rating: nextRating > 0 ? nextRating.toFixed(1) : "",
     });
@@ -58,7 +58,7 @@ export function CompletionArtifacts({
     });
   };
 
-  if (item.type === "movies") {
+  if (item.type === "movies" || item.type === "animes") {
     return (
       <>
         <MovieTicket
@@ -67,7 +67,7 @@ export function CompletionArtifacts({
           rating={rating}
           onWatchedAtChange={setFinishedAt}
           onRatingChange={setRating}
-          onSave={saveTicket}
+          onSave={saveAudiovisual}
         />
       </>
     );

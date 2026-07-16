@@ -63,8 +63,9 @@ function App() {
         element={<ResetPasswordScreen isAuthenticated={isAuthenticated} />}
       />
       <Route path="/" element={renderLibraryRoute("overview")} />
-      <Route path="/games" element={renderLibraryRoute("games")} />
+      <Route path="/animes" element={renderLibraryRoute("animes")} />
       <Route path="/movies" element={renderLibraryRoute("movies")} />
+      <Route path="/games" element={renderLibraryRoute("games")} />
       <Route path="/books" element={renderLibraryRoute("books")} />
       <Route
         path="/settings"

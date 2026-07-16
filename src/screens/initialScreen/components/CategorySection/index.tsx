@@ -27,14 +27,14 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
             statusFilter={filters.statusFilter}
             completedYearFilter={filters.completedYearFilter}
             gamePlatformFilter={filters.gamePlatformFilter}
-            movieKindFilter={filters.movieKindFilter}
+            mediaFormatFilter={filters.mediaFormatFilter}
             sortMode={filters.sortMode}
             onToggle={() => filters.setIsFiltersOpen(!filters.isFiltersOpen)}
             onClose={() => filters.setIsFiltersOpen(false)}
             onStatusFilterChange={filters.setStatusFilter}
             onCompletedYearFilterChange={filters.setCompletedYearFilter}
             onGamePlatformFilterChange={filters.setGamePlatformFilter}
-            onMovieKindFilterChange={filters.setMovieKindFilter}
+            onMediaFormatFilterChange={filters.setMediaFormatFilter}
             onSortModeChange={filters.setSortMode}
             onClearFilters={filters.clearFilters}
           />

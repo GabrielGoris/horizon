@@ -1,8 +1,8 @@
 import { supabase } from "../../lib/supabase";
+import type { AudiovisualCompletionDTO } from "../../schemas/media/dto/audiovisual-completion.dto";
 import type { BookCompletionDTO } from "../../schemas/media/dto/book-completion.dto";
 import type { CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import type { GameCompletionDTO } from "../../schemas/media/dto/game-completion.dto";
-import type { MovieTicketDTO } from "../../schemas/media/dto/movie-ticket.dto";
 import type { MediaItem, MediaItemRow } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
 import { isSameMedia } from "./helpers";
@@ -71,7 +71,7 @@ export async function hasDuplicateMedia(data: CreateMediaDTO) {
   const userId = await getCurrentUserId();
   const { data: existingItems, error } = await supabase
     .from("media_items")
-    .select("title, release_year, meta, movie_kind, creator")
+    .select("title, release_year, meta, media_format, creator")
     .eq("user_id", userId)
     .eq("type", data.type);
 
@@ -95,7 +95,7 @@ function getCreateMediaPayload(data: CreateMediaDTO, userId: string) {
     user_id: userId,
     title: data.title,
     type: data.type,
-    movie_kind: data.type === "movies" ? data.movie_kind ?? "movie" : null,
+    media_format: data.type === "movies" || data.type === "animes" ? data.media_format ?? "movie" : null,
     status: data.status,
     creator: toNullableText(data.creator),
     director: toNullableText(data.director),
@@ -116,10 +116,10 @@ function getCreateMediaPayload(data: CreateMediaDTO, userId: string) {
 }
 
 function normalizeMediaItem(item: MediaItemRow): MediaItem {
-  const movieCompletion = getCompletion(item.movie_completions);
+  const audiovisualCompletion = getCompletion(item.audiovisual_completions);
   const bookCompletion = getCompletion(item.book_completions);
   const gameCompletion = getCompletion(item.game_completions);
-  const completion = movieCompletion || bookCompletion || gameCompletion;
+  const completion = audiovisualCompletion || bookCompletion || gameCompletion;
 
   return {
     id: item.id,
@@ -131,7 +131,7 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     cover: item.cover ?? "",
     backdrop: item.backdrop ?? "",
     type: item.type,
-    movie_kind: item.movie_kind ?? undefined,
+    media_format: item.media_format ?? undefined,
     status: item.status,
     releaseYear: item.release_year ?? "",
     meta: item.meta ?? "",
@@ -139,7 +139,7 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     description: item.description ?? "",
     added_at: item.added_at ?? undefined,
     completed_year: item.completed_year ?? undefined,
-    watched_at: movieCompletion?.watched_at ?? undefined,
+    watched_at: audiovisualCompletion?.watched_at ?? undefined,
     completed_at: bookCompletion?.finished_at ?? gameCompletion?.finished_at ?? undefined,
     page_count: item.page_count ?? undefined,
     runtime_minutes: item.runtime_minutes ?? undefined,
@@ -159,7 +159,7 @@ export async function fetchMedia() {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("media_items")
-    .select("*, movie_completions(*), book_completions(*), game_completions(*)")
+    .select("*, audiovisual_completions(*), book_completions(*), game_completions(*)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
 
@@ -180,8 +180,8 @@ export async function createMedia(data: CreateMediaDTO) {
 
   const completionRating = data.rating ?? "";
 
-  if (data.type === "movies" && data.status === "complete" && createdMedia?.id) {
-    await saveMovieTicket(createdMedia.id, { watchedAt: data.watched_at ?? "", rating: completionRating });
+  if ((data.type === "movies" || data.type === "animes") && data.status === "complete" && createdMedia?.id) {
+    await saveAudiovisualCompletion(createdMedia.id, { watchedAt: data.watched_at ?? "", rating: completionRating });
   }
 
   if (data.type === "books" && data.status === "complete" && createdMedia?.id) {
@@ -251,12 +251,12 @@ export async function deleteMedia(itemId: string) {
   if (error) throw error;
 }
 
-export async function saveMovieTicket(itemId: string, ticket: MovieTicketDTO) {
-  const { error } = await supabase.from("movie_completions").upsert(
+export async function saveAudiovisualCompletion(itemId: string, completion: AudiovisualCompletionDTO) {
+  const { error } = await supabase.from("audiovisual_completions").upsert(
     {
       media_item_id: itemId,
-      watched_at: toSupabaseDate(ticket.watchedAt),
-      rating: toNullableNumber(ticket.rating),
+      watched_at: toSupabaseDate(completion.watchedAt),
+      rating: toNullableNumber(completion.rating),
     },
     { onConflict: "media_item_id" }
   );
@@ -302,11 +302,11 @@ export function markMediaAsComplete(item: MediaItem): MediaItem {
   };
 }
 
-export function applyMovieTicket(item: MediaItem, ticket: MovieTicketDTO): MediaItem {
+export function applyAudiovisualCompletion(item: MediaItem, completion: AudiovisualCompletionDTO): MediaItem {
   return {
     ...item,
-    rating: ticket.rating,
-    watched_at: ticket.watchedAt,
+    rating: completion.rating,
+    watched_at: completion.watchedAt,
   };
 }
 

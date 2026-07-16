@@ -10,6 +10,12 @@ export const mediaStatusLabels: Record<MediaStatus, string> = {
 };
 
 export const mediaStatusLabelsByType: Record<MediaType, Record<MediaStatus, string>> = {
+  animes: {
+    complete: "Assistido",
+    dropped: "Dropado",
+    in_progress: "Assistindo",
+    queue: "Na fila",
+  },
   games: {
     complete: "Finalizado",
     dropped: "Dropado",

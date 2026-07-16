@@ -16,6 +16,7 @@ import {
 import {
   applyMovieCatalogDetails,
   getMovieDetails,
+  searchAnimes,
   searchMovies,
 } from "../../../../services/movieCatalogService";
 import type { BookCatalogResult, GameCatalogResult, MovieCatalogResult } from "../../../../services/types";
@@ -189,7 +190,7 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
     movieSearchRequestRef.current += 1;
     setMovieSearchError("");
 
-    if (selectedType !== "movies" || trimmedQuery.length < 2) {
+    if ((selectedType !== "movies" && selectedType !== "animes") || trimmedQuery.length < 2) {
       setMovieSearchResults([]);
       setIsMovieSearchLoading(false);
       return;
@@ -203,12 +204,20 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
       const controller = new AbortController();
       movieSearchControllerRef.current = controller;
 
-      searchMovies(trimmedQuery, controller.signal)
+      const searchCatalog = selectedType === "animes" ? searchAnimes : searchMovies;
+      const emptySearchMessage = selectedType === "animes"
+        ? "Nenhum anime encontrado."
+        : "Nenhum filme ou série encontrado.";
+      const searchErrorMessage = selectedType === "animes"
+        ? "Erro ao buscar animes."
+        : "Erro ao buscar filmes e séries.";
+
+      searchCatalog(trimmedQuery, controller.signal)
         .then((results) => {
           if (requestId !== movieSearchRequestRef.current) return;
 
           setMovieSearchResults(results);
-          setMovieSearchError(results.length === 0 ? "Nenhum filme ou serie encontrado." : "");
+          setMovieSearchError(results.length === 0 ? emptySearchMessage : "");
         })
         .catch((error) => {
           if (requestId !== movieSearchRequestRef.current) return;
@@ -216,7 +225,7 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
 
           console.error(error);
           setMovieSearchResults([]);
-          setMovieSearchError(error instanceof Error ? error.message : "Erro ao buscar filmes e series.");
+          setMovieSearchError(error instanceof Error ? error.message : searchErrorMessage);
         })
         .finally(() => {
           if (requestId === movieSearchRequestRef.current) {
@@ -283,7 +292,7 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
       scheduleGameSearch(currentTitle);
     }
 
-    if (selectedType === "movies" && currentTitle.trim().length >= 2 && movieSearchResults.length === 0) {
+    if ((selectedType === "movies" || selectedType === "animes") && currentTitle.trim().length >= 2 && movieSearchResults.length === 0) {
       scheduleMovieSearch(currentTitle);
     }
 
@@ -390,7 +399,7 @@ export function useMediaCatalogSearch({ getValues, isOpen, selectedType, setValu
       setValue("backdrop", backdrop, { shouldDirty: true, shouldValidate: true });
       setCoverBackdrop(backdrop);
       setCoverFallback(fallbackCover);
-      setGameSearchError("Preenchi com os dados basicos, mas nao consegui carregar os detalhes.");
+      setGameSearchError("Preenchi com os dados básicos, mas não consegui carregar os detalhes.");
     } finally {
       if (requestId === catalogSelectionRequestRef.current) {
         if (!enrichmentPromise) setIsCampaignHoursLoading(false);
