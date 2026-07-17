@@ -17,17 +17,15 @@ export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps)
   const typeLabel = getTypeLabel(item);
   const platform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
   const coverUrl = item.cover?.trim();
-  const clipPath = isBook
-    ? "inset(0 round 0.375rem 0.75rem 0.75rem 0.375rem)"
-    : "inset(0 round 0.75rem)";
   
   return (
     <div 
       onClick={() => onClick && onClick(item)}
-      className={`group relative isolate transform-gpu overflow-hidden bg-[#1a1a1e] border border-white/5 cursor-pointer shadow-lg transition-all duration-500 will-change-transform [backface-visibility:hidden] hover:-translate-y-2 hover:shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:border-[#d4af37]/30 aspect-[2/3] ${
-        isBook ? 'rounded-r-xl rounded-l-md' : 'rounded-xl'
+      className={`group relative isolate transform-gpu overflow-hidden bg-[#1a1a1e] border cursor-pointer transition-all duration-500 will-change-transform [backface-visibility:hidden] hover:-translate-y-2 aspect-[2/3] ${
+        isBook
+          ? 'rounded-none border-white/5 shadow-[0_4px_8px_rgba(0,0,0,0.55),0_10px_20px_rgba(0,0,0,0.3)] hover:border-[#d4af37]/30 hover:shadow-[0_15px_30px_rgba(0,0,0,0.65)]'
+          : 'rounded-none border-transparent shadow-[0_3px_6px_rgba(0,0,0,0.55),0_8px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_10px_24px_rgba(0,0,0,0.65)]'
       }`}
-      style={{ clipPath }}
     >
       {coverUrl ? (
         <img
@@ -41,10 +39,6 @@ export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps)
         </div>
       )}
 
-      {isBook && (
-        <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/60 via-white/10 to-transparent z-10 border-r border-black/20" />
-      )}
-      
       <div className="absolute top-3 left-3 z-30 flex flex-col gap-1.5">
         {rank ? (
           <span className="w-8 h-8 rounded-lg bg-[#d4af37] text-black flex items-center justify-center font-serif font-extrabold text-sm shadow-lg">
