@@ -1,10 +1,10 @@
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import catalogProxyHandler from "./api/catalog-proxy";
-import steamCallbackHandler from "./api/steam/steam-callback";
-import steamConnectHandler from "./api/steam/steam-connect";
-import steamEnrichHandler from "./api/steam/steam-enrich";
-import steamLibraryHandler from "./api/steam/steam-library";
+import steamCallbackHandler from "./server/steamRoutes/steam-callback";
+import steamConnectHandler from "./server/steamRoutes/steam-connect";
+import steamEnrichHandler from "./server/steamRoutes/steam-enrich";
+import steamLibraryHandler from "./server/steamRoutes/steam-library";
 
 function createApiPlugin(): Plugin {
   return {

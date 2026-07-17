@@ -1,18 +1,16 @@
 import type { ServerResponse } from "node:http";
-import type { ApiRequest } from "../../server/http";
-import { readJsonBody, sendJson } from "../../server/http";
-import { authenticateRequest, getSupabaseServerClients } from "../../server/supabaseAdmin";
-import { getIgdbDetailsBySteamGames } from "../../server/igdb";
-import { getHltbCampaignHoursByGames } from "../../server/hltb";
+import type { ApiRequest } from "../http";
+import { readJsonBody, sendJson } from "../http";
+import { authenticateRequest, getSupabaseServerClients } from "../supabaseAdmin";
+import { getIgdbDetailsBySteamGames } from "../igdb";
+import { getHltbCampaignHoursByGames } from "../hltb";
 import {
   getSteamLibraryBackdrop,
   getSteamLibraryCover,
   getSteamStoreGameDetails,
   stripSteamHtml,
-} from "../../server/steam";
-import { getIncompleteSteamGame } from "../../server/steamEnrichment";
-
-export const config = { maxDuration: 60 };
+} from "../steam";
+import { getIncompleteSteamGame } from "../steamEnrichment";
 
 if (!process.env.VERCEL) {
   try {

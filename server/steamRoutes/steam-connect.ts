@@ -1,8 +1,8 @@
 import type { ServerResponse } from "node:http";
-import type { ApiRequest } from "../../server/http";
-import { getRequestOrigin, sendJson } from "../../server/http";
-import { authenticateRequest, getSupabaseServerClients } from "../../server/supabaseAdmin";
-import { createOauthState, getSteamApiKey, getSteamAuthorizationUrl } from "../../server/steam";
+import type { ApiRequest } from "../http";
+import { getRequestOrigin, sendJson } from "../http";
+import { authenticateRequest, getSupabaseServerClients } from "../supabaseAdmin";
+import { createOauthState, getSteamApiKey, getSteamAuthorizationUrl } from "../steam";
 
 if (!process.env.VERCEL) {
   try {
