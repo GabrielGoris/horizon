@@ -146,10 +146,7 @@ function mapTmdbSearchItem(item: TmdbSearchItem, genres: Record<TmdbMediaType, T
 }
 
 function isAnimeSearchItem(item: TmdbSearchItem) {
-  const isAnimation = item.genre_ids?.includes(16) ?? false;
-  const isJapanese = item.origin_country?.includes("JP") || item.original_language === "ja";
-
-  return isAnimation && isJapanese;
+  return item.genre_ids?.includes(16) ?? false;
 }
 
 function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCatalogDetails {

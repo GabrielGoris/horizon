@@ -80,7 +80,13 @@ export function CatalogTitleField({
             <SearchResultButton
               key={`${movie.source}-${movie.mediaType}-${movie.id}`}
               cover={movie.cover}
-              details={[movie.mediaType === "movie" ? "FILME" : "SERIE", movie.releaseYear, movie.category].filter(Boolean).join(" - ") || "Sem detalhes"}
+              details={[
+                selectedType === "animes"
+                  ? `ANIME (${movie.mediaType === "movie" ? "FILME" : "SÉRIE"})`
+                  : movie.mediaType === "movie" ? "FILME" : "SÉRIE",
+                movie.releaseYear,
+                movie.category,
+              ].filter(Boolean).join(" - ") || "Sem detalhes"}
               title={movie.title}
               onClick={() => onSelectMovie(movie)}
             />
