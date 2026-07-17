@@ -1,22 +1,6 @@
 {
   "rewrites": [
     {
-      "source": "/api/steam-connect",
-      "destination": "/api/steam/steam-connect"
-    },
-    {
-      "source": "/api/steam-callback",
-      "destination": "/api/steam/steam-callback"
-    },
-    {
-      "source": "/api/steam-enrich",
-      "destination": "/api/steam/steam-enrich"
-    },
-    {
-      "source": "/api/steam-library",
-      "destination": "/api/steam/steam-library"
-    },
-    {
       "source": "/:path((?!api/|src/|@vite/|@react-refresh|node_modules/|assets/|.*\\..*).*)",
       "destination": "/index.html"
     }
