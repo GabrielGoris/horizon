@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AudiovisualCompletionDTO, BookCompletionDTO, GameCompletionDTO } from "../../../../schemas/media";
+import type { AudiovisualCompletionDTO, BookCompletionDTO, GameCompletionDTO, UpdateMediaDetailsDTO } from "../../../../schemas/media";
 import {
   applyAudiovisualCompletion,
   applyBookCompletion,
@@ -12,6 +12,7 @@ import {
   saveBookCompletion,
   saveGameCompletion,
   updateMediaMeta,
+  updateMediaDetails,
   updateMediaStatus,
 } from "../../../../services/mediaService";
 import { removeMediaFromWishlist } from "../../../../services/wishlistService";
@@ -165,6 +166,14 @@ export function useMediaCollection() {
     updateMedia({ ...item, meta });
   }, [updateMedia]);
 
+  const handleUpdateMediaDetails = useCallback(async (item: MediaItem, details: UpdateMediaDetailsDTO) => {
+    await updateMediaDetails(item.id, details);
+    const refreshedCollection = await refreshMedia();
+    const refreshedMedia = refreshedCollection.find((media) => media.id === item.id);
+
+    if (refreshedMedia) setSelectedMedia(refreshedMedia);
+  }, [refreshMedia]);
+
   const confirmDeleteMedia = useCallback(async () => {
     if (!mediaToDelete) return;
 
@@ -192,6 +201,7 @@ export function useMediaCollection() {
     handleSaveGameCompletion,
     handleSaveAudiovisualCompletion,
     handleUpdateMediaMeta,
+    handleUpdateMediaDetails,
     handleUpdateMediaStatus,
     isLoadingMedia,
     isDeletingMedia,
