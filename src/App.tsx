@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import { AuthScreen } from './screens/authScreen'
 import { InitialScreen } from './screens/initialScreen/index.tsx'
 import { useAuthSession } from './hooks/useAuthSession'
@@ -9,6 +9,12 @@ import { SettingsScreen } from './screens/settingsScreen'
 import { ResetPasswordScreen } from './screens/resetPasswordScreen'
 import { MfaChallengeScreen } from './screens/mfaChallengeScreen'
 import { SteamAutoSync } from './components/SteamAutoSync'
+
+function CustomLibraryRoute() {
+  const { categorySlug = "" } = useParams();
+
+  return <InitialScreen activeTab="custom" customCategorySlug={categorySlug} />;
+}
 
 function App() {
   const { isLoadingSession, session } = useAuthSession()
@@ -70,6 +76,7 @@ function App() {
       <Route path="/movies" element={renderLibraryRoute("movies")} />
       <Route path="/games" element={renderLibraryRoute("games")} />
       <Route path="/books" element={renderLibraryRoute("books")} />
+      <Route path="/c/:categorySlug" element={isAuthenticated ? <CustomLibraryRoute /> : <Navigate to="/auth" replace />} />
       <Route
         path="/settings"
         element={isAuthenticated && session ? <SettingsScreen onSignOut={handleSignOut} session={session} /> : <Navigate to="/auth" replace />}
