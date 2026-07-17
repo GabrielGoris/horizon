@@ -8,6 +8,7 @@ import type { InitialScreenProps } from './screens/initialScreen/types'
 import { SettingsScreen } from './screens/settingsScreen'
 import { ResetPasswordScreen } from './screens/resetPasswordScreen'
 import { MfaChallengeScreen } from './screens/mfaChallengeScreen'
+import { SteamAutoSync } from './components/SteamAutoSync'
 
 function App() {
   const { isLoadingSession, session } = useAuthSession()
@@ -49,7 +50,9 @@ function App() {
   }
 
   return (
-    <Routes>
+    <>
+      {session && <SteamAutoSync session={session} />}
+      <Routes>
       <Route
         path="/auth"
         element={isAuthenticated ? <Navigate to="/" replace /> : <AuthScreen />}
@@ -76,7 +79,8 @@ function App() {
         element={isAuthenticated && session ? <SettingsScreen onSignOut={handleSignOut} session={session} /> : <Navigate to="/auth" replace />}
       />
       <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/auth"} replace />} />
-    </Routes>
+      </Routes>
+    </>
   )
 }
 

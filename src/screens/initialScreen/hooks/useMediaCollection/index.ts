@@ -17,6 +17,7 @@ import {
 } from "../../../../services/mediaService";
 import { removeMediaFromWishlist } from "../../../../services/wishlistService";
 import type { MediaItem, MediaStatus } from "../../../../types";
+import { LIBRARY_UPDATED_EVENT } from "../../../../utils/libraryEvents";
 
 export function useMediaCollection() {
   const [collection, setCollection] = useState<MediaItem[]>([]);
@@ -78,6 +79,18 @@ export function useMediaCollection() {
       setIsLoadingMedia(false);
     }
   }, []);
+
+  useEffect(() => {
+    const handleLibraryUpdate = () => {
+      void refreshMedia().catch(() => undefined);
+    };
+
+    window.addEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
+
+    return () => {
+      window.removeEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
+    };
+  }, [refreshMedia]);
 
   const updateMedia = useCallback((updatedMedia: MediaItem) => {
     setCollection((currentCollection) =>

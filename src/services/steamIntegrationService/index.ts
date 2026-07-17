@@ -1,6 +1,15 @@
 import type { Session } from "@supabase/supabase-js";
 import type { ApiResponse, SteamEnrichmentResult, SteamIntegrationState, SteamSyncResult } from "./types";
 
+export type {
+  SteamConnection,
+  SteamDiscoveredGame,
+  SteamEnrichmentFailure,
+  SteamEnrichmentResult,
+  SteamIntegrationState,
+  SteamSyncResult,
+} from "./types";
+
 
 async function requestSteamApi<T>(session: Session, path: string, init?: RequestInit) {
   const response = await fetch(path, {

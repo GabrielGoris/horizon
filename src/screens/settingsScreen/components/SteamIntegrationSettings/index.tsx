@@ -14,6 +14,10 @@ import {
   type SteamSyncResult,
 } from "../../../../services/steamIntegrationService";
 import type { SteamIntegrationSettingsProps } from "./types";
+import {
+  LIBRARY_UPDATED_EVENT,
+  notifySteamGamesAdded,
+} from "../../../../utils/libraryEvents";
 
 function formatSyncDate(value: string | null) {
   if (!value) return "Ainda não sincronizada";
@@ -68,6 +72,25 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
     };
   }, [session]);
 
+  useEffect(() => {
+    const handleLibraryUpdate = () => {
+      getSteamIntegrationState(session)
+        .then((state) => {
+          setConnection(state.connection);
+          setEnrichmentFailures(state.incompleteGames);
+        })
+        .catch((error) => {
+          setErrorMessage(error instanceof Error ? error.message : "Não foi possível atualizar o estado da Steam.");
+        });
+    };
+
+    window.addEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
+
+    return () => {
+      window.removeEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
+    };
+  }, [session]);
+
   const handleConnect = async () => {
     setAction("connect");
     setErrorMessage("");
@@ -91,6 +114,8 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
     try {
       const result = await syncSteamLibrary(session);
       const incompleteGames = result.incompleteGames ?? [];
+
+      notifySteamGamesAdded(result.newGames ?? []);
 
       setSyncResult(result);
       setEnrichmentFailures(incompleteGames);

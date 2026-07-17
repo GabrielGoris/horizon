@@ -12,9 +12,17 @@ export type SteamSyncResult = {
   enrichmentAppIds: number[];
   incompleteGames: SteamEnrichmentFailure[];
   linked: number;
+  newGames: SteamDiscoveredGame[];
   syncedAt: string;
   total: number;
   updated: number;
+};
+
+export type SteamDiscoveredGame = {
+  appId: number;
+  cover: string;
+  playtimeHours: number;
+  title: string;
 };
 
 export type SteamEnrichmentResult = {

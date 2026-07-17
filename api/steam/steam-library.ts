@@ -187,6 +187,10 @@ async function synchronizeLibrary(
     claimedManualIds.add(titleMatch.id);
   }
 
+  const discoveredGames = games.filter((game) => (
+    !existingByExternalId.has(String(game.appid))
+    && !linkedManually.has(String(game.appid))
+  ));
   const payload = games
     .filter((game) => !linkedManually.has(String(game.appid)))
     .map((game) => toImportPayload(game, userId, existingByExternalId.get(String(game.appid))));
@@ -240,10 +244,16 @@ async function synchronizeLibrary(
   const incompleteGames = await getIncompleteGames(userId, adminClient);
 
   return {
-    added: games.filter((game) => !existingByExternalId.has(String(game.appid)) && !linkedManually.has(String(game.appid))).length,
+    added: discoveredGames.length,
     enrichmentAppIds,
     incompleteGames,
     linked: linkedManually.size,
+    newGames: discoveredGames.map((game) => ({
+      appId: game.appid,
+      cover: getSteamLibraryCover(game.appid),
+      playtimeHours: Number(((game.playtime_forever ?? 0) / 60).toFixed(2)),
+      title: game.name,
+    })),
     syncedAt,
     total: games.length,
     updated: games.filter((game) => existingByExternalId.has(String(game.appid))).length,
