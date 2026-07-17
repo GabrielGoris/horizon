@@ -1,6 +1,6 @@
 import type { ServerResponse } from "node:http";
-import type { ApiRequest } from "../server/http";
-import steamEnrichHandler from "../server/steamRoutes/steam-enrich";
+import type { ApiRequest } from "../server/http.js";
+import steamEnrichHandler from "../server/steamRoutes/steam-enrich.js";
 
 export const maxDuration = 60;
 

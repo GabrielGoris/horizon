@@ -1,7 +1,7 @@
 import type { ServerResponse } from "node:http";
-import type { ApiRequest } from "../http";
-import { sendJson } from "../http";
-import { authenticateRequest, getSupabaseServerClients } from "../supabaseAdmin";
+import type { ApiRequest } from "../http.js";
+import { sendJson } from "../http.js";
+import { authenticateRequest, getSupabaseServerClients } from "../supabaseAdmin.js";
 import {
   getSteamApiKey,
   getSteamLibraryBackdrop,
@@ -10,8 +10,8 @@ import {
   normalizeTitle,
   type SteamConnection,
   type SteamOwnedGame,
-} from "../steam";
-import { getIncompleteSteamGames, needsSteamEnrichment } from "../steamEnrichment";
+} from "../steam.js";
+import { getIncompleteSteamGames, needsSteamEnrichment } from "../steamEnrichment.js";
 
 if (!process.env.VERCEL) {
   try {

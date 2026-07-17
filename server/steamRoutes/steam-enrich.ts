@@ -1,16 +1,16 @@
 import type { ServerResponse } from "node:http";
-import type { ApiRequest } from "../http";
-import { readJsonBody, sendJson } from "../http";
-import { authenticateRequest, getSupabaseServerClients } from "../supabaseAdmin";
-import { getIgdbDetailsBySteamGames } from "../igdb";
-import { getHltbCampaignHoursByGames } from "../hltb";
+import type { ApiRequest } from "../http.js";
+import { readJsonBody, sendJson } from "../http.js";
+import { authenticateRequest, getSupabaseServerClients } from "../supabaseAdmin.js";
+import { getIgdbDetailsBySteamGames } from "../igdb.js";
+import { getHltbCampaignHoursByGames } from "../hltb.js";
 import {
   getSteamLibraryBackdrop,
   getSteamLibraryCover,
   getSteamStoreGameDetails,
   stripSteamHtml,
-} from "../steam";
-import { getIncompleteSteamGame } from "../steamEnrichment";
+} from "../steam.js";
+import { getIncompleteSteamGame } from "../steamEnrichment.js";
 
 if (!process.env.VERCEL) {
   try {

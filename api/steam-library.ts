@@ -1,6 +1,6 @@
 import type { ServerResponse } from "node:http";
-import type { ApiRequest } from "../server/http";
-import steamLibraryHandler from "../server/steamRoutes/steam-library";
+import type { ApiRequest } from "../server/http.js";
+import steamLibraryHandler from "../server/steamRoutes/steam-library.js";
 
 export const maxDuration = 60;
 

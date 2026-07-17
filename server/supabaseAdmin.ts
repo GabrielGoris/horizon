@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
-import type { ApiRequest } from "./http";
-import { getBearerToken } from "./http";
+import type { ApiRequest } from "./http.js";
+import { getBearerToken } from "./http.js";
 
 type SupabaseServerClients = {
   adminClient: SupabaseClient;
