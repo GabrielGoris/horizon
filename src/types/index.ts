@@ -5,6 +5,8 @@ export type MediaFormat = 'movie' | 'series';
 export interface MediaItem {
   id: string;
   user_id?: string;
+  external_id?: string;
+  source?: string;
   title: string;
   creator: string;
   director?: string;
@@ -60,6 +62,8 @@ export type GameCompletionRow = CompletionRow & {
 
 export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating" | "status"> & {
   user_id?: string | null;
+  external_id?: string | null;
+  source?: string | null;
   release_year?: string | null;
   status: MediaStatus;
   media_format?: MediaFormat | null;

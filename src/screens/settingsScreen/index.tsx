@@ -1,7 +1,8 @@
-import { AlertTriangle, Bell, CreditCard, LogOut, Shield, Trash2, User, X } from 'lucide-react';
+import { AlertTriangle, Bell, CreditCard, LogOut, Plug, Shield, Trash2, User, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { SecuritySettings } from './components/SecuritySettings';
+import { SteamIntegrationSettings } from './components/SteamIntegrationSettings';
 import type {
   AccountSettingsProps,
   DeleteAccountDialogProps,
@@ -12,6 +13,7 @@ import type {
 const settingsLinks = [
   { label: 'Conta', icon: <User size={15} strokeWidth={2.3} />, to: '/settings', end: true },
   { label: 'Segurança', icon: <Shield size={15} strokeWidth={2.3} />, to: '/settings/security' },
+  { label: 'Integrações', icon: <Plug size={15} strokeWidth={2.3} />, to: '/settings/integrations' },
   { label: 'Notificações', icon: <Bell size={15} strokeWidth={2.3} />, to: '/settings/notifications' },
   { label: 'Plano', icon: <CreditCard size={15} strokeWidth={2.3} />, to: '/settings/billing' },
 ];
@@ -23,6 +25,8 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const userEmail = session.user.email ?? 'Conta Horizon';
   const isSecuritySection = location.pathname === '/settings/security';
+  const isIntegrationsSection = location.pathname === '/settings/integrations';
+  const sectionTitle = isSecuritySection ? 'Segurança' : isIntegrationsSection ? 'Integrações' : 'Conta';
 
   const handleDeleteAccount = async (email: string, password: string) => {
     setIsDeletingAccount(true);
@@ -60,16 +64,20 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
           <header className="border-b border-white/5 pb-7">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-noir-gold">Configurações</p>
-            <h1 className="mt-3 text-3xl font-bold text-white">{isSecuritySection ? 'Segurança' : 'Conta'}</h1>
+            <h1 className="mt-3 text-3xl font-bold text-white">{sectionTitle}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-400">
               {isSecuritySection
                 ? 'Fortaleca sua senha e configure uma segunda etapa de verificação.'
+                : isIntegrationsSection
+                  ? 'Conecte suas plataformas e mantenha sua biblioteca sincronizada.'
                 : 'Gerencie seu acesso, sessão e informações principais do Horizon.'}
             </p>
           </header>
 
           {isSecuritySection ? (
             <SecuritySettings session={session} />
+          ) : isIntegrationsSection ? (
+            <SteamIntegrationSettings session={session} />
           ) : (
             <AccountSettings
               onOpenDelete={() => {
@@ -138,12 +146,12 @@ function AccountSettings({ onOpenDelete, onSignOut, userEmail }: AccountSettings
 function SettingsSidebar() {
   return (
     <aside className="hidden h-screen w-[324px] shrink-0 flex-col border-r border-white/5 bg-noir-base px-[34px] py-9 md:flex">
-      <div className="flex items-center gap-2">
+      <NavLink to="/" aria-label="Voltar para a página inicial" className="flex w-fit items-center gap-2">
         <span className="font-serif text-[31px] font-extrabold italic leading-none text-noir-champagne lowercase">
           horizon<span className="text-noir-gold">.</span>
         </span>
         <span className="mt-1 rounded border border-noir-gold/25 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.24em] text-noir-gold/70">Noir</span>
-      </div>
+      </NavLink>
 
       <nav className="mt-[66px] flex flex-col gap-[14px]" aria-label="Configurações">
         <span className="mb-1 ml-4 text-[10px] font-bold uppercase tracking-[0.28em] text-neutral-600">Configurações</span>

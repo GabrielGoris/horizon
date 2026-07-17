@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { AudiovisualCompletionDTO, BookCompletionDTO, GameCompletionDTO } from "../../../../schemas/media";
+import type { AudiovisualCompletionDTO, BookCompletionDTO, GameCompletionDTO, UpdateMediaDetailsDTO } from "../../../../schemas/media";
 import {
   applyAudiovisualCompletion,
   applyBookCompletion,
@@ -12,10 +12,12 @@ import {
   saveBookCompletion,
   saveGameCompletion,
   updateMediaMeta,
+  updateMediaDetails,
   updateMediaStatus,
 } from "../../../../services/mediaService";
 import { removeMediaFromWishlist } from "../../../../services/wishlistService";
 import type { MediaItem, MediaStatus } from "../../../../types";
+import { LIBRARY_UPDATED_EVENT } from "../../../../utils/libraryEvents";
 
 export function useMediaCollection() {
   const [collection, setCollection] = useState<MediaItem[]>([]);
@@ -77,6 +79,18 @@ export function useMediaCollection() {
       setIsLoadingMedia(false);
     }
   }, []);
+
+  useEffect(() => {
+    const handleLibraryUpdate = () => {
+      void refreshMedia().catch(() => undefined);
+    };
+
+    window.addEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
+
+    return () => {
+      window.removeEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
+    };
+  }, [refreshMedia]);
 
   const updateMedia = useCallback((updatedMedia: MediaItem) => {
     setCollection((currentCollection) =>
@@ -165,12 +179,20 @@ export function useMediaCollection() {
     updateMedia({ ...item, meta });
   }, [updateMedia]);
 
+  const handleUpdateMediaDetails = useCallback(async (item: MediaItem, details: UpdateMediaDetailsDTO) => {
+    await updateMediaDetails(item.id, details);
+    const refreshedCollection = await refreshMedia();
+    const refreshedMedia = refreshedCollection.find((media) => media.id === item.id);
+
+    if (refreshedMedia) setSelectedMedia(refreshedMedia);
+  }, [refreshMedia]);
+
   const confirmDeleteMedia = useCallback(async () => {
     if (!mediaToDelete) return;
 
     setIsDeletingMedia(true);
     try {
-      await deleteMedia(mediaToDelete.id);
+      await deleteMedia(mediaToDelete);
     } catch (error) {
       console.error(error);
       alert("Erro ao excluir a obra.");
@@ -192,6 +214,7 @@ export function useMediaCollection() {
     handleSaveGameCompletion,
     handleSaveAudiovisualCompletion,
     handleUpdateMediaMeta,
+    handleUpdateMediaDetails,
     handleUpdateMediaStatus,
     isLoadingMedia,
     isDeletingMedia,

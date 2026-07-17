@@ -15,6 +15,7 @@ export function DeleteMediaDialog({
   onConfirm,
 }: DeleteMediaDialogProps) {
   const coverUrl = item.cover?.trim();
+  const isSteamImport = item.source === "steam" && Boolean(item.external_id);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 px-5 backdrop-blur-[5px]">
@@ -67,12 +68,13 @@ export function DeleteMediaDialog({
 
             <div className="min-w-0 pt-1">
               <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">
-                Esta ação não pode ser desfeita
+                {isSteamImport ? "Não será importado novamente" : "Esta ação não pode ser desfeita"}
               </p>
               <p className="mt-3 text-sm leading-6 text-neutral-300">
                 Você está prestes a remover{" "}
                 <strong className="font-semibold text-white">"{item.title}"</strong>{" "}
                 da sua biblioteca.
+                {isSteamImport && " Ele continuará na Steam, mas será ignorado nas próximas sincronizações."}
               </p>
             </div>
           </div>

@@ -3,6 +3,7 @@ import type { AudiovisualCompletionDTO } from "../../schemas/media/dto/audiovisu
 import type { BookCompletionDTO } from "../../schemas/media/dto/book-completion.dto";
 import type { CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import type { GameCompletionDTO } from "../../schemas/media/dto/game-completion.dto";
+import type { UpdateMediaDetailsDTO } from "../../schemas/media/dto/update-media.dto";
 import type { MediaItem, MediaItemRow } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
 import { isSameMedia } from "./helpers";
@@ -124,6 +125,8 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
   return {
     id: item.id,
     user_id: item.user_id ?? undefined,
+    external_id: item.external_id ?? undefined,
+    source: item.source ?? undefined,
     title: item.title,
     creator: item.creator ?? "",
     director: item.director ?? "",
@@ -161,11 +164,39 @@ export async function fetchMedia() {
     .from("media_items")
     .select("*, audiovisual_completions(*), book_completions(*), game_completions(*)")
     .eq("user_id", userId)
+    .is("hidden_at", null)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
 
   return (data ?? []).map((item) => normalizeMediaItem(item as MediaItemRow));
+}
+
+export async function fetchMediaItem(identity: {
+  externalId?: string;
+  id?: string;
+  source?: string;
+}) {
+  const userId = await getCurrentUserId();
+  let query = supabase
+    .from("media_items")
+    .select("*, audiovisual_completions(*), book_completions(*), game_completions(*)")
+    .eq("user_id", userId)
+    .is("hidden_at", null);
+
+  if (identity.id) {
+    query = query.eq("id", identity.id);
+  } else {
+    query = query
+      .eq("source", identity.source ?? "steam")
+      .eq("external_id", identity.externalId ?? "");
+  }
+
+  const { data, error } = await query.maybeSingle();
+
+  if (error) throw error;
+
+  return data ? normalizeMediaItem(data as MediaItemRow) : null;
 }
 
 export async function createMedia(data: CreateMediaDTO) {
@@ -240,13 +271,39 @@ export async function updateMediaMeta(itemId: string, meta: string) {
   if (error) throw error;
 }
 
-export async function deleteMedia(itemId: string) {
+export async function updateMediaDetails(itemId: string, details: UpdateMediaDetailsDTO) {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("media_items")
-    .delete()
+    .update({
+      title: details.title.trim(),
+      creator: toNullableText(details.creator),
+      director: toNullableText(details.director),
+      category: toNullableText(details.category),
+      cover: toNullableText(details.cover),
+      backdrop: toNullableText(details.backdrop),
+      release_year: toNullableText(details.release_year),
+      campaign_hours: parseDurationHours(details.campaign_hours),
+      description: toNullableText(details.description),
+    })
     .eq("id", itemId)
     .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
+export async function deleteMedia(item: MediaItem) {
+  const userId = await getCurrentUserId();
+  const query = supabase.from("media_items");
+  const { error } = item.source === "steam" && item.external_id
+    ? await query
+      .update({ hidden_at: new Date().toISOString() })
+      .eq("id", item.id)
+      .eq("user_id", userId)
+    : await query
+      .delete()
+      .eq("id", item.id)
+      .eq("user_id", userId);
 
   if (error) throw error;
 }
