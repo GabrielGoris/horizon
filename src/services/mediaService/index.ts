@@ -164,6 +164,7 @@ export async function fetchMedia() {
     .from("media_items")
     .select("*, audiovisual_completions(*), book_completions(*), game_completions(*)")
     .eq("user_id", userId)
+    .is("hidden_at", null)
     .order("created_at", { ascending: false });
 
   if (error) throw error;
@@ -180,7 +181,8 @@ export async function fetchMediaItem(identity: {
   let query = supabase
     .from("media_items")
     .select("*, audiovisual_completions(*), book_completions(*), game_completions(*)")
-    .eq("user_id", userId);
+    .eq("user_id", userId)
+    .is("hidden_at", null);
 
   if (identity.id) {
     query = query.eq("id", identity.id);
@@ -290,13 +292,18 @@ export async function updateMediaDetails(itemId: string, details: UpdateMediaDet
   if (error) throw error;
 }
 
-export async function deleteMedia(itemId: string) {
+export async function deleteMedia(item: MediaItem) {
   const userId = await getCurrentUserId();
-  const { error } = await supabase
-    .from("media_items")
-    .delete()
-    .eq("id", itemId)
-    .eq("user_id", userId);
+  const query = supabase.from("media_items");
+  const { error } = item.source === "steam" && item.external_id
+    ? await query
+      .update({ hidden_at: new Date().toISOString() })
+      .eq("id", item.id)
+      .eq("user_id", userId)
+    : await query
+      .delete()
+      .eq("id", item.id)
+      .eq("user_id", userId);
 
   if (error) throw error;
 }

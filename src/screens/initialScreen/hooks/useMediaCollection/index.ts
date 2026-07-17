@@ -192,7 +192,7 @@ export function useMediaCollection() {
 
     setIsDeletingMedia(true);
     try {
-      await deleteMedia(mediaToDelete.id);
+      await deleteMedia(mediaToDelete);
     } catch (error) {
       console.error(error);
       alert("Erro ao excluir a obra.");

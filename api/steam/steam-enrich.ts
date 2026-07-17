@@ -122,6 +122,7 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
       .eq("user_id", user.id)
       .eq("type", "games")
       .eq("source", "steam")
+      .is("hidden_at", null)
       .in("external_id", appIds.map(String));
 
     if (error) throw error;

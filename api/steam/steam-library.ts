@@ -34,6 +34,7 @@ type ExistingGame = {
   director: string | null;
   enrichment_checked_at: string | null;
   external_id: string | null;
+  hidden_at: string | null;
   id: string;
   meta: string | null;
   release_year: string | null;
@@ -54,6 +55,9 @@ function getRequestErrorMessage(error: unknown, method: string) {
   const code = typeof databaseError?.code === "string" ? databaseError.code : "";
   const detail = typeof databaseError?.message === "string" ? databaseError.message : "";
 
+  if (detail.includes("hidden_at")) {
+    return "O banco ainda não possui o controle de jogos ignorados da Steam.";
+  }
   if (detail.includes("enrichment_checked_at")) {
     return "O banco ainda não possui o controle de detalhamento da Steam.";
   }
@@ -120,7 +124,8 @@ async function getIncompleteGames(
     .select("id, title, creator, category, description, release_year, campaign_hours, external_id")
     .eq("user_id", userId)
     .eq("type", "games")
-    .eq("source", "steam");
+    .eq("source", "steam")
+    .is("hidden_at", null);
 
   if (error) throw error;
 
@@ -137,7 +142,7 @@ async function synchronizeLibrary(
     .filter((game) => Number.isInteger(game.appid) && typeof game.name === "string" && Boolean(game.name.trim()));
   const { data: existingRows, error: existingError } = await adminClient
     .from("media_items")
-    .select("id, title, status, creator, director, category, cover, backdrop, release_year, campaign_hours, added_at, meta, description, source, external_id, enrichment_checked_at")
+    .select("id, title, status, creator, director, category, cover, backdrop, release_year, campaign_hours, added_at, meta, description, source, external_id, enrichment_checked_at, hidden_at")
     .eq("user_id", userId)
     .eq("type", "games");
 
@@ -191,7 +196,8 @@ async function synchronizeLibrary(
     !existingByExternalId.has(String(game.appid))
     && !linkedManually.has(String(game.appid))
   ));
-  const payload = games
+  const activeGames = games.filter((game) => !existingByExternalId.get(String(game.appid))?.hidden_at);
+  const payload = activeGames
     .filter((game) => !linkedManually.has(String(game.appid)))
     .map((game) => toImportPayload(game, userId, existingByExternalId.get(String(game.appid))));
   const importedRows: ImportedMedia[] = [];
@@ -210,7 +216,7 @@ async function synchronizeLibrary(
 
   linkedManually.forEach((row, externalId) => mediaIdByExternalId.set(externalId, row.id));
 
-  const completions = games
+  const completions = activeGames
     .filter((game) => (game.playtime_forever ?? 0) > 0 && mediaIdByExternalId.has(String(game.appid)))
     .map((game) => ({
       media_item_id: mediaIdByExternalId.get(String(game.appid)),
@@ -233,7 +239,7 @@ async function synchronizeLibrary(
 
   if (connectionError) throw connectionError;
 
-  const enrichmentAppIds = games
+  const enrichmentAppIds = activeGames
     .filter((game) => {
       const existing = existingByExternalId.get(String(game.appid))
         ?? linkedManually.get(String(game.appid));
@@ -256,7 +262,7 @@ async function synchronizeLibrary(
     })),
     syncedAt,
     total: games.length,
-    updated: games.filter((game) => existingByExternalId.has(String(game.appid))).length,
+    updated: activeGames.filter((game) => existingByExternalId.has(String(game.appid))).length,
   };
 }
 

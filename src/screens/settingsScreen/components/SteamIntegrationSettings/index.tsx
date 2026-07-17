@@ -1,8 +1,11 @@
 import { CheckCircle2, ExternalLink, Link2, LoaderCircle, RefreshCw, Unlink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MediaDossier } from "../../../../components/MediaDossier";
+import { DeleteMediaDialog } from "../../../../components/DeleteMediaDialog";
 import { useMediaEditor } from "../../../../hooks/useMediaEditor";
 import type { UpdateMediaDetailsDTO } from "../../../../schemas/media";
+import { deleteMedia } from "../../../../services/mediaService";
+import type { MediaItem } from "../../../../types";
 import {
   disconnectSteam,
   enrichSteamGames,
@@ -16,6 +19,7 @@ import {
 import type { SteamIntegrationSettingsProps } from "./types";
 import {
   LIBRARY_UPDATED_EVENT,
+  notifyLibraryUpdated,
   notifySteamGamesAdded,
 } from "../../../../utils/libraryEvents";
 
@@ -42,6 +46,8 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
   const [enrichmentResult, setEnrichmentResult] = useState({ enriched: 0, failed: 0 });
   const [enrichmentFailures, setEnrichmentFailures] = useState<SteamEnrichmentFailure[]>([]);
   const [enrichmentProgress, setEnrichmentProgress] = useState({ completed: 0, total: 0 });
+  const [mediaToDelete, setMediaToDelete] = useState<MediaItem | null>(null);
+  const [isDeletingMedia, setIsDeletingMedia] = useState(false);
   const enrichmentPercentage = enrichmentProgress.total > 0
     ? Math.round((enrichmentProgress.completed / enrichmentProgress.total) * 100)
     : 0;
@@ -193,6 +199,29 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
 
     setConnection(state.connection);
     setEnrichmentFailures(state.incompleteGames);
+  };
+
+  const handleDeleteMedia = async () => {
+    if (!mediaToDelete) return;
+
+    setIsDeletingMedia(true);
+    setErrorMessage("");
+
+    try {
+      await deleteMedia(mediaToDelete);
+      mediaEditor.closeMedia();
+      setMediaToDelete(null);
+      notifyLibraryUpdated();
+
+      const state = await getSteamIntegrationState(session);
+
+      setConnection(state.connection);
+      setEnrichmentFailures(state.incompleteGames);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível remover este jogo.");
+    } finally {
+      setIsDeletingMedia(false);
+    }
   };
 
   if (isLoading) {
@@ -396,14 +425,24 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
           item={mediaEditor.selectedMedia}
           onClose={mediaEditor.closeMedia}
           onComplete={mediaEditor.handleCompleteMedia}
-          onDelete={() => undefined}
+          onDelete={setMediaToDelete}
           onDetailsChange={handleDetailsChange}
           onMetaChange={mediaEditor.handleUpdateMediaMeta}
           onStatusChange={mediaEditor.handleUpdateMediaStatus}
           onSaveAudiovisualCompletion={mediaEditor.handleSaveAudiovisualCompletion}
           onSaveBookCompletion={mediaEditor.handleSaveBookCompletion}
           onSaveGameCompletion={mediaEditor.handleSaveGameCompletion}
-          showDeleteAction={false}
+        />
+      )}
+
+      {mediaToDelete && (
+        <DeleteMediaDialog
+          item={mediaToDelete}
+          isDeleting={isDeletingMedia}
+          onCancel={() => {
+            if (!isDeletingMedia) setMediaToDelete(null);
+          }}
+          onConfirm={handleDeleteMedia}
         />
       )}
     </div>

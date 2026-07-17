@@ -5,6 +5,7 @@ export type SteamGameInformation = {
   description?: string | null;
   enrichment_checked_at?: string | null;
   external_id?: string | null;
+  hidden_at?: string | null;
   id?: string | null;
   release_year?: string | null;
   title: string;
@@ -33,6 +34,7 @@ export function getMissingSteamDetails(game: SteamGameInformation) {
 
 export function needsSteamEnrichment(game?: SteamGameInformation) {
   if (!game) return true;
+  if (game.hidden_at) return false;
   if (game.enrichment_checked_at) return false;
 
   return !hasValue(game.creator)
