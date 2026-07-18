@@ -1,9 +1,10 @@
-import { Check, ChevronDown, ExternalLink, ImagePlus, Images, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, Images, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { CustomEntry, CustomEntryPhoto, CustomEntryStatus, CustomFieldValue, CustomLibraryCategory } from "../../types/customLibrary";
 import { formatCustomFieldValue } from "../../utils/customLibrary";
 import { CustomCategoryIcon } from "../CustomCategoryIcon";
 import { CompletionArtifact } from "./CompletionArtifact";
+import { Gallery } from "./Gallery";
 
 interface CustomEntryDossierProps {
   category: CustomLibraryCategory;
@@ -132,6 +133,14 @@ export function CustomEntryDossier({
             {coverUrl && <span className="absolute left-3 top-3 rounded bg-black/70 px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-widest text-white/65 backdrop-blur-sm">Capa</span>}
           </div>
 
+          <Gallery
+            photos={entry.photos}
+            isSaving={isSavingPhotos}
+            onAdd={(files) => void addPhotos(files)}
+            onDelete={(photo) => void removePhoto(photo)}
+            onExpand={setExpandedImageUrl}
+          />
+
           <div className="mt-8 text-center">
             <h2 className="font-serif text-3xl font-extrabold leading-[1.05] text-white">{entry.title}</h2>
             <p className="mt-3 font-serif text-sm font-bold italic text-noir-gold">{category.name_singular}</p>
@@ -173,30 +182,6 @@ export function CustomEntryDossier({
           <section className="mt-8 border-t border-white/10 pt-7">
             <p className="mb-4 font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-neutral-600">Resumo / Arquivo</p>
             <p className="text-sm leading-7 text-neutral-200">{entry.description || `Nenhuma observação cadastrada para este ${category.name_singular.toLowerCase()}.`}</p>
-          </section>
-
-          <section className="mt-8 border-t border-white/10 pt-7">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.24em] text-neutral-600">Galeria</p>
-              <span className="font-mono text-[9px] text-neutral-600">{entry.photos.length} {entry.photos.length === 1 ? "foto" : "fotos"}</span>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {entry.photos.map((photo) => (
-                <div key={photo.id} className="group relative aspect-square overflow-hidden rounded-md bg-black/20">
-                  <button type="button" onClick={() => photo.signed_url && setExpandedImageUrl(photo.signed_url)} className="h-full w-full cursor-zoom-in">
-                    {photo.signed_url && <img src={photo.signed_url} alt="" className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />}
-                  </button>
-                  <button type="button" disabled={isSavingPhotos} aria-label="Remover foto" onClick={() => void removePhoto(photo)} className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded bg-black/75 text-red-300 opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-40">
-                    <Trash2 size={12} />
-                  </button>
-                </div>
-              ))}
-              <label className="flex aspect-square cursor-pointer flex-col items-center justify-center gap-1 rounded-md border border-dashed border-white/15 text-neutral-600 transition hover:border-noir-gold/35 hover:text-noir-gold" title="Adicionar fotos">
-                {isSavingPhotos ? <LoaderCircle size={16} className="animate-spin" /> : <ImagePlus size={17} />}
-                <span className="font-mono text-[7px] font-bold uppercase tracking-wider">Adicionar</span>
-                <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" multiple disabled={isSavingPhotos} className="hidden" onChange={(event) => void addPhotos(Array.from(event.target.files ?? []))} />
-              </label>
-            </div>
           </section>
 
           {actionError && <p role="alert" className="mt-5 rounded-lg border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{actionError}</p>}
