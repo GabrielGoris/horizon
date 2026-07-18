@@ -5,9 +5,11 @@ import { ArtifactFields } from "./ArtifactFields";
 import { BoardGame } from "./BoardGame";
 import { CollectionRecord } from "./CollectionRecord";
 import { DiningPlate } from "./DiningPlate";
+import { ExhibitionPass } from "./ExhibitionPass";
 import { Passport } from "./Passport";
 import { getCompletionArtifactPreset } from "./presets";
 import { ShoppingBag } from "./ShoppingBag";
+import { TheaterPlaybill } from "./TheaterPlaybill";
 import type { CompletionArtifactLayoutProps } from "./types";
 import { formatCompletedDate } from "./utils";
 
@@ -29,6 +31,8 @@ export function CompletionArtifact({
   if (preset.variant === "purchase") return <ShoppingBag {...layoutProps} />;
   if (preset.variant === "visit") return <Passport {...layoutProps} />;
   if (preset.variant === "archive") return <CollectionRecord {...layoutProps} />;
+  if (preset.variant === "exhibition") return <ExhibitionPass {...layoutProps} />;
+  if (preset.variant === "theater") return <TheaterPlaybill {...layoutProps} />;
 
   return (
     <section className="mt-8 border-t border-white/10 pt-7">

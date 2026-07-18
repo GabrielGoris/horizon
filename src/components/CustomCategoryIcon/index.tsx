@@ -1,8 +1,10 @@
 import {
   BookMarked,
   Dices,
+  Drama,
   FolderHeart,
   Heart,
+  Landmark,
   ListChecks,
   MapPin,
   ShoppingBag,
@@ -22,6 +24,8 @@ export function CustomCategoryIcon({ className, name, size = 16 }: CustomCategor
   if (name === "utensils") return <Utensils {...props} />;
   if (name === "dices") return <Dices {...props} />;
   if (name === "shopping-bag") return <ShoppingBag {...props} />;
+  if (name === "exhibition") return <Landmark {...props} />;
+  if (name === "theater") return <Drama {...props} />;
   if (name === "heart") return <Heart {...props} />;
   if (name === "book-marked") return <BookMarked {...props} />;
   if (name === "list") return <ListChecks {...props} />;

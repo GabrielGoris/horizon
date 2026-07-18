@@ -4,6 +4,8 @@ export type CompletionArtifactVariant =
   | "dining"
   | "game"
   | "purchase"
+  | "exhibition"
+  | "theater"
   | "keepsake"
   | "library"
   | "checklist";
@@ -63,6 +65,24 @@ const PRESETS: Record<string, CompletionArtifactPreset> = {
     accentClass: "text-violet-200",
     badgeClass: "border-violet-200/15 bg-violet-200/10 text-violet-100",
     buttonClass: "bg-violet-200 text-[#1e172a] hover:bg-violet-100",
+  },
+  exhibition: {
+    variant: "exhibition",
+    eyebrow: "Credencial de galeria",
+    status: "Exposição visitada",
+    surfaceClass: "border-stone-200/15 bg-[#242320]",
+    accentClass: "text-stone-200",
+    badgeClass: "border-stone-200/15 bg-stone-200/10 text-stone-100",
+    buttonClass: "bg-stone-100 text-[#242320] hover:bg-white",
+  },
+  theater: {
+    variant: "theater",
+    eyebrow: "Programa de espetáculo",
+    status: "Espetáculo assistido",
+    surfaceClass: "border-red-200/15 bg-[#2d1718]",
+    accentClass: "text-amber-200",
+    badgeClass: "border-amber-200/15 bg-amber-200/10 text-amber-100",
+    buttonClass: "bg-amber-200 text-[#2d1718] hover:bg-amber-100",
   },
   heart: {
     variant: "keepsake",

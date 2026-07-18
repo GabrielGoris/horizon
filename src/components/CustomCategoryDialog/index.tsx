@@ -1,6 +1,6 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { CUSTOM_CATEGORY_ICONS } from "../CustomCategoryIcon/consts";
+import { CustomCategoryIconSelect } from "../CustomCategoryIconSelect";
 import type {
   CustomCategoryField,
   CustomCategoryInput,
@@ -155,9 +155,7 @@ export function CustomCategoryDialog({
             </label>
             <label className={labelClass}>
               Ícone
-              <select className={inputClass} value={icon} onChange={(event) => setIcon(event.target.value)}>
-                {CUSTOM_CATEGORY_ICONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
+              <CustomCategoryIconSelect value={icon} onChange={setIcon} />
             </label>
             <label className={labelClass}>
               Cor de destaque
