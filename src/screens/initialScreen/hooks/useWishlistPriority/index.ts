@@ -1,9 +1,11 @@
 import { useCallback, useState } from "react";
+import { useToast } from "../../../../components/ToastProvider/hooks/useToast";
 import { moveMediaToWishlist, removeMediaFromWishlist } from "../../../../services/wishlistService";
 import type { MediaItem, MediaType } from "../../../../types";
 import type { UseWishlistPriorityParams } from "../types";
 
 export function useWishlistPriority({ collection, refreshMedia }: UseWishlistPriorityParams) {
+  const { notify } = useToast();
   const [mediaToPrioritize, setMediaToPrioritize] = useState<MediaItem | null>(null);
   const [managedWishlistType, setManagedWishlistType] = useState<MediaType | null>(null);
   const [isSavingWishlist, setIsSavingWishlist] = useState(false);
@@ -23,7 +25,7 @@ export function useWishlistPriority({ collection, refreshMedia }: UseWishlistPri
       await moveMediaToWishlist(wishlistCollection, mediaToPrioritize, position);
     } catch (error) {
       console.error(error);
-      alert("Erro ao atualizar a lista de prioridade.");
+      notify({ tone: "error", title: "Prioridade não atualizada", message: "Não foi possível atualizar a lista de prioridade." });
       setIsSavingWishlist(false);
       return;
     }
@@ -32,7 +34,8 @@ export function useWishlistPriority({ collection, refreshMedia }: UseWishlistPri
     setMediaToPrioritize(null);
     setManagedWishlistType(null);
     await refreshMedia();
-  }, [collection, mediaToPrioritize, refreshMedia]);
+    notify({ tone: "success", title: "Prioridade atualizada", message: `“${mediaToPrioritize.title}” agora ocupa a posição #${position}.` });
+  }, [collection, mediaToPrioritize, notify, refreshMedia]);
 
   const moveWishlistItem = useCallback(async (item: MediaItem, position: number) => {
     setIsSavingWishlist(true);
@@ -40,14 +43,15 @@ export function useWishlistPriority({ collection, refreshMedia }: UseWishlistPri
       await moveMediaToWishlist(collection, item, position);
     } catch (error) {
       console.error(error);
-      alert("Erro ao atualizar a lista de prioridade.");
+      notify({ tone: "error", title: "Prioridade não atualizada", message: "Não foi possível mover este item na lista." });
       setIsSavingWishlist(false);
       return;
     }
 
     setIsSavingWishlist(false);
     await refreshMedia();
-  }, [collection, refreshMedia]);
+    notify({ tone: "success", title: "Prioridade atualizada", message: `“${item.title}” agora ocupa a posição #${position}.` });
+  }, [collection, notify, refreshMedia]);
 
   const removeWishlistItem = useCallback(async (item: MediaItem) => {
     setIsSavingWishlist(true);
@@ -55,14 +59,15 @@ export function useWishlistPriority({ collection, refreshMedia }: UseWishlistPri
       await removeMediaFromWishlist(collection, item);
     } catch (error) {
       console.error(error);
-      alert("Erro ao remover da lista de prioridade.");
+      notify({ tone: "error", title: "Item não removido", message: "Não foi possível remover o item da lista de prioridade." });
       setIsSavingWishlist(false);
       return;
     }
 
     setIsSavingWishlist(false);
     await refreshMedia();
-  }, [collection, refreshMedia]);
+    notify({ tone: "success", title: "Prioridade removida", message: `“${item.title}” saiu da lista de prioridade.` });
+  }, [collection, notify, refreshMedia]);
 
   const cancelWishlistPriority = () => {
     if (!isSavingWishlist) {

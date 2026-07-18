@@ -6,6 +6,7 @@ import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/
 import { createMedia, hasDuplicateMedia } from "../../services/mediaService";
 import type { MediaType } from "../../types";
 import { DuplicateMediaDialog } from "../DuplicateMediaDialog";
+import { useToast } from "../ToastProvider/hooks/useToast";
 import { BasicInfoFields } from "./components/BasicInfoFields";
 import { CoverDetailsFields } from "./components/CoverDetailsFields";
 import { FormActions } from "./components/FormActions";
@@ -15,6 +16,7 @@ import { useMediaCatalogSearch } from "./hooks/useMediaCatalogSearch";
 import type { AddMediaDialogProps, PendingDuplicateMedia } from "./types";
 
 export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, initialType }: AddMediaDialogProps) {
+  const { notify } = useToast();
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
   const [mediaFormat, setMediaFormat] = useState<"movie" | "series">("movie");
   const [pendingDuplicate, setPendingDuplicate] = useState<PendingDuplicateMedia | null>(null);
@@ -89,6 +91,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
 
       setPendingDuplicate(null);
       await onSuccess();
+      notify({ tone: "success", title: "Obra adicionada", message: `“${data.title}” entrou na sua biblioteca.` });
       clearDialogState(data.type);
       onClose();
 
@@ -97,7 +100,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
       }
     } catch (error) {
       console.error("Erro ao guardar:", error);
-      alert("Erro ao guardar a obra.");
+      notify({ tone: "error", title: "Obra não adicionada", message: "Não foi possível guardar a obra. Tente novamente." });
     }
   };
 

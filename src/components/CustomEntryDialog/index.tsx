@@ -1,6 +1,7 @@
 import { ImagePlus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { CustomFieldInput } from "../CustomFieldInput";
+import { useToast } from "../ToastProvider/hooks/useToast";
 import type {
   CustomEntry,
   CustomEntryInput,
@@ -36,6 +37,7 @@ export function CustomEntryDialog({
   onDeletePhoto,
   onSave,
 }: CustomEntryDialogProps) {
+  const { notify } = useToast();
   const [title, setTitle] = useState(entry?.title ?? "");
   const [coverUrl, setCoverUrl] = useState(entry?.cover_url ?? "");
   const [description, setDescription] = useState(entry?.description ?? "");
@@ -97,8 +99,10 @@ export function CustomEntryDialog({
     try {
       await onDeletePhoto(photo);
       setExistingPhotos((current) => current.filter((item) => item.id !== photo.id));
+      notify({ tone: "success", title: "Foto removida", message: "A foto foi removida da galeria." });
     } catch (photoError) {
       setError(photoError instanceof Error ? photoError.message : "Não foi possível remover a foto.");
+      notify({ tone: "error", title: "Foto não removida", message: "Não foi possível remover a foto da galeria." });
     }
   };
 

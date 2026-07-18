@@ -1,6 +1,7 @@
 import { CustomCategoryDialog } from "../../../../components/CustomCategoryDialog";
 import { CustomEntryDialog } from "../../../../components/CustomEntryDialog";
 import { CustomEntryDossier } from "../../../../components/CustomEntryDossier";
+import { ConfirmationDialog } from "../../../../components/ConfirmationDialog";
 import { deleteCustomEntryPhoto } from "../../../../services/customLibraryService";
 import type { CustomLibraryCategory } from "../../../../types/customLibrary";
 import type { CustomLibraryWorkspace } from "../../hooks/useCustomLibraryWorkspace";
@@ -52,6 +53,24 @@ export function CustomLibraryOverlays({ category, workspace }: CustomLibraryOver
           onStatusChange={workspace.changeEntryStatus}
         />
       )}
+
+      <ConfirmationDialog
+        isOpen={Boolean(workspace.entryToDelete)}
+        isLoading={workspace.isSavingEntry}
+        title="Excluir este item?"
+        description={`“${workspace.entryToDelete?.title ?? "Este item"}” e todas as suas fotos serão removidos permanentemente.`}
+        onCancel={workspace.cancelRemoveEntry}
+        onConfirm={() => void workspace.confirmRemoveEntry()}
+      />
+
+      <ConfirmationDialog
+        isOpen={Boolean(workspace.categoryToDelete)}
+        isLoading={workspace.isSavingCategory}
+        title="Excluir esta categoria?"
+        description={`“${workspace.categoryToDelete?.name_plural ?? "Esta categoria"}”, todos os seus itens e fotos serão removidos permanentemente.`}
+        onCancel={workspace.cancelRemoveCategory}
+        onConfirm={() => void workspace.confirmRemoveCategory()}
+      />
     </>
   );
 }

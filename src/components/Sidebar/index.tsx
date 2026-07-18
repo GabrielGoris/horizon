@@ -6,7 +6,7 @@ import type { SidebarProps } from './types';
 
 export function Sidebar({ categories, customCategories = [], onAddCategory }: SidebarProps) {
   return (
-    <aside className="flex h-screen w-[324px] shrink-0 flex-col justify-between border-r border-white/5 bg-noir-base px-[34px] py-9">
+    <aside className="flex h-screen w-[324px] shrink-0 flex-col border-r border-white/5 bg-noir-base px-[34px] pb-2 pt-9">
       <div className="flex min-h-0 flex-1 flex-col gap-[66px]">
         <div className="flex items-center gap-2">
           <span className="font-serif text-[31px] font-extrabold italic leading-none text-noir-champagne lowercase">
@@ -60,19 +60,21 @@ export function Sidebar({ categories, customCategories = [], onAddCategory }: Si
         </nav>
       </div>
 
-      <NavLink
-        to="/settings"
-        aria-label="Configurações"
-        className={({ isActive }) =>
-          `flex h-10 w-10 items-center justify-center rounded-lg border transition-colors ${
-            isActive
-              ? 'border-noir-gold/45 bg-noir-gold/15 text-noir-gold'
-              : 'border-white/5 bg-white/[0.025] text-neutral-500 hover:bg-white/[0.05] hover:text-noir-champagne'
-          }`
-        }
-      >
-        <Settings size={16} strokeWidth={2.2} />
-      </NavLink>
+      <div className="-mx-[34px] mt-2 shrink-0 border-t border-white/10 px-[18px] pt-2">
+        <NavLink
+          to="/settings"
+          aria-label="Configurações"
+          className={({ isActive }) =>
+            `flex h-9 w-9 items-center justify-center transition-colors ${
+              isActive
+                ? 'text-noir-gold'
+                : 'text-neutral-600 hover:text-noir-champagne'
+            }`
+          }
+        >
+          <Settings size={18} strokeWidth={2.2} />
+        </NavLink>
+      </div>
     </aside>
   );
 }

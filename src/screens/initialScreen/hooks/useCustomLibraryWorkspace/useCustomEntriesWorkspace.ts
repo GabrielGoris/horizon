@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useToast } from "../../../../components/ToastProvider/hooks/useToast";
 import {
   createCustomEntry,
   deleteCustomEntry,
@@ -20,6 +21,7 @@ interface UseCustomEntriesWorkspaceOptions {
 }
 
 export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntriesWorkspaceOptions) {
+  const { notify } = useToast();
   const [entries, setEntries] = useState<CustomEntry[]>([]);
   const [entriesError, setEntriesError] = useState("");
   const [isLoadingEntries, setIsLoadingEntries] = useState(false);
@@ -27,6 +29,7 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
   const [isEntryDialogOpen, setIsEntryDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<CustomEntry | null>(null);
   const [entryBeingEdited, setEntryBeingEdited] = useState<CustomEntry | null>(null);
+  const [entryToDelete, setEntryToDelete] = useState<CustomEntry | null>(null);
   const [isSavingEntry, setIsSavingEntry] = useState(false);
   const entriesRequestId = useRef(0);
 
@@ -110,6 +113,7 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
     if (!category) return;
 
     setIsSavingEntry(true);
+    const isEditing = Boolean(entryBeingEdited);
 
     try {
       if (entryBeingEdited) {
@@ -121,22 +125,40 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
       await refreshEntries();
       setIsEntryDialogOpen(false);
       setEntryBeingEdited(null);
+      notify({
+        tone: "success",
+        title: isEditing ? "Item atualizado" : "Item adicionado",
+        message: `“${input.title}” foi ${isEditing ? "atualizado" : "adicionado à categoria"}.`,
+      });
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Item não salvo", message: "Não foi possível salvar este item." });
+      throw error;
     } finally {
       setIsSavingEntry(false);
     }
   };
 
   const removeEntry = async (entry: CustomEntry) => {
-    if (!window.confirm(`Excluir “${entry.title}” e suas fotos?`)) return;
+    setEntryToDelete(entry);
+  };
+
+  const confirmRemoveEntry = async () => {
+    if (!entryToDelete) return;
 
     setIsSavingEntry(true);
 
     try {
-      await deleteCustomEntry(entry);
+      await deleteCustomEntry(entryToDelete);
       await refreshEntries();
       setIsEntryDialogOpen(false);
       setSelectedEntry(null);
       setEntryBeingEdited(null);
+      notify({ tone: "success", title: "Item excluído", message: `“${entryToDelete.title}” foi removido da categoria.` });
+      setEntryToDelete(null);
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Item não excluído", message: "Não foi possível excluir este item." });
     } finally {
       setIsSavingEntry(false);
     }
@@ -162,31 +184,59 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
   const changeEntryStatus = async (entry: CustomEntry, status: CustomEntry["status"]) => {
     try {
       await updateEntry(entry, { status });
+      notify({ tone: "success", title: "Estado atualizado", message: `O estado de “${entry.title}” foi alterado.` });
     } catch (statusError) {
       console.error(statusError);
       setEntriesError(statusError instanceof Error ? statusError.message : "Não foi possível alterar o estado do item.");
+      notify({ tone: "error", title: "Estado não atualizado", message: "Não foi possível alterar o estado deste item." });
     }
   };
 
-  const saveEntryCompletion = (entry: CustomEntry, values: Record<string, CustomFieldValue>) => (
-    updateEntry(entry, { status: "completed", values })
-  );
+  const saveEntryCompletion = async (entry: CustomEntry, values: Record<string, CustomFieldValue>) => {
+    try {
+      await updateEntry(entry, { status: "completed", values });
+      notify({ tone: "success", title: "Registro salvo", message: `A conclusão de “${entry.title}” foi atualizada.` });
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Registro não salvo", message: "Não foi possível salvar os dados de conclusão." });
+      throw error;
+    }
+  };
 
-  const addEntryPhotos = (entry: CustomEntry, photos: File[]) => updateEntry(entry, {}, photos);
+  const addEntryPhotos = async (entry: CustomEntry, photos: File[]) => {
+    try {
+      await updateEntry(entry, {}, photos);
+      notify({ tone: "success", title: "Galeria atualizada", message: `${photos.length} ${photos.length === 1 ? "foto foi adicionada" : "fotos foram adicionadas"}.` });
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Fotos não adicionadas", message: "Não foi possível atualizar a galeria." });
+      throw error;
+    }
+  };
 
   const removeEntryPhoto = async (entry: CustomEntry, photo: CustomEntryPhoto) => {
-    await deleteCustomEntryPhoto(photo);
-    setSelectedEntry({ ...entry, photos: entry.photos.filter((item) => item.id !== photo.id) });
-    await refreshEntries();
+    try {
+      await deleteCustomEntryPhoto(photo);
+      setSelectedEntry({ ...entry, photos: entry.photos.filter((item) => item.id !== photo.id) });
+      await refreshEntries();
+      notify({ tone: "success", title: "Foto removida", message: "A foto foi removida da galeria." });
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Foto não removida", message: "Não foi possível remover a foto da galeria." });
+      throw error;
+    }
   };
 
   return {
     addEntryPhotos,
+    cancelRemoveEntry: () => !isSavingEntry && setEntryToDelete(null),
     changeEntryStatus,
     closeEntryDialog,
+    confirmRemoveEntry,
     entries,
     entriesError,
     entryBeingEdited,
+    entryToDelete,
     isEntryDialogOpen,
     isLoadingEntries: Boolean(category) && (isLoadingEntries || loadedCategoryId !== category?.id),
     isSavingEntry,

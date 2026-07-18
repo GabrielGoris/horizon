@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
+import { useToast } from "../../../../components/ToastProvider/hooks/useToast";
 import {
   createCustomCategory,
   deleteCustomCategory,
@@ -13,8 +14,10 @@ interface UseCustomCategoryWorkspaceOptions {
 }
 
 export function useCustomCategoryWorkspace({ navigate, refreshCategories }: UseCustomCategoryWorkspaceOptions) {
+  const { notify } = useToast();
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [categoryBeingEdited, setCategoryBeingEdited] = useState<CustomLibraryCategory | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<CustomLibraryCategory | null>(null);
   const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   const openNewCategory = () => {
@@ -35,6 +38,7 @@ export function useCustomCategoryWorkspace({ navigate, refreshCategories }: UseC
 
   const saveCategory = async (input: CustomCategoryInput) => {
     setIsSavingCategory(true);
+    const isEditing = Boolean(categoryBeingEdited);
 
     try {
       if (categoryBeingEdited) {
@@ -48,22 +52,40 @@ export function useCustomCategoryWorkspace({ navigate, refreshCategories }: UseC
 
       setIsCategoryDialogOpen(false);
       setCategoryBeingEdited(null);
+      notify({
+        tone: "success",
+        title: isEditing ? "Categoria atualizada" : "Categoria criada",
+        message: `“${input.name_plural}” foi ${isEditing ? "atualizada" : "adicionada à biblioteca"}.`,
+      });
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Categoria não salva", message: "Não foi possível salvar esta categoria." });
+      throw error;
     } finally {
       setIsSavingCategory(false);
     }
   };
 
   const removeCategory = async (category: CustomLibraryCategory) => {
-    if (!window.confirm(`Excluir “${category.name_plural}” e todos os seus itens e fotos? Esta ação não pode ser desfeita.`)) return;
+    setCategoryToDelete(category);
+  };
+
+  const confirmRemoveCategory = async () => {
+    if (!categoryToDelete) return;
 
     setIsSavingCategory(true);
 
     try {
-      await deleteCustomCategory(category.id);
+      await deleteCustomCategory(categoryToDelete.id);
       await refreshCategories();
       setIsCategoryDialogOpen(false);
       setCategoryBeingEdited(null);
       navigate("/");
+      notify({ tone: "success", title: "Categoria excluída", message: `“${categoryToDelete.name_plural}” foi removida da biblioteca.` });
+      setCategoryToDelete(null);
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Categoria não excluída", message: "Não foi possível excluir esta categoria." });
     } finally {
       setIsSavingCategory(false);
     }
@@ -71,7 +93,10 @@ export function useCustomCategoryWorkspace({ navigate, refreshCategories }: UseC
 
   return {
     categoryBeingEdited,
+    categoryToDelete,
+    cancelRemoveCategory: () => !isSavingCategory && setCategoryToDelete(null),
     closeCategoryDialog,
+    confirmRemoveCategory,
     isCategoryDialogOpen,
     isSavingCategory,
     openCategoryEditor,

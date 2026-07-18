@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "node --experimental-strip-types --test server/tests/steamEnrichment.test.ts server/tests/customLibrary.test.ts server/tests/mediaStatus.test.ts"
+    "test": "node --experimental-strip-types --test server/tests/steamEnrichment.test.ts server/tests/customLibrary.test.ts server/tests/mediaStatus.test.ts server/tests/toast.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
