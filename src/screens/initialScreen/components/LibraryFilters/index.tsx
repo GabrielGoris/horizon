@@ -1,6 +1,6 @@
 import { SlidersHorizontal } from "lucide-react";
 import { GAME_PLATFORM_OPTIONS } from "../../../../consts/gamePlatforms";
-import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../../../consts/mediaStatus";
+import { getMediaStatusLabel, getMediaStatusOptions } from "../../../../consts/mediaStatus";
 import type { GamePlatformFilter, SortMode } from "../../types";
 import { MediaFormatFilters } from "../MediaFormatFilters/index";
 import type { LibraryFiltersProps, SortOption } from "../types";
@@ -69,6 +69,10 @@ export function LibraryFilters({
   onClearFilters,
 }: LibraryFiltersProps) {
   const sortOptions = getSortOptions(activeTab);
+  const statusOptions = getMediaStatusOptions(
+    mediaType,
+    mediaFormatFilter === "all" ? undefined : mediaFormatFilter
+  );
 
   return (
     <div className="relative flex items-center gap-3">
@@ -134,7 +138,7 @@ export function LibraryFilters({
                 >
                   Todos
                 </button>
-                {MEDIA_STATUS_OPTIONS.map((status) => (
+                {statusOptions.map((status) => (
                   <button
                     key={status}
                     type="button"

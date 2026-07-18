@@ -1,4 +1,4 @@
-import { MEDIA_STATUS_OPTIONS } from "../../../../consts/mediaStatus";
+import { getMediaStatusOptions } from "../../../../consts/mediaStatus";
 import { formatDateInput } from "../../../../utils/date";
 import { CompletionRatingField } from "../CompletionRatingField";
 import { GamePlatformField } from "../GamePlatformField";
@@ -28,6 +28,7 @@ export function TypeSpecificFields({
   setValue,
 }: TypeSpecificFieldsProps) {
   const isFinished = statusValue === "complete";
+  const statusOptions = getMediaStatusOptions(selectedType, mediaFormat);
 
   return (
     <>
@@ -128,7 +129,7 @@ export function TypeSpecificFields({
         <label className={labelClass}>
           Estado na Biblioteca *
           <select {...register("status")} className={inputClass}>
-            {MEDIA_STATUS_OPTIONS.map((status) => (
+            {statusOptions.map((status) => (
               <option key={status} value={status}>
                 {copy.statusOptions[status]}
               </option>

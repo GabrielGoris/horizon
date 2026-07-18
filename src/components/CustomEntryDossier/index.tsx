@@ -96,7 +96,7 @@ export function CustomEntryDossier({
 
   return (
     <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-[6px]">
-      <button type="button" aria-label="Fechar dossiê" className="absolute inset-0 cursor-default" onClick={onClose} />
+      <button type="button" aria-label="Fechar dossiê" className="absolute inset-0 cursor-default" onMouseDown={onClose} />
 
       <aside className="animate-dossier-panel-in relative z-10 flex h-full w-full max-w-[430px] flex-col border-l border-white/10 bg-[#17171a] shadow-[-28px_0_80px_rgba(0,0,0,0.65)]">
         <header className="flex h-[70px] items-center justify-between border-b border-white/10 px-7">

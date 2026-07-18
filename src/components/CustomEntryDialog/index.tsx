@@ -107,7 +107,7 @@ export function CustomEntryDialog({
 
   return (
     <div className={`fixed inset-0 z-[120] flex bg-black/80 backdrop-blur-sm ${isEditing ? "animate-dossier-overlay-in justify-end" : "items-center justify-center p-4"}`}>
-      {isEditing && <button type="button" aria-label="Fechar edição" className="absolute inset-0 cursor-default" onClick={onClose} />}
+      {isEditing && <button type="button" aria-label="Fechar edição" className="absolute inset-0 cursor-default" onMouseDown={onClose} />}
       <section className={`relative z-10 flex w-full flex-col overflow-hidden border-white/10 bg-[#19191c] ${isEditing ? "animate-dossier-panel-in h-full max-w-[430px] border-l shadow-[-28px_0_80px_rgba(0,0,0,0.65)]" : "max-h-[92vh] max-w-3xl rounded-2xl border shadow-[0_30px_100px_rgba(0,0,0,0.8)]"}`}>
         <header className={`flex justify-between border-b border-white/10 px-7 ${isEditing ? "h-[70px] items-center" : "items-start py-6"}`}>
           <div className={isEditing ? "flex min-w-0 items-center gap-2 font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-noir-gold" : ""}>
