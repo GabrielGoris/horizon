@@ -4,29 +4,32 @@ interface CustomFieldInputProps {
   field: CustomCategoryField;
   value: CustomFieldValue;
   onChange: (value: CustomFieldValue) => void;
-  variant?: "default" | "dossier";
+  variant?: "default" | "dossier" | "artifact-light";
 }
 
 export function CustomFieldInput({ field, value, onChange, variant = "default" }: CustomFieldInputProps) {
   const isDossier = variant === "dossier";
-  const inputClass = isDossier
+  const isArtifactLight = variant === "artifact-light";
+  const inputClass = isArtifactLight
+    ? "h-9 w-full border-x-0 border-b border-t-0 border-stone-700/20 bg-transparent px-0 text-sm font-semibold text-[#392f27] outline-none transition focus:border-stone-700/50"
+    : isDossier
     ? "h-10 w-full border-x-0 border-b border-t-0 border-white/10 bg-transparent px-0 text-sm text-white outline-none transition focus:border-noir-gold/70"
     : "h-11 w-full rounded-lg border border-white/10 bg-[#111114] px-3 text-sm text-white outline-none transition focus:border-noir-gold/70";
-  const labelClass = "flex flex-col gap-2 text-[10px] font-bold uppercase tracking-widest text-neutral-500";
+  const labelClass = `flex flex-col gap-2 text-[9px] font-bold uppercase tracking-widest ${isArtifactLight ? "text-stone-500" : "text-neutral-500"}`;
   const stringValue = typeof value === "string" || typeof value === "number" ? String(value) : "";
 
   if (field.field_type === "textarea") {
     return (
       <label className={`${labelClass} md:col-span-2`}>
         {field.label}{field.required ? " *" : ""}
-        <textarea className={isDossier ? "min-h-20 resize-none border-x-0 border-b border-t-0 border-white/10 bg-transparent px-0 py-2 text-sm normal-case tracking-normal text-white outline-none focus:border-noir-gold/70" : "min-h-24 rounded-lg border border-white/10 bg-[#111114] p-3 text-sm normal-case tracking-normal text-white outline-none focus:border-noir-gold/70"} value={stringValue} onChange={(event) => onChange(event.target.value)} />
+        <textarea className={isArtifactLight ? "min-h-16 resize-none border-x-0 border-b border-t-0 border-stone-700/20 bg-transparent px-0 py-2 text-sm font-semibold normal-case tracking-normal text-[#392f27] outline-none focus:border-stone-700/50" : isDossier ? "min-h-20 resize-none border-x-0 border-b border-t-0 border-white/10 bg-transparent px-0 py-2 text-sm normal-case tracking-normal text-white outline-none focus:border-noir-gold/70" : "min-h-24 rounded-lg border border-white/10 bg-[#111114] p-3 text-sm normal-case tracking-normal text-white outline-none focus:border-noir-gold/70"} value={stringValue} onChange={(event) => onChange(event.target.value)} />
       </label>
     );
   }
 
   if (field.field_type === "boolean") {
     return (
-      <label className={`flex h-11 items-center gap-3 self-end text-sm text-neutral-300 ${isDossier ? "border-b border-white/10 px-0" : "rounded-lg border border-white/10 bg-[#111114] px-4"}`}>
+      <label className={`flex h-11 items-center gap-3 self-end text-sm ${isArtifactLight ? "border-b border-stone-700/20 text-stone-700" : isDossier ? "border-b border-white/10 px-0 text-neutral-300" : "rounded-lg border border-white/10 bg-[#111114] px-4 text-neutral-300"}`}>
         <input type="checkbox" checked={value === true} onChange={(event) => onChange(event.target.checked)} className="accent-[#d4af37]" />
         {field.label}
       </label>
@@ -49,11 +52,11 @@ export function CustomFieldInput({ field, value, onChange, variant = "default" }
     const selectedOptions = Array.isArray(value) ? value : [];
 
     return (
-      <fieldset className={isDossier ? "border-b border-white/10 px-0 py-3" : "rounded-lg border border-white/10 bg-[#111114] p-3"}>
-        <legend className="px-1 text-[10px] font-bold uppercase tracking-widest text-neutral-500">{field.label}{field.required ? " *" : ""}</legend>
+      <fieldset className={isArtifactLight ? "border-b border-stone-700/20 px-0 py-3" : isDossier ? "border-b border-white/10 px-0 py-3" : "rounded-lg border border-white/10 bg-[#111114] p-3"}>
+        <legend className={`px-1 text-[10px] font-bold uppercase tracking-widest ${isArtifactLight ? "text-stone-500" : "text-neutral-500"}`}>{field.label}{field.required ? " *" : ""}</legend>
         <div className="flex flex-wrap gap-3">
           {field.options.map((option) => (
-            <label key={option} className="flex items-center gap-2 text-xs text-neutral-300">
+            <label key={option} className={`flex items-center gap-2 text-xs ${isArtifactLight ? "text-stone-700" : "text-neutral-300"}`}>
               <input
                 type="checkbox"
                 checked={selectedOptions.includes(option)}
@@ -80,7 +83,7 @@ export function CustomFieldInput({ field, value, onChange, variant = "default" }
     <label className={labelClass}>
       {field.label}{field.required ? " *" : ""}
       <span className="relative">
-        {field.field_type === "currency" && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-neutral-600">R$</span>}
+        {field.field_type === "currency" && <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm ${isArtifactLight ? "text-stone-500" : "text-neutral-600"}`}>R$</span>}
         <input
           type={inputType}
           step={field.field_type === "currency" ? "0.01" : undefined}

@@ -1,9 +1,9 @@
-import { Check, ChevronDown, ExternalLink, ImagePlus, Images, LoaderCircle, NotebookPen, Pencil, Save, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ExternalLink, ImagePlus, Images, LoaderCircle, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import type { CustomEntry, CustomEntryPhoto, CustomEntryStatus, CustomFieldValue, CustomLibraryCategory } from "../../types/customLibrary";
 import { formatCustomFieldValue } from "../../utils/customLibrary";
 import { CustomCategoryIcon } from "../CustomCategoryIcon";
-import { CustomFieldInput } from "../CustomFieldInput";
+import { CompletionArtifact } from "./CompletionArtifact";
 
 interface CustomEntryDossierProps {
   category: CustomLibraryCategory;
@@ -158,33 +158,16 @@ export function CustomEntryDossier({
 
           <FactSection title="Planejamento" facts={planningFacts} />
 
-          {isCompleted && completionFields.length > 0 && (
-            <section className="mt-8 border-t border-white/10 pt-7">
-              <div className="mb-6 flex items-start gap-3">
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-noir-gold/10 text-noir-gold">
-                  <NotebookPen size={15} />
-                </span>
-                <div>
-                  <p className="font-serif text-lg font-bold italic text-noir-champagne">Registro da experiência</p>
-                  <p className="mt-1 text-xs leading-5 text-neutral-600">Detalhes preenchidos depois de concluir.</p>
-                </div>
-              </div>
-              <div className="grid gap-4">
-                {completionFields.map((field) => (
-                  <CustomFieldInput
-                    key={field.id}
-                    field={field}
-                    value={draftValues[field.id]}
-                    onChange={(value) => setDraftValues((current) => ({ ...current, [field.id]: value }))}
-                    variant="dossier"
-                  />
-                ))}
-              </div>
-              <button type="button" onClick={() => void saveCompletion()} disabled={isSavingCompletion} className="ml-auto mt-6 flex h-9 items-center justify-center gap-2 rounded-lg bg-noir-gold px-4 font-mono text-[9px] font-bold uppercase tracking-wider text-black transition-colors hover:bg-noir-champagne disabled:opacity-50">
-                {isSavingCompletion ? <LoaderCircle size={14} className="animate-spin" /> : <Save size={14} />}
-                Salvar conclusão
-              </button>
-            </section>
+          {isCompleted && (
+            <CompletionArtifact
+              category={category}
+              entry={entry}
+              fields={completionFields}
+              values={draftValues}
+              isSaving={isSavingCompletion}
+              onChange={(fieldId, value) => setDraftValues((current) => ({ ...current, [fieldId]: value }))}
+              onSave={() => void saveCompletion()}
+            />
           )}
 
           <section className="mt-8 border-t border-white/10 pt-7">
