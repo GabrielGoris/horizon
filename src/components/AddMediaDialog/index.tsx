@@ -72,6 +72,9 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     setValue("runtime_minutes", "", { shouldDirty: true, shouldValidate: true });
     setValue("season_count", "", { shouldDirty: true, shouldValidate: true });
     setValue("episode_count", "", { shouldDirty: true, shouldValidate: true });
+    if (selectedType === "movies" && nextMediaFormat === "movie" && getValues("status") === "incomplete") {
+      setValue("status", "queue", { shouldDirty: true, shouldValidate: true });
+    }
   };
 
   const persistMedia = async (data: CreateMediaDTO, shouldPrioritize: boolean, allowDuplicate = false) => {
@@ -126,11 +129,12 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-      onClick={closeDialog}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) closeDialog();
+      }}
     >
       <div
         className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1e] shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
       >
         <div className="shrink-0 border-b border-white/5 px-8 pb-4 pt-8">
           <div className="flex items-center justify-between">

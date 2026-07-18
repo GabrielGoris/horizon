@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AddMediaDialog } from "../../components/AddMediaDialog";
 import { DeleteMediaDialog } from "../../components/DeleteMediaDialog";
 import { Header } from "../../components/Header";
@@ -9,19 +10,25 @@ import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { getWishlistItems, WISHLIST_LIMIT } from "../../services/wishlistService";
 import { warmGameCatalog } from "../../services/gameCatalogService";
 import { CategorySection } from "./components/CategorySection";
+import { CustomCategorySection } from "./components/CustomCategorySection";
+import { CustomLibraryOverlays } from "./components/CustomLibraryOverlays";
 import { OverviewSection } from "./components/OverviewSection";
 import { CATEGORIES } from "./consts";
 import { useFilteredCollection } from "./hooks/useFilteredCollection";
+import { useCustomCategories } from "./hooks/useCustomCategories";
+import { useCustomLibraryWorkspace } from "./hooks/useCustomLibraryWorkspace";
 import { useLibraryFilters } from "./hooks/useLibraryFilters";
 import { useMediaCollection } from "./hooks/useMediaCollection";
 import { useWishlistPriority } from "./hooks/useWishlistPriority";
 import type { InitialScreenProps } from "./types";
 import { sortMediaItemsByPriority } from "./utils";
 
-export function InitialScreen({ activeTab }: InitialScreenProps) {
+export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenProps) {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const mediaCollection = useMediaCollection();
+  const customCategories = useCustomCategories();
   const filters = useLibraryFilters(activeTab);
   const wishlistPriority = useWishlistPriority({
     collection: mediaCollection.collection,
@@ -35,6 +42,14 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
   }, [activeTab]);
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
+  const customCategory = customCategories.categories.find((category) => category.slug === customCategorySlug);
+  const isCustomCategoryRoute = activeTab === "custom";
+  const customLibrary = useCustomLibraryWorkspace({
+    category: customCategory,
+    isActive: isCustomCategoryRoute,
+    navigate,
+    refreshCategories: customCategories.refresh,
+  });
   const activeLabel = activeTab === "overview" ? "Visão Geral" : activeCategory?.plural ?? "Nova Categoria";
   const addMediaInitialType = activeTab === "overview" ? null : activeCategory?.id;
   const filteredCollection = useFilteredCollection({
@@ -79,13 +94,15 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-noir-base font-sans text-white">
-      <Sidebar categories={CATEGORIES} />
+      <Sidebar categories={CATEGORIES} customCategories={customCategories.categories} onAddCategory={customLibrary.openNewCategory} />
 
       <div className="relative flex h-screen flex-1 flex-col">
         <Header
+          addLabel={customCategory ? `Adicionar ${customCategory.name_singular}` : "Adicionar obra"}
+          searchPlaceholder={customCategory ? `Buscar em ${customCategory.name_plural.toLowerCase()}...` : "Buscar obras na biblioteca..."}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          onAddClick={() => setIsAddMediaModalOpen(true)}
+          onAddClick={() => customCategory ? customLibrary.openNewEntry() : setIsAddMediaModalOpen(true)}
         />
 
         <main className="flex-1 overflow-y-auto p-8 lg:p-12">
@@ -106,7 +123,28 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
                 </button>
               </div>
             )}
-            {activeTab === "overview" ? (
+            {isCustomCategoryRoute ? (
+              customCategories.isLoading ? (
+                <div className="flex min-h-80 items-center justify-center font-mono text-[10px] uppercase tracking-widest text-neutral-600">Carregando categoria</div>
+              ) : customCategory ? (
+                <CustomCategorySection
+                  category={customCategory}
+                  entries={customLibrary.entries}
+                  error={customLibrary.entriesError}
+                  isLoading={customLibrary.isLoadingEntries}
+                  searchQuery={searchQuery}
+                  onEditCategory={() => customLibrary.openCategoryEditor(customCategory)}
+                  onSelectEntry={customLibrary.selectEntry}
+                  onRetry={() => void customLibrary.refreshEntries()}
+                />
+              ) : (
+                <div className="flex min-h-80 flex-col items-center justify-center text-center">
+                  <h2 className="font-serif text-2xl font-bold text-white">Categoria não encontrada</h2>
+                  <p className="mt-2 max-w-lg text-sm text-neutral-500">{customCategories.error || "Ela pode ter sido removida ou o endereço está incorreto."}</p>
+                  <button type="button" onClick={() => navigate("/")} className="mt-5 rounded-lg border border-white/10 px-4 py-2 text-xs text-neutral-300">Voltar à biblioteca</button>
+                </div>
+              )
+            ) : activeTab === "overview" ? (
               <OverviewSection
                 onManageWishlist={wishlistPriority.setManagedWishlistType}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
@@ -129,15 +167,19 @@ export function InitialScreen({ activeTab }: InitialScreenProps) {
         </main>
       </div>
 
-      <AddMediaDialog
-        isOpen={isAddMediaModalOpen}
-        onClose={() => setIsAddMediaModalOpen(false)}
-        onSuccess={async () => {
-          await mediaCollection.refreshMedia();
-        }}
-        onPriorityCreate={wishlistPriority.setMediaToPrioritize}
-        initialType={addMediaInitialType}
-      />
+      {!isCustomCategoryRoute && (
+        <AddMediaDialog
+          isOpen={isAddMediaModalOpen}
+          onClose={() => setIsAddMediaModalOpen(false)}
+          onSuccess={async () => {
+            await mediaCollection.refreshMedia();
+          }}
+          onPriorityCreate={wishlistPriority.setMediaToPrioritize}
+          initialType={addMediaInitialType}
+        />
+      )}
+
+      <CustomLibraryOverlays category={customCategory} workspace={customLibrary} />
 
       {mediaCollection.selectedMedia && (
         <MediaDossier

@@ -52,8 +52,10 @@ export const fieldCopy = {
     statusOptions: {
       queue: "Na Fila (Quero assistir)",
       in_progress: "Assistindo",
+      incomplete: "Incompleto",
       dropped: "Dropado",
       complete: "Finalizado / Assistido",
+      want_to_buy: "Quero comprar",
     },
   },
   games: {
@@ -71,8 +73,10 @@ export const fieldCopy = {
     statusOptions: {
       queue: "Na Fila (Quero jogar)",
       in_progress: "Jogando",
+      incomplete: "Incompleto",
       dropped: "Dropado",
       complete: "Finalizado / Completo",
+      want_to_buy: "Quero comprar",
     },
   },
   movies: {
@@ -92,8 +96,10 @@ export const fieldCopy = {
     statusOptions: {
       queue: "Na Fila (Quero ver)",
       in_progress: "Assistindo",
+      incomplete: "Incompleto",
       dropped: "Dropado",
       complete: "Finalizado / Visto",
+      want_to_buy: "Quero comprar",
     },
   },
   books: {
@@ -111,8 +117,10 @@ export const fieldCopy = {
     statusOptions: {
       queue: "Na Fila (Quero ler)",
       in_progress: "Lendo",
+      incomplete: "Incompleto",
       dropped: "Dropado",
       complete: "Finalizado / Lido",
+      want_to_buy: "Quero comprar",
     },
   },
 };

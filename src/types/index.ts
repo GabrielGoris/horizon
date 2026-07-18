@@ -1,5 +1,7 @@
 export type MediaType = 'animes' | 'movies' | 'games' | 'books';
-export type MediaStatus = 'complete' | 'dropped' | 'in_progress' | 'queue';
+export type BaseMediaStatus = 'complete' | 'dropped' | 'in_progress' | 'queue';
+export type MediaStatusDetail = 'incomplete' | 'want_to_buy';
+export type MediaStatus = BaseMediaStatus | MediaStatusDetail;
 export type MediaFormat = 'movie' | 'series';
 
 export interface MediaItem {
@@ -65,7 +67,8 @@ export type MediaItemRow = Omit<MediaItem, "releaseYear" | "rating" | "status"> 
   external_id?: string | null;
   source?: string | null;
   release_year?: string | null;
-  status: MediaStatus;
+  status: BaseMediaStatus;
+  status_detail?: MediaStatusDetail | null;
   media_format?: MediaFormat | null;
   added_at?: string | null;
   completed_year?: number | string | null;

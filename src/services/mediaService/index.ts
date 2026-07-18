@@ -4,7 +4,7 @@ import type { BookCompletionDTO } from "../../schemas/media/dto/book-completion.
 import type { CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import type { GameCompletionDTO } from "../../schemas/media/dto/game-completion.dto";
 import type { UpdateMediaDetailsDTO } from "../../schemas/media/dto/update-media.dto";
-import type { MediaItem, MediaItemRow } from "../../types";
+import type { BaseMediaStatus, MediaItem, MediaItemRow, MediaStatus, MediaStatusDetail } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
 import { isSameMedia } from "./helpers";
 import type { ExistingMediaIdentity } from "./types";
@@ -68,6 +68,16 @@ function toNullableText(value: string | undefined) {
   return trimmedValue ? trimmedValue : null;
 }
 
+function getPersistedMediaStatus(status: MediaStatus): {
+  status: BaseMediaStatus;
+  status_detail: MediaStatusDetail | null;
+} {
+  if (status === "incomplete") return { status: "in_progress", status_detail: status };
+  if (status === "want_to_buy") return { status: "queue", status_detail: status };
+
+  return { status, status_detail: null };
+}
+
 export async function hasDuplicateMedia(data: CreateMediaDTO) {
   const userId = await getCurrentUserId();
   const { data: existingItems, error } = await supabase
@@ -92,12 +102,14 @@ async function getCurrentUserId() {
 }
 
 function getCreateMediaPayload(data: CreateMediaDTO, userId: string) {
+  const persistedStatus = getPersistedMediaStatus(data.status);
+
   return {
     user_id: userId,
     title: data.title,
     type: data.type,
     media_format: data.type === "movies" || data.type === "animes" ? data.media_format ?? "movie" : null,
-    status: data.status,
+    ...persistedStatus,
     creator: toNullableText(data.creator),
     director: toNullableText(data.director),
     category: toNullableText(data.category),
@@ -135,7 +147,7 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     backdrop: item.backdrop ?? "",
     type: item.type,
     media_format: item.media_format ?? undefined,
-    status: item.status,
+    status: item.status_detail ?? item.status,
     releaseYear: item.release_year ?? "",
     meta: item.meta ?? "",
     rating: formatRating(completion?.rating ?? item.rating),
@@ -238,7 +250,7 @@ export async function completeMedia(itemId: string) {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("media_items")
-    .update({ status: "complete", completed_year: new Date().getFullYear() })
+    .update({ status: "complete", status_detail: null, completed_year: new Date().getFullYear() })
     .eq("id", itemId)
     .eq("user_id", userId);
 
@@ -247,9 +259,10 @@ export async function completeMedia(itemId: string) {
 
 export async function updateMediaStatus(itemId: string, status: MediaItem["status"]) {
   const userId = await getCurrentUserId();
+  const persistedStatus = getPersistedMediaStatus(status);
   const payload = status === "complete"
-    ? { status, completed_year: new Date().getFullYear() }
-    : { status, completed_year: null };
+    ? { ...persistedStatus, completed_year: new Date().getFullYear() }
+    : { ...persistedStatus, completed_year: null };
 
   const { error } = await supabase
     .from("media_items")

@@ -1,12 +1,13 @@
-import { LayoutGrid, Settings } from 'lucide-react';
+import { LayoutGrid, Plus, Settings } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { CustomCategoryIcon } from '../CustomCategoryIcon';
 import { SidebarItem } from './SideBarItem';
 import type { SidebarProps } from './types';
 
-export function Sidebar({ categories }: SidebarProps) {
+export function Sidebar({ categories, customCategories = [], onAddCategory }: SidebarProps) {
   return (
     <aside className="flex h-screen w-[324px] shrink-0 flex-col justify-between border-r border-white/5 bg-noir-base px-[34px] py-9">
-      <div className="flex flex-col gap-[66px]">
+      <div className="flex min-h-0 flex-1 flex-col gap-[66px]">
         <div className="flex items-center gap-2">
           <span className="font-serif text-[31px] font-extrabold italic leading-none text-noir-champagne lowercase">
             horizon<span className="text-noir-gold">.</span>
@@ -16,7 +17,7 @@ export function Sidebar({ categories }: SidebarProps) {
           </span>
         </div>
 
-        <nav className="flex flex-col gap-[14px]" aria-label="Biblioteca">
+        <nav className="flex min-h-0 flex-col gap-[14px] overflow-y-auto pr-1 [scrollbar-width:thin]" aria-label="Biblioteca">
           <span className="mb-1 ml-4 text-[10px] font-bold uppercase tracking-[0.28em] text-neutral-600">
             Biblioteca
           </span>
@@ -37,6 +38,25 @@ export function Sidebar({ categories }: SidebarProps) {
               to={`/${category.id}`}
             />
           ))}
+
+          <span className="mb-1 ml-4 mt-5 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.28em] text-neutral-600">
+            Minhas categorias
+            {onAddCategory && (
+              <button type="button" aria-label="Adicionar categoria" onClick={onAddCategory} className="mr-2 flex h-7 w-7 items-center justify-center rounded-md border border-white/10 text-neutral-500 transition hover:border-noir-gold/30 hover:text-noir-gold">
+                <Plus size={13} />
+              </button>
+            )}
+          </span>
+
+          {customCategories.map((category) => (
+            <SidebarItem
+              key={category.id}
+              label={category.name_plural}
+              icon={<CustomCategoryIcon name={category.icon} size={15} />}
+              to={`/c/${category.slug}`}
+            />
+          ))}
+
         </nav>
       </div>
 

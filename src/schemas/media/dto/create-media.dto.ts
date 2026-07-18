@@ -9,7 +9,7 @@ export const createMediaSchema = z.object({
   category: z.string().optional(),
   cover: z.string().url("Insira uma URL valida (http://...)").or(z.literal("")).optional(),
   backdrop: z.string().url("Insira uma URL valida (http://...)").or(z.literal("")).optional(),
-  status: z.enum(["queue", "in_progress", "dropped", "complete"] as const),
+  status: z.enum(["queue", "in_progress", "incomplete", "dropped", "complete", "want_to_buy"] as const),
   release_year: z.string().optional(),
   added_at: z.string().optional(),
   completed_year: z.string().optional(),

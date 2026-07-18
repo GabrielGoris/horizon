@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { MediaType } from '../../../types';
+import type { CustomLibraryCategory } from '../../../types/customLibrary';
 
 export interface CategoryDef {
   id: MediaType;
@@ -11,6 +12,8 @@ export interface CategoryDef {
 
 export interface SidebarProps {
   categories: CategoryDef[];
+  customCategories?: CustomLibraryCategory[];
+  onAddCategory?: () => void;
 }
 
 export interface SidebarItemProps {

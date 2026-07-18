@@ -1,7 +1,7 @@
 import { Check, ChevronDown, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { GAME_PLATFORM_OPTIONS, getGamePlatformOption } from "../../consts/gamePlatforms";
-import { MEDIA_STATUS_OPTIONS, getMediaStatusLabel } from "../../consts/mediaStatus";
+import { getMediaStatusLabel, getMediaStatusOptions } from "../../consts/mediaStatus";
 import { GamePlatformLogo } from "../GamePlatformLogo";
 import { CompletionArtifacts } from "./CompletionArtifacts";
 import { DossierEditForm } from "./DossierEditForm";
@@ -25,7 +25,10 @@ export function MediaDossier({
   showDeleteAction = true,
 }: MediaDossierProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const isSeries = (item.type === "movies" || item.type === "animes") && item.media_format === "series";
+  const hasSeriesStructure = item.media_format === "series"
+    || Number(item.season_count) > 0
+    || Number(item.episode_count) > 0;
+  const isSeries = (item.type === "movies" || item.type === "animes") && hasSeriesStructure;
   const mediaDisplayType = item.type === "animes"
     ? "Anime"
     : isSeries
@@ -44,6 +47,10 @@ export function MediaDossier({
     ? Math.min(100, Math.round((item.progress.current / item.progress.total) * 100))
     : 0;
   const chipClass = "inline-flex h-6 min-w-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-3 font-mono text-[10px] leading-none text-neutral-400";
+  const statusMediaFormat = item.type === "movies"
+    ? hasSeriesStructure ? "series" : "movie"
+    : item.media_format;
+  const statusOptions = getMediaStatusOptions(item.type, statusMediaFormat);
 
   return (
     <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-[6px]">
@@ -51,7 +58,7 @@ export function MediaDossier({
         type="button"
         aria-label="Fechar dossiê"
         className="absolute inset-0 cursor-default"
-        onClick={onClose}
+        onMouseDown={onClose}
       />
 
       <aside className="animate-dossier-panel-in relative z-10 flex h-full w-full max-w-[430px] flex-col border-l border-white/10 bg-[#17171a] shadow-[-28px_0_80px_rgba(0,0,0,0.65)]">
@@ -147,7 +154,7 @@ export function MediaDossier({
                       onChange={(event) => void onStatusChange(item, event.target.value as typeof item.status)}
                       className="h-full w-full cursor-pointer appearance-none truncate rounded-full border-0 bg-transparent pl-3 pr-6 text-center font-mono text-[10px] leading-none text-neutral-400 outline-none transition-colors hover:text-noir-champagne"
                     >
-                      {MEDIA_STATUS_OPTIONS.map((statusOption) => (
+                      {statusOptions.map((statusOption) => (
                         <option key={statusOption} value={statusOption} className="bg-[#17171a] text-neutral-200">
                           {getMediaStatusLabel(statusOption, item.type)}
                         </option>
