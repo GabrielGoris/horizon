@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { ListPlus } from "lucide-react";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { GamePlatformLogo } from "../GamePlatformLogo";
@@ -12,7 +13,7 @@ function getTypeLabel(item: MediaCardProps["item"]) {
   return "Livro";
 }
 
-export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps) {
+export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps) {
   const isBook = item.type === 'books';
   const typeLabel = getTypeLabel(item);
   const platform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
@@ -21,7 +22,7 @@ export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps)
   return (
     <div 
       onClick={() => onClick && onClick(item)}
-      className={`group relative isolate transform-gpu overflow-hidden bg-[#1a1a1e] border cursor-pointer transition-all duration-500 will-change-transform [backface-visibility:hidden] hover:-translate-y-2 aspect-[2/3] ${
+      className={`media-card group relative isolate overflow-hidden bg-[#1a1a1e] border cursor-pointer transition-none md:transform-gpu md:transition-all md:duration-500 md:will-change-transform md:[backface-visibility:hidden] md:hover:-translate-y-2 aspect-[2/3] ${
         isBook
           ? 'rounded-none border-white/5 shadow-[0_4px_8px_rgba(0,0,0,0.55),0_10px_20px_rgba(0,0,0,0.3)] hover:border-[#d4af37]/30 hover:shadow-[0_15px_30px_rgba(0,0,0,0.65)]'
           : 'rounded-none border-transparent shadow-[0_3px_6px_rgba(0,0,0,0.55),0_8px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_10px_24px_rgba(0,0,0,0.65)]'
@@ -33,7 +34,7 @@ export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps)
           alt={item.title}
           loading="lazy"
           decoding="async"
-          className="block h-full w-full rounded-[inherit] object-cover filter saturate-[0.65] sepia-[0.18] contrast-[1.08] brightness-[0.82] transition-all duration-600 transform-gpu [backface-visibility:hidden] group-hover:saturate-100 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105"
+          className="block h-full w-full rounded-[inherit] object-cover md:filter md:saturate-[0.65] md:sepia-[0.18] md:contrast-[1.08] md:brightness-[0.82] md:transition-all md:duration-600 md:transform-gpu md:[backface-visibility:hidden] md:group-hover:saturate-100 md:group-hover:sepia-0 md:group-hover:contrast-100 md:group-hover:brightness-100 md:group-hover:scale-105"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center rounded-[inherit] bg-white/[0.04] font-mono text-[10px] uppercase tracking-widest text-neutral-600">
@@ -94,4 +95,4 @@ export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps)
       </div>
     </div>
   );
-}
+});

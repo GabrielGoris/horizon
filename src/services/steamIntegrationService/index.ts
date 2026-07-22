@@ -1,4 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
+import { getApiUrl } from "../apiUrl";
 import type { ApiResponse, SteamEnrichmentResult, SteamIntegrationState, SteamSyncResult } from "./types";
 
 export type {
@@ -12,7 +13,7 @@ export type {
 
 
 async function requestSteamApi<T>(session: Session, path: string, init?: RequestInit) {
-  const response = await fetch(path, {
+  const response = await fetch(getApiUrl(path), {
     ...init,
     headers: {
       Authorization: `Bearer ${session.access_token}`,

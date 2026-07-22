@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-const DEFAULT_PAGE_SIZE = 30
+const DEFAULT_PAGE_SIZE = 12
 
 export function useInfiniteList<T>(items: T[], pageSize = DEFAULT_PAGE_SIZE) {
   const [visibleCount, setVisibleCount] = useState(pageSize)
@@ -16,7 +16,7 @@ export function useInfiniteList<T>(items: T[], pageSize = DEFAULT_PAGE_SIZE) {
           setVisibleCount((current) => Math.min(current + pageSize, items.length))
         }
       },
-      { rootMargin: '420px 0px' },
+      { rootMargin: '240px 0px' },
     )
 
     observer.observe(sentinel)

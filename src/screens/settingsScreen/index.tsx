@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowLeft, Bell, CreditCard, LogOut, Plug, Shield, Trash2, User, UserRound, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { getApiUrl } from '../../services/apiUrl';
 import { SecuritySettings } from './components/SecuritySettings';
 import { SteamIntegrationSettings } from './components/SteamIntegrationSettings';
 import type {
@@ -35,7 +36,7 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
     setErrorMessage(null);
 
     try {
-      const response = await fetch('/api/delete-account', {
+      const response = await fetch(getApiUrl('/api/delete-account'), {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,

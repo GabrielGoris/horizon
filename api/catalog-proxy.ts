@@ -55,6 +55,12 @@ function sendJson(res: ApiResponse, statusCode: number, body: unknown) {
   res.end(JSON.stringify(body));
 }
 
+function setCorsHeaders(res: ApiResponse) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 async function readRequestBody(req: ApiRequest) {
   if (typeof req.body === "string") return req.body;
   if (Buffer.isBuffer(req.body)) return req.body.toString("utf8");
@@ -471,6 +477,8 @@ function isAbortError(error: unknown) {
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
   try {
+    setCorsHeaders(res);
+
     if (req.method === "OPTIONS") {
       res.statusCode = 204;
       res.end();

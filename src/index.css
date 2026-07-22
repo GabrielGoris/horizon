@@ -15,10 +15,16 @@
 
   #root {
     min-height: 100dvh;
+    overflow-x: clip;
   }
 }
 
 @layer components {
+  .media-card {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 320px;
+  }
+
   .dossier-edit-input {
     @apply w-full rounded-lg border border-white/10 bg-[#111114] px-3.5 py-3 text-sm text-neutral-100 outline-none transition-colors placeholder:text-neutral-700 focus:border-noir-gold/50;
   }

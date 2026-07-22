@@ -23,7 +23,7 @@ export function ActiveMediaSection({ items, mediaType, onPrioritizeMedia, onSele
         </h3>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
+      <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
         {visibleItems.map((item) => (
           <MediaCard
             key={item.id}

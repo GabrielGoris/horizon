@@ -94,11 +94,11 @@ export function CustomCategorySection({
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-3 gap-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
           {Array.from({ length: 5 }, (_, index) => <div key={index} className="aspect-[2/3] animate-pulse bg-white/[0.04]" />)}
         </div>
       ) : filteredEntries.length > 0 ? (
-        <div className="grid grid-cols-3 gap-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
           {visibleItems.map((entry) => {
             const previewFields = category.fields
               .map((field) => ({ field, value: formatCustomFieldValue(field, entry.values[field.id]) }))

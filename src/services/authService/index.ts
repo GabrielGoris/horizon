@@ -4,7 +4,7 @@ type CheckEmailResponse = {
 };
 
 export async function emailHasAccount(email: string) {
-  const response = await fetch("/api/check-email", {
+  const response = await fetch(getApiUrl("/api/check-email"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email }),
@@ -17,3 +17,4 @@ export async function emailHasAccount(email: string) {
 
   return result.exists === true;
 }
+import { getApiUrl } from "../apiUrl";

@@ -53,7 +53,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
   };
 
   return (
-    <div className="relative -mx-8 px-8 lg:-mx-12 lg:px-12">
+    <div className="relative lg:-mx-12 lg:px-12">
       <button
         type="button"
         aria-label="Ver item anterior"
@@ -76,12 +76,12 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
       <div
         ref={trackRef}
         onScroll={updateNavigation}
-        className="-my-3 flex snap-x snap-mandatory gap-6 overflow-x-auto px-px py-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-my-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-px py-3 sm:gap-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="w-[calc((100%-3rem)/3)] shrink-0 snap-start md:w-[calc((100%-4.5rem)/4)] lg:w-[calc((100%-6rem)/5)]"
+            className="w-[calc((100%-1.25rem)/3)] shrink-0 snap-start sm:w-[calc((100%-3rem)/3)] md:w-[calc((100%-4.5rem)/4)] lg:w-[calc((100%-6rem)/5)]"
           >
             <MediaCard
               item={item}
@@ -122,7 +122,7 @@ export function OverviewSection({ priorityItemsByCategory, onAddClick, onManageW
 
         return (
           <section key={category.id}>
-            <div className="mb-6 flex items-center justify-between">
+            <div className="mb-6 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="flex items-center gap-2 font-serif text-xl font-bold text-[#ebdcb9]">
                 Top 10 {category.plural}
               </h3>

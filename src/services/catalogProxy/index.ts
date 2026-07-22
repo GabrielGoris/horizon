@@ -1,3 +1,5 @@
+import { getApiUrl } from "../apiUrl";
+
 export type CatalogProxyService = "books" | "brasil-api" | "google-books" | "hltb" | "igdb" | "steam" | "tmdb";
 
 type CatalogRequestOptions = Omit<RequestInit, "signal"> & {
@@ -9,8 +11,7 @@ type CatalogRequestOptions = Omit<RequestInit, "signal"> & {
 export function getCatalogProxyUrl(service: CatalogProxyService, endpoint: string, searchParams?: URLSearchParams) {
   const query = searchParams?.toString();
   const endpointWithQuery = `${endpoint}${query ? `?${query}` : ""}`;
-
-  return `/api/catalog-proxy?${new URLSearchParams({
+  return `${getApiUrl("/api/catalog-proxy")}?${new URLSearchParams({
     service,
     endpoint: endpointWithQuery,
   }).toString()}`;
