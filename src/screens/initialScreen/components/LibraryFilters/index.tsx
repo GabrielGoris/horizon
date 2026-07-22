@@ -75,8 +75,8 @@ export function LibraryFilters({
   );
 
   return (
-    <div className="relative flex items-center gap-3">
-      <span className="rounded border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-neutral-500">
+    <div className="relative flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
+      <span className="whitespace-nowrap rounded border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-neutral-500">
         {itemCount} itens catalogados
       </span>
       <button

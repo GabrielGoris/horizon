@@ -7,11 +7,13 @@ import {
   applyGameCompletion,
   completeMedia,
   deleteMedia,
+  fetchCachedMedia,
   fetchMedia,
   markMediaAsComplete,
   saveAudiovisualCompletion,
   saveBookCompletion,
   saveGameCompletion,
+  syncOfflineMediaChanges,
   updateMediaMeta,
   updateMediaDetails,
   updateMediaStatus,
@@ -31,6 +33,15 @@ export function useMediaCollection() {
 
   useEffect(() => {
     let isMounted = true;
+
+    void fetchCachedMedia()
+      .then((media) => {
+        if (isMounted && media.length > 0) {
+          setCollection(media);
+          setIsLoadingMedia(false);
+        }
+      })
+      .catch(() => undefined);
 
     fetchMedia()
       .then((media) => {
@@ -93,6 +104,23 @@ export function useMediaCollection() {
       window.removeEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
     };
   }, [refreshMedia]);
+
+  useEffect(() => {
+    const handleReconnect = () => {
+      void syncOfflineMediaChanges()
+        .then((didSync) => refreshMedia().then(() => didSync))
+        .then((didSync) => {
+          if (didSync) {
+            notify({ tone: "success", title: "Biblioteca sincronizada", message: "As alterações feitas offline foram enviadas." });
+          }
+        })
+        .catch((error) => console.error("NÃ£o foi possí­vel sincronizar a biblioteca:", error));
+    };
+
+    window.addEventListener("online", handleReconnect);
+
+    return () => window.removeEventListener("online", handleReconnect);
+  }, [notify, refreshMedia]);
 
   const updateMedia = useCallback((updatedMedia: MediaItem) => {
     setCollection((currentCollection) =>

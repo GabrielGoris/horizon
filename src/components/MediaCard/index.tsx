@@ -31,6 +31,8 @@ export function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps)
         <img
           src={coverUrl}
           alt={item.title}
+          loading="lazy"
+          decoding="async"
           className="block h-full w-full rounded-[inherit] object-cover filter saturate-[0.65] sepia-[0.18] contrast-[1.08] brightness-[0.82] transition-all duration-600 transform-gpu [backface-visibility:hidden] group-hover:saturate-100 group-hover:sepia-0 group-hover:contrast-100 group-hover:brightness-100 group-hover:scale-105"
         />
       ) : (

@@ -23,10 +23,11 @@ import { useWishlistPriority } from "./hooks/useWishlistPriority";
 import type { InitialScreenProps } from "./types";
 import { sortMediaItemsByPriority } from "./utils";
 
-export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenProps) {
+export function InitialScreen({ activeTab, customCategorySlug, userEmail }: InitialScreenProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mediaCollection = useMediaCollection();
   const customCategories = useCustomCategories();
   const filters = useLibraryFilters(activeTab);
@@ -93,20 +94,22 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
   }, [filteredCollection]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-noir-base font-sans text-white">
-      <Sidebar categories={CATEGORIES} customCategories={customCategories.categories} onAddCategory={customLibrary.openNewCategory} />
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-noir-base font-sans text-white">
+      <Sidebar categories={CATEGORIES} customCategories={customCategories.categories} onAddCategory={customLibrary.openNewCategory} isMobileMenuOpen={isMobileMenuOpen} onMobileMenuOpenChange={setIsMobileMenuOpen} />
 
-      <div className="relative flex h-screen flex-1 flex-col">
+      <div className="relative flex h-full min-w-0 flex-1 flex-col">
         <Header
           addLabel={customCategory ? `Adicionar ${customCategory.name_singular}` : "Adicionar obra"}
           searchPlaceholder={customCategory ? `Buscar em ${customCategory.name_plural.toLowerCase()}...` : "Buscar obras na biblioteca..."}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onAddClick={() => customCategory ? customLibrary.openNewEntry() : setIsAddMediaModalOpen(true)}
+          onMobileMenuClick={() => setIsMobileMenuOpen(true)}
+          userEmail={userEmail}
         />
 
-        <main className="flex-1 overflow-y-auto p-8 lg:p-12">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 pb-10">
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:p-8 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:p-12">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 pb-4 sm:gap-12 sm:pb-10">
             {mediaCollection.mediaLoadError && (
               <div
                 role="alert"
@@ -133,6 +136,7 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
                   error={customLibrary.entriesError}
                   isLoading={customLibrary.isLoadingEntries}
                   searchQuery={searchQuery}
+                  onAddEntry={customLibrary.openNewEntry}
                   onEditCategory={() => customLibrary.openCategoryEditor(customCategory)}
                   onSelectEntry={customLibrary.selectEntry}
                   onRetry={() => void customLibrary.refreshEntries()}
@@ -146,6 +150,7 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
               )
             ) : activeTab === "overview" ? (
               <OverviewSection
+                onAddClick={() => setIsAddMediaModalOpen(true)}
                 onManageWishlist={wishlistPriority.setManagedWishlistType}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
                 priorityItemsByCategory={overviewPriorityItems}
@@ -159,6 +164,7 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
                 filters={filters}
                 items={filteredCollection}
                 mediaType={addMediaInitialType ?? undefined}
+                onAddClick={() => setIsAddMediaModalOpen(true)}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
                 onSelectMedia={mediaCollection.setSelectedMedia}
               />

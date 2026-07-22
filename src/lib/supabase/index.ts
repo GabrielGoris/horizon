@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -11,7 +12,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
+    flowType: Capacitor.isNativePlatform() ? 'implicit' : 'pkce',
     persistSession: true,
   },
 })

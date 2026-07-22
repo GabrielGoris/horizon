@@ -1,5 +1,5 @@
-import { AlertTriangle, Bell, CreditCard, LogOut, Plug, Shield, Trash2, User, X } from 'lucide-react';
-import { useState } from 'react';
+import { AlertTriangle, ArrowLeft, Bell, CreditCard, LogOut, Plug, Shield, Trash2, User, UserRound, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { SecuritySettings } from './components/SecuritySettings';
 import { SteamIntegrationSettings } from './components/SteamIntegrationSettings';
@@ -26,7 +26,9 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
   const userEmail = session.user.email ?? 'Conta Horizon';
   const isSecuritySection = location.pathname === '/settings/security';
   const isIntegrationsSection = location.pathname === '/settings/integrations';
-  const sectionTitle = isSecuritySection ? 'Segurança' : isIntegrationsSection ? 'Integrações' : 'Conta';
+  const isNotificationsSection = location.pathname === '/settings/notifications';
+  const isBillingSection = location.pathname === '/settings/billing';
+  const sectionTitle = isSecuritySection ? 'Segurança' : isIntegrationsSection ? 'Integrações' : isNotificationsSection ? 'Notificações' : isBillingSection ? 'Plano' : 'Conta';
 
   const handleDeleteAccount = async (email: string, password: string) => {
     setIsDeletingAccount(true);
@@ -57,11 +59,12 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-noir-base font-sans text-white">
+    <div className="flex min-h-[100dvh] w-full bg-noir-base font-sans text-white md:h-screen md:overflow-hidden">
       <SettingsSidebar />
 
-      <main className="flex-1 overflow-y-auto px-6 py-10 lg:px-14">
+      <main className="flex-1 overflow-y-auto px-4 py-5 pb-24 sm:px-6 sm:py-10 lg:px-14">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+          <SettingsMobileTopBar userEmail={userEmail} />
           <header className="border-b border-white/5 pb-7">
             <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-noir-gold">Configurações</p>
             <h1 className="mt-3 text-3xl font-bold text-white">{sectionTitle}</h1>
@@ -70,7 +73,11 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
                 ? 'Fortaleca sua senha e configure uma segunda etapa de verificação.'
                 : isIntegrationsSection
                   ? 'Conecte suas plataformas e mantenha sua biblioteca sincronizada.'
-                : 'Gerencie seu acesso, sessão e informações principais do Horizon.'}
+                  : isNotificationsSection
+                    ? 'Defina como o Horizon deve avisar você sobre sua biblioteca.'
+                    : isBillingSection
+                      ? 'Acompanhe o plano associado à sua conta Horizon.'
+                  : 'Gerencie seu acesso, sessão e informações principais do Horizon.'}
             </p>
           </header>
 
@@ -78,6 +85,10 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
             <SecuritySettings session={session} />
           ) : isIntegrationsSection ? (
             <SteamIntegrationSettings session={session} />
+          ) : isNotificationsSection ? (
+            <NotificationSettings />
+          ) : isBillingSection ? (
+            <PlanSettings />
           ) : (
             <AccountSettings
               onOpenDelete={() => {
@@ -101,6 +112,77 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
         />
       )}
     </div>
+  );
+}
+
+function SettingsMobileTopBar({ userEmail }: { userEmail: string }) {
+  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const accountInitial = userEmail.trim().charAt(0).toUpperCase();
+
+  useEffect(() => {
+    if (!isAccountMenuOpen) return undefined;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!accountMenuRef.current?.contains(event.target as Node)) setIsAccountMenuOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    return () => document.removeEventListener('pointerdown', handlePointerDown);
+  }, [isAccountMenuOpen]);
+
+  return (
+    <div className="flex items-center justify-between md:hidden">
+      <NavLink to="/" aria-label="Voltar para a biblioteca" className="flex h-10 w-10 items-center justify-center rounded-lg border border-transparent text-neutral-400 transition hover:border-white/10 hover:bg-white/[0.04] hover:text-noir-champagne"><ArrowLeft size={20} /></NavLink>
+      <div ref={accountMenuRef} className="relative">
+        <button type="button" onClick={() => setIsAccountMenuOpen((current) => !current)} aria-label="Abrir opções da conta" aria-expanded={isAccountMenuOpen} title={userEmail} className="flex h-10 w-10 items-center justify-center rounded-full border border-noir-gold/30 bg-noir-gold/10 text-sm font-bold text-noir-champagne transition hover:border-noir-gold hover:bg-noir-gold/20">{accountInitial || <UserRound size={18} />}</button>
+        {isAccountMenuOpen && (
+          <div className="absolute right-0 top-[calc(100%+0.75rem)] z-50 w-64 overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1e] p-2 shadow-2xl shadow-black/60">
+            <div className="border-b border-white/5 px-3 pb-3 pt-2"><p className="truncate text-sm font-bold text-white">{userEmail}</p><p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-neutral-500">Configurações</p></div>
+            <nav className="mt-2 flex flex-col gap-1" aria-label="Opções da conta">
+              {settingsLinks.map((link) => <NavLink key={link.to} to={link.to} end={link.end} onClick={() => setIsAccountMenuOpen(false)} className={({ isActive }) => `flex h-10 items-center gap-3 rounded-lg px-3 text-[11px] font-bold uppercase tracking-wide transition ${isActive ? 'bg-noir-gold/10 text-noir-champagne' : 'text-neutral-500 hover:bg-white/[0.04] hover:text-white'}`}>{link.icon}<span>{link.label}</span></NavLink>)}
+            </nav>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function NotificationSettings() {
+  const [isEnabled, setIsEnabled] = useState(() => localStorage.getItem('horizon-notifications-enabled') === 'true');
+
+  const updateEnabled = (enabled: boolean) => {
+    setIsEnabled(enabled);
+    localStorage.setItem('horizon-notifications-enabled', String(enabled));
+  };
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1e]">
+      <div className="flex items-center justify-between gap-5 px-6 py-5">
+        <div>
+          <h2 className="text-sm font-bold text-white">Avisos da biblioteca</h2>
+          <p className="mt-1 max-w-xl text-sm leading-5 text-neutral-500">Mantenha essa preferência salva neste dispositivo para os avisos que adicionarmos ao Horizon.</p>
+        </div>
+        <button type="button" role="switch" aria-checked={isEnabled} onClick={() => updateEnabled(!isEnabled)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${isEnabled ? 'bg-noir-gold' : 'bg-white/10'}`}>
+          <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${isEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+        </button>
+      </div>
+
+    </section>
+  );
+}
+
+function PlanSettings() {
+  return (
+    <section className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1e]">
+      <div className="border-b border-white/5 px-6 py-6">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-noir-gold">Plano atual</p>
+        <h2 className="mt-3 font-serif text-3xl font-extrabold text-noir-champagne">Horizon pessoal</h2>
+        <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-400">Sua biblioteca está ativa e vinculada a esta conta. Quando houver planos pagos, as opções e o histórico aparecerão aqui.</p>
+      </div>
+      <div className="px-6 py-5 text-sm text-neutral-500">Nenhuma cobrança ou assinatura ativa.</div>
+    </section>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { MediaCard } from "../../../../components/MediaCard";
 import type { MediaItem } from "../../../../types";
@@ -81,7 +81,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
         {items.map((item, index) => (
           <div
             key={item.id}
-            className="w-[calc((100%-1.5rem)/2)] shrink-0 snap-start md:w-[calc((100%-4.5rem)/4)] lg:w-[calc((100%-6rem)/5)]"
+            className="w-[calc((100%-3rem)/3)] shrink-0 snap-start md:w-[calc((100%-4.5rem)/4)] lg:w-[calc((100%-6rem)/5)]"
           >
             <MediaCard
               item={item}
@@ -96,15 +96,16 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
   );
 }
 
-export function OverviewSection({ priorityItemsByCategory, onManageWishlist, onPrioritizeMedia, onSelectMedia }: OverviewSectionProps) {
+export function OverviewSection({ priorityItemsByCategory, onAddClick, onManageWishlist, onPrioritizeMedia, onSelectMedia }: OverviewSectionProps) {
   const hasPriorityItems = Array.from(priorityItemsByCategory.values()).some((items) => items.length > 0);
 
   return (
     <div className="flex flex-col gap-12">
       <div className="border-b border-white/5 pb-4">
-        <h2 className="font-serif text-3xl font-extrabold text-white">
-          Visão Geral do Acervo
-        </h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-serif text-3xl font-extrabold text-white">Visão Geral do Acervo</h2>
+          <button type="button" onClick={onAddClick} aria-label="Adicionar obra" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-noir-gold transition hover:bg-noir-gold/15 hover:text-noir-champagne md:hidden"><Plus size={17} /></button>
+        </div>
         <p className="mt-1 text-sm text-neutral-500">O que está no seu radar no momento.</p>
       </div>
 

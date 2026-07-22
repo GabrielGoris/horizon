@@ -8,6 +8,13 @@
   html,
   body {
     font-family: 'Inter', sans-serif;
+    min-height: 100%;
+    background: #131315;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #root {
+    min-height: 100dvh;
   }
 }
 

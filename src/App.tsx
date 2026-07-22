@@ -3,21 +3,21 @@ import { AuthScreen } from './screens/authScreen'
 import { InitialScreen } from './screens/initialScreen/index.tsx'
 import { useAuthSession } from './hooks/useAuthSession'
 import { useMfaAssurance } from './hooks/useMfaAssurance'
-import { supabase } from './lib/supabase'
 import type { InitialScreenProps } from './screens/initialScreen/types'
 import { SettingsScreen } from './screens/settingsScreen'
 import { ResetPasswordScreen } from './screens/resetPasswordScreen'
 import { MfaChallengeScreen } from './screens/mfaChallengeScreen'
 import { SteamAutoSync } from './components/SteamAutoSync'
+import { ConnectionStatus } from './components/ConnectionStatus'
 
-function CustomLibraryRoute() {
+function CustomLibraryRoute({ userEmail }: { userEmail?: string }) {
   const { categorySlug = "" } = useParams();
 
-  return <InitialScreen activeTab="custom" customCategorySlug={categorySlug} />;
+  return <InitialScreen activeTab="custom" customCategorySlug={categorySlug} userEmail={userEmail} />;
 }
 
 function App() {
-  const { isLoadingSession, session } = useAuthSession()
+  const { isLoadingSession, session, signOut } = useAuthSession()
   const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
 
   if (isLoadingSession || isCheckingMfa) {
@@ -37,14 +37,14 @@ function App() {
 
   const isAuthenticated = Boolean(session)
   const handleSignOut = async () => {
-    await supabase.auth.signOut({ scope: 'local' })
+    await signOut()
   }
   const renderLibraryRoute = (activeTab: InitialScreenProps['activeTab']) => {
     if (!isAuthenticated) {
       return <Navigate to="/auth" replace />
     }
 
-    return <InitialScreen activeTab={activeTab} />
+    return <InitialScreen activeTab={activeTab} userEmail={session?.user.email} />
   }
 
   if (isAuthenticated && isMfaRequired) {
@@ -58,6 +58,7 @@ function App() {
   return (
     <>
       {session && <SteamAutoSync session={session} />}
+      <ConnectionStatus />
       <Routes>
       <Route
         path="/auth"
@@ -76,7 +77,7 @@ function App() {
       <Route path="/movies" element={renderLibraryRoute("movies")} />
       <Route path="/games" element={renderLibraryRoute("games")} />
       <Route path="/books" element={renderLibraryRoute("books")} />
-      <Route path="/c/:categorySlug" element={isAuthenticated ? <CustomLibraryRoute /> : <Navigate to="/auth" replace />} />
+      <Route path="/c/:categorySlug" element={isAuthenticated ? <CustomLibraryRoute userEmail={session?.user.email} /> : <Navigate to="/auth" replace />} />
       <Route
         path="/settings"
         element={isAuthenticated && session ? <SettingsScreen onSignOut={handleSignOut} session={session} /> : <Navigate to="/auth" replace />}

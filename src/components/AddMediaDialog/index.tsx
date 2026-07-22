@@ -137,9 +137,9 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
       }}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1e] shadow-2xl"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1e] shadow-2xl sm:max-h-[90vh]"
       >
-        <div className="shrink-0 border-b border-white/5 px-8 pb-4 pt-8">
+        <div className="shrink-0 border-b border-white/5 px-5 pb-4 pt-5 sm:px-8 sm:pt-8">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-serif text-3xl font-bold text-[#ebdcb9]">
@@ -171,14 +171,14 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
         </div>
 
         {!selectedType && (
-          <div className="overflow-y-auto px-8 py-6">
+          <div className="overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
             <MediaTypePicker onSelect={selectType} />
           </div>
         )}
 
         {selectedType && copy && (
           <form onSubmit={handleSubmit((data) => onSubmit(data))} className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
               <div className="flex flex-col gap-6">
                 <BasicInfoFields
                   catalogSearch={catalogSearch}

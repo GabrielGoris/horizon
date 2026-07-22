@@ -4,6 +4,7 @@ import type { MediaStatus } from "../../../types";
 export interface InitialScreenProps {
   activeTab: string;
   customCategorySlug?: string;
+  userEmail?: string;
 }
 
 export type StatusFilter = "all" | MediaStatus;
