@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-const DEFAULT_PAGE_SIZE = 12
+const DEFAULT_PAGE_SIZE = 30
 
 export function useInfiniteList<T>(items: T[], pageSize = DEFAULT_PAGE_SIZE) {
   const [visibleCount, setVisibleCount] = useState(pageSize)

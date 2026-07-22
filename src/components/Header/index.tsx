@@ -31,7 +31,7 @@ export function Header({ addLabel = 'Adicionar obra', searchPlaceholder = 'Busca
   }, [isAccountMenuOpen])
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-start gap-3 border-b border-white/5 bg-[#131315]/90 px-4 backdrop-blur-md sm:h-20 sm:px-8 lg:px-10">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-start gap-3 border-b border-white/5 bg-[#131315] px-4 md:bg-[#131315]/90 md:backdrop-blur-md sm:h-20 sm:px-8 lg:px-10">
       {onMobileMenuClick && <button type="button" aria-label="Abrir menu" onClick={onMobileMenuClick} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-transparent text-neutral-400 transition hover:border-white/10 hover:bg-white/[0.04] hover:text-noir-champagne md:hidden"><Menu size={20} /></button>}
 
       <div className="relative min-w-0 flex-1 sm:w-96 sm:flex-none">

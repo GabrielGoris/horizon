@@ -2,7 +2,7 @@ import { Check, ChevronDown, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { getMediaStatusLabel, getMediaStatusOptions } from "../../consts/mediaStatus";
-import { GamePlatformField } from "../AddMediaDialog/components/GamePlatformField";
+import { GamePlatformSelect } from "../GamePlatformSelect";
 import { CompletionArtifacts } from "./CompletionArtifacts";
 import { DossierEditForm } from "./DossierEditForm";
 import { DossierFacts } from "./DossierFacts";
@@ -53,7 +53,7 @@ export function MediaDossier({
   const statusOptions = getMediaStatusOptions(item.type, statusMediaFormat);
 
   return (
-    <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-[6px]">
+    <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/80 md:bg-black/75 md:backdrop-blur-[6px]">
       <button
         type="button"
         aria-label="Fechar dossiê"
@@ -119,14 +119,7 @@ export function MediaDossier({
                   <span className={chipClass} title={category}>
                     <span className="truncate">{category}</span>
                   </span>
-                  {item.type === "games" && (
-                    <div className="w-full basis-full">
-                      <GamePlatformField
-                        metaValue={platformValue}
-                        onChange={(value) => void onMetaChange(item, value)}
-                      />
-                    </div>
-                  )}
+                  {item.type === "games" && <GamePlatformSelect value={platformValue} onChange={(value) => void onMetaChange(item, value)} />}
                   <div className={`relative ${chipClass} px-0`}>
                     <button
                       type="button"

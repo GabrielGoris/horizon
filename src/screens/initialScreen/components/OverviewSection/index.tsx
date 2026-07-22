@@ -58,7 +58,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
         type="button"
         aria-label="Ver item anterior"
         onClick={() => move(-1)}
-        className="absolute left-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113]/95 text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md transition hover:border-noir-gold/60 hover:text-noir-gold lg:h-10 lg:w-10"
+        className="absolute left-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113] text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition hover:border-noir-gold/60 hover:text-noir-gold md:bg-[#111113]/95 md:backdrop-blur-md lg:h-10 lg:w-10"
       >
         <ChevronLeft size={21} />
       </button>}
@@ -66,7 +66,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
         type="button"
         aria-label="Ver próximo item"
         onClick={() => move(1)}
-        className="absolute right-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113]/95 text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md transition hover:border-noir-gold/60 hover:text-noir-gold lg:h-10 lg:w-10"
+        className="absolute right-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113] text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] transition hover:border-noir-gold/60 hover:text-noir-gold md:bg-[#111113]/95 md:backdrop-blur-md lg:h-10 lg:w-10"
       >
         <ChevronRight size={21} />
       </button>}

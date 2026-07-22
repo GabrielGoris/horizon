@@ -7,7 +7,6 @@ import {
   applyGameCompletion,
   completeMedia,
   deleteMedia,
-  fetchCachedMedia,
   fetchMedia,
   markMediaAsComplete,
   saveAudiovisualCompletion,
@@ -33,15 +32,6 @@ export function useMediaCollection() {
 
   useEffect(() => {
     let isMounted = true;
-
-    void fetchCachedMedia()
-      .then((media) => {
-        if (isMounted && media.length > 0) {
-          setCollection(media);
-          setIsLoadingMedia(false);
-        }
-      })
-      .catch(() => undefined);
 
     fetchMedia()
       .then((media) => {
@@ -74,11 +64,11 @@ export function useMediaCollection() {
     };
   }, []);
 
-  const refreshMedia = useCallback(async () => {
+  const refreshMedia = useCallback(async (forceRemote = false) => {
     setIsLoadingMedia(true);
 
     try {
-      const media = await fetchMedia();
+      const media = await fetchMedia({ forceRemote });
 
       setCollection(media);
       setMediaLoadError("");
@@ -95,7 +85,7 @@ export function useMediaCollection() {
 
   useEffect(() => {
     const handleLibraryUpdate = () => {
-      void refreshMedia().catch(() => undefined);
+      void refreshMedia(true).catch(() => undefined);
     };
 
     window.addEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
@@ -108,7 +98,7 @@ export function useMediaCollection() {
   useEffect(() => {
     const handleReconnect = () => {
       void syncOfflineMediaChanges()
-        .then((didSync) => refreshMedia().then(() => didSync))
+        .then((didSync) => refreshMedia(true).then(() => didSync))
         .then((didSync) => {
           if (didSync) {
             notify({ tone: "success", title: "Biblioteca sincronizada", message: "As alterações feitas offline foram enviadas." });
@@ -151,12 +141,13 @@ export function useMediaCollection() {
       }
     }
 
-    const refreshedCollection = await refreshMedia();
-    const refreshedMedia = refreshedCollection.find((media) => media.id === item.id);
-
-    setSelectedMedia(refreshedMedia ?? (status === "complete" ? markMediaAsComplete(item) : { ...item, status }));
+    updateMedia(
+      status === "complete"
+        ? { ...markMediaAsComplete(item), wishlist_position: undefined, wishlist_added_at: undefined }
+        : { ...item, status, completed_year: undefined }
+    );
     notify({ tone: "success", title: "Status atualizado", message: `O estado de “${item.title}” foi atualizado.` });
-  }, [collection, notify, refreshMedia]);
+  }, [collection, notify, updateMedia]);
 
   const handleCompleteMedia = useCallback(async (item: MediaItem) => {
     await handleUpdateMediaStatus(item, "complete");
@@ -217,17 +208,25 @@ export function useMediaCollection() {
   const handleUpdateMediaDetails = useCallback(async (item: MediaItem, details: UpdateMediaDetailsDTO) => {
     try {
       await updateMediaDetails(item.id, details);
-      const refreshedCollection = await refreshMedia();
-      const refreshedMedia = refreshedCollection.find((media) => media.id === item.id);
-
-      if (refreshedMedia) setSelectedMedia(refreshedMedia);
+      updateMedia({
+        ...item,
+        title: details.title.trim(),
+        creator: details.creator ?? "",
+        director: details.director ?? "",
+        category: details.category ?? "",
+        cover: details.cover ?? "",
+        backdrop: details.backdrop ?? "",
+        releaseYear: details.release_year ?? "",
+        campaign_hours: details.campaign_hours,
+        description: details.description ?? "",
+      });
       notify({ tone: "success", title: "Obra atualizada", message: `As informações de “${item.title}” foram salvas.` });
     } catch (error) {
       console.error(error);
       notify({ tone: "error", title: "Alterações não salvas", message: "Não foi possível atualizar as informações da obra." });
       throw error;
     }
-  }, [notify, refreshMedia]);
+  }, [notify, updateMedia]);
 
   const confirmDeleteMedia = useCallback(async () => {
     if (!mediaToDelete) return;
@@ -245,9 +244,9 @@ export function useMediaCollection() {
     setIsDeletingMedia(false);
     setMediaToDelete(null);
     setSelectedMedia(null);
-    await refreshMedia();
+    setCollection((currentCollection) => currentCollection.filter((item) => item.id !== mediaToDelete.id));
     notify({ tone: "success", title: "Obra excluída", message: `“${mediaToDelete.title}” foi removida da biblioteca.` });
-  }, [mediaToDelete, notify, refreshMedia]);
+  }, [mediaToDelete, notify]);
 
   return {
     collection,

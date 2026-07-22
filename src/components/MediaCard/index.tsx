@@ -49,11 +49,11 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
           </span>
         ) : (
           <>
-            <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded border bg-[#131315]/80 text-[#ebdcb9] border-[#d4af37]/30 backdrop-blur-md">
+            <span className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 rounded border bg-[#131315]/90 text-[#ebdcb9] border-[#d4af37]/30 md:bg-[#131315]/80 md:backdrop-blur-md">
               {typeLabel}
             </span>
             {platform && (
-              <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/65 px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-widest text-white/80 backdrop-blur-md">
+              <span className="inline-flex items-center gap-1 rounded border border-white/10 bg-black/80 px-2 py-1 font-mono text-[8px] font-bold uppercase tracking-widest text-white/80 md:bg-black/65 md:backdrop-blur-md">
                 <GamePlatformLogo platform={platform} compact className="h-3 w-3" />
                 {platform.label}
               </span>
@@ -70,7 +70,7 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
             event.stopPropagation();
             onPrioritize(item);
           }}
-          className="absolute right-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#131315]/80 text-[#ebdcb9] opacity-0 shadow-lg backdrop-blur-md transition-all hover:border-[#d4af37]/50 hover:text-[#d4af37] group-hover:opacity-100"
+          className="absolute right-3 top-3 z-30 flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-[#131315]/90 text-[#ebdcb9] opacity-0 shadow-lg transition-all hover:border-[#d4af37]/50 hover:text-[#d4af37] md:bg-[#131315]/80 md:backdrop-blur-md group-hover:opacity-100"
         >
           <ListPlus size={15} />
         </button>

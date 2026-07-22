@@ -4,6 +4,7 @@ import {
   getQueuedOperations,
   isNetworkAvailable,
   readCachedMedia,
+  readCachedMediaSnapshot,
   removeQueuedOperation,
   updateCachedMedia,
   writeCachedMedia,
@@ -114,6 +115,21 @@ async function getCurrentUserId() {
   }
 
   return data.session.user.id;
+}
+
+const OFFLINE_SYNC_DELAY_MS = 12_000;
+let offlineSyncTimer: number | null = null;
+
+function scheduleOfflineMediaSync() {
+  if (offlineSyncTimer !== null) return;
+
+  offlineSyncTimer = window.setTimeout(() => {
+    offlineSyncTimer = null;
+
+    void syncOfflineMediaChanges().catch((error) => {
+      console.warn("Não foi possível sincronizar as alterações offline em segundo plano.", error);
+    });
+  }, OFFLINE_SYNC_DELAY_MS);
 }
 
 function getCreateMediaPayload(data: CreateMediaDTO, userId: string, id?: string) {
@@ -462,11 +478,21 @@ export async function syncOfflineMediaChanges() {
   return operations.length > 0;
 }
 
-export async function fetchMedia() {
+export async function fetchMedia({ forceRemote = false }: { forceRemote?: boolean } = {}) {
   const userId = await getCurrentUserId();
-  const cachedMedia = await readCachedMedia(userId);
+  const cachedSnapshot = await readCachedMediaSnapshot(userId);
+  const cachedMedia = cachedSnapshot?.items ?? [];
 
   if (!isNetworkAvailable()) return cachedMedia;
+
+  // A biblioteca local é a fonte da tela durante a navegação. Fazer uma leitura,
+  // normalização e escrita de toda a coleção logo depois da abertura disputava a
+  // thread principal com a rolagem e com o dossiê. A atualização completa fica
+  // reservada para reconexão e eventos explícitos (forceRemote).
+  if (!forceRemote && cachedMedia.length > 0) {
+    scheduleOfflineMediaSync();
+    return cachedMedia;
+  }
 
   try {
     await syncOfflineMediaChanges();
@@ -482,6 +508,11 @@ export async function fetchMedia() {
 export async function fetchCachedMedia() {
   const userId = await getCurrentUserId();
   return readCachedMedia(userId);
+}
+
+export async function fetchCachedMediaSnapshot() {
+  const userId = await getCurrentUserId();
+  return readCachedMediaSnapshot(userId);
 }
 
 export async function createMedia(data: CreateMediaDTO) {

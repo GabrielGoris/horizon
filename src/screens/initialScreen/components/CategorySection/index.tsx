@@ -1,4 +1,5 @@
 import { MediaCard } from "../../../../components/MediaCard";
+import { VirtualMediaGrid } from "../../../../components/VirtualMediaGrid";
 import { Plus } from "lucide-react";
 import { useInfiniteList } from "../../../../hooks/useInfiniteList";
 import { ActiveMediaSection } from "../ActiveMediaSection";
@@ -45,16 +46,17 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
-          {visibleItems.map((item) => (
+        <VirtualMediaGrid
+          items={visibleItems}
+          renderItem={(item) => (
             <MediaCard
               key={item.id}
               item={item}
               onClick={onSelectMedia}
               onPrioritize={onPrioritizeMedia}
             />
-          ))}
-        </div>
+          )}
+        />
         {hasMore && <div ref={sentinelRef} className="h-10" aria-label="Carregando mais obras" />}
       </section>
     </>

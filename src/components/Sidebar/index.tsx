@@ -40,7 +40,7 @@ export function MobileNavigation({ categories, customCategories = [], isMobileMe
 
   return (
     <>
-      <nav aria-label="Bibliotecas" className="fixed inset-x-0 bottom-0 z-40 flex h-[calc(4.5rem+env(safe-area-inset-bottom))] items-start justify-around border-t border-white/10 bg-[#131315]/95 px-1 pt-2 backdrop-blur-xl md:hidden">
+      <nav aria-label="Bibliotecas" className="fixed inset-x-0 bottom-0 z-40 flex h-[calc(4.5rem+env(safe-area-inset-bottom))] items-start justify-around border-t border-white/10 bg-[#131315] px-1 pt-2 md:hidden">
         <MobileLink label="Início" to="/" icon={<LayoutGrid size={19} />} end />
         {categories.map((category) => <MobileLink key={category.id} label={category.plural.split(' ')[0]} to={`/${category.id}`} icon={category.icon} />)}
       </nav>

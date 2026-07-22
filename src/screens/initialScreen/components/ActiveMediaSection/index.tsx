@@ -1,4 +1,5 @@
 import { MediaCard } from "../../../../components/MediaCard";
+import { VirtualMediaGrid } from "../../../../components/VirtualMediaGrid";
 import { useInfiniteList } from "../../../../hooks/useInfiniteList";
 import type { ActiveMediaSectionProps } from "../types";
 
@@ -23,16 +24,17 @@ export function ActiveMediaSection({ items, mediaType, onPrioritizeMedia, onSele
         </h3>
       </div>
 
-      <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
-        {visibleItems.map((item) => (
+      <VirtualMediaGrid
+        items={visibleItems}
+        renderItem={(item) => (
           <MediaCard
             key={item.id}
             item={item}
             onClick={onSelectMedia}
             onPrioritize={onPrioritizeMedia}
           />
-        ))}
-      </div>
+        )}
+      />
       {hasMore && <div ref={sentinelRef} className="h-10" aria-label="Carregando mais obras em andamento" />}
     </section>
   );

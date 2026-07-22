@@ -1,32 +1,11 @@
 import type { MediaItem } from '../../types'
+import type { CachedMediaSnapshot, OfflineMediaOperation, QueuedOperation } from './types'
 
 const DATABASE_NAME = 'horizon-offline'
 const DATABASE_VERSION = 1
 const MEDIA_STORE = 'media'
 const QUEUE_STORE = 'queue'
 
-export type OfflineMediaOperation =
-  | { kind: 'create'; mediaId: string; payload: unknown }
-  | { kind: 'complete'; mediaId: string }
-  | { kind: 'status'; mediaId: string; payload: unknown }
-  | { kind: 'meta'; mediaId: string; payload: unknown }
-  | { kind: 'details'; mediaId: string; payload: unknown }
-  | { kind: 'delete'; mediaId: string; payload: unknown }
-  | { kind: 'audiovisual-completion'; mediaId: string; payload: unknown }
-  | { kind: 'book-completion'; mediaId: string; payload: unknown }
-  | { kind: 'game-completion'; mediaId: string; payload: unknown }
-
-type CachedMedia = {
-  userId: string
-  items: MediaItem[]
-  updatedAt: string
-}
-
-type QueuedOperation = OfflineMediaOperation & {
-  id?: number
-  userId: string
-  createdAt: string
-}
 
 function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -72,12 +51,16 @@ export function isNetworkAvailable() {
 }
 
 export async function readCachedMedia(userId: string) {
-  const cached = await requestResult<CachedMedia | undefined>('readonly', MEDIA_STORE, (store) => store.get(userId))
+  const cached = await readCachedMediaSnapshot(userId)
   return cached?.items ?? []
 }
 
+export async function readCachedMediaSnapshot(userId: string) {
+  return requestResult<CachedMediaSnapshot | undefined>('readonly', MEDIA_STORE, (store) => store.get(userId))
+}
+
 export async function writeCachedMedia(userId: string, items: MediaItem[]) {
-  await requestResult<IDBValidKey>('readwrite', MEDIA_STORE, (store) => store.put({ userId, items, updatedAt: new Date().toISOString() } satisfies CachedMedia))
+  await requestResult<IDBValidKey>('readwrite', MEDIA_STORE, (store) => store.put({ userId, items, updatedAt: new Date().toISOString() } satisfies CachedMediaSnapshot))
 }
 
 export async function updateCachedMedia(userId: string, update: (items: MediaItem[]) => MediaItem[]) {

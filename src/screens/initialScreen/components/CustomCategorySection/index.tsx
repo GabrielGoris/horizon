@@ -1,6 +1,7 @@
 import { Image, Pencil, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CustomCategoryIcon } from "../../../../components/CustomCategoryIcon";
+import { VirtualMediaGrid } from "../../../../components/VirtualMediaGrid";
 import { useInfiniteList } from "../../../../hooks/useInfiniteList";
 import type { CustomEntry, CustomLibraryCategory } from "../../../../types/customLibrary";
 import { formatCustomFieldValue } from "../../../../utils/customLibrary";
@@ -98,8 +99,10 @@ export function CustomCategorySection({
           {Array.from({ length: 5 }, (_, index) => <div key={index} className="aspect-[2/3] animate-pulse bg-white/[0.04]" />)}
         </div>
       ) : filteredEntries.length > 0 ? (
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
-          {visibleItems.map((entry) => {
+        <>
+          <VirtualMediaGrid
+            items={visibleItems}
+            renderItem={(entry) => {
             const previewFields = category.fields
               .map((field) => ({ field, value: formatCustomFieldValue(field, entry.values[field.id]) }))
               .filter((item) => item.value)
@@ -133,9 +136,10 @@ export function CustomCategorySection({
                 </span>
               </button>
             );
-          })}
+            }}
+          />
           {hasMore && <div ref={sentinelRef} className="h-10" aria-label="Carregando mais itens" />}
-        </div>
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-neutral-600">
           <p className="text-sm">Nenhum item nesta categoria.</p>
