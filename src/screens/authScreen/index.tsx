@@ -1,9 +1,12 @@
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { FcGoogle } from 'react-icons/fc';
+import { useLocation } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { CaptchaField } from '../../components/CaptchaField';
 import { getAuthErrorMessage, getPasswordValidationMessage, MIN_PASSWORD_LENGTH } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
+import { getAuthRedirectUrl } from '../../lib/nativeAuth';
 import { emailHasAccount } from '../../services/authService';
 import type { AuthMode } from './types';
 
@@ -35,6 +38,7 @@ const authCopy = {
 } satisfies Record<AuthMode, Record<string, string>>;
 
 export function AuthScreen() {
+  const location = useLocation();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -51,6 +55,15 @@ export function AuthScreen() {
     return oauthError ? getAuthErrorMessage(oauthError) : null;
   });
   const copy = authCopy[mode];
+  const oauthError = new URLSearchParams(location.search).get('error_description');
+  const displayedError = oauthError ? getAuthErrorMessage(oauthError) : errorMessage;
+
+  useEffect(() => {
+    const resetGoogleSubmitting = () => setIsGoogleSubmitting(false);
+
+    window.addEventListener('focus', resetGoogleSubmitting);
+    return () => window.removeEventListener('focus', resetGoogleSubmitting);
+  }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -86,7 +99,7 @@ export function AuthScreen() {
             password,
             options: {
               captchaToken: captchaToken ?? undefined,
-              emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: getAuthRedirectUrl(),
             },
           });
 
@@ -106,7 +119,7 @@ export function AuthScreen() {
     } else if (mode === 'forgot') {
       ({ error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         captchaToken: captchaToken ?? undefined,
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: getAuthRedirectUrl('reset-password'),
       }));
     } else {
       ({ error } = await supabase.auth.signInWithPassword({
@@ -143,7 +156,7 @@ export function AuthScreen() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: getAuthRedirectUrl(),
       },
     });
 
@@ -207,7 +220,7 @@ export function AuthScreen() {
           </h2>
           <p className="mt-5 max-w-[500px] text-sm leading-7 text-neutral-400">{copy.description}</p>
 
-          <form onSubmit={handleSubmit} className="mt-9 flex flex-col gap-5">
+          <form noValidate onSubmit={handleSubmit} className="mt-9 flex flex-col gap-5">
             <label className="flex flex-col gap-2">
               <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
                 E-mail
@@ -298,10 +311,11 @@ export function AuthScreen() {
 
             <CaptchaField onTokenChange={setCaptchaToken} resetKey={captchaResetKey} />
 
-            {errorMessage && (
-              <p className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
-                {errorMessage}
-              </p>
+            {displayedError && (
+              <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-200">
+                <p>{displayedError}</p>
+                {oauthError && Capacitor.isNativePlatform() && <p className="mt-2 break-words font-mono text-[10px] font-normal leading-4 text-red-100/75">Detalhe: {oauthError}</p>}
+              </div>
             )}
 
             {feedback && (

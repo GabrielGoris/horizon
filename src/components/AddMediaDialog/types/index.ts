@@ -68,17 +68,19 @@ export interface SearchResultButtonProps {
 }
 
 export interface CoverFieldProps {
-  className?: string;
-  coverBackground: string;
-  coverFallback?: string;
+  backdropError?: FieldError;
+  backdropInput: UseFormRegisterReturn<"backdrop">;
+  backdropValue?: string;
+  coverError?: FieldError;
   coverInput: UseFormRegisterReturn<"cover">;
   coverLabel: string;
   coverValue?: string;
-  error?: FieldError;
   errorClass: string;
   inputClass: string;
+  isUploading?: boolean;
   labelClass: string;
-  onUseCoverFallback?: (cover: string) => void;
+  onClear: (kind: "cover" | "backdrop") => void;
+  onUpload: (file: File, kind: "cover" | "backdrop") => void | Promise<void>;
 }
 
 export interface TypeSpecificFieldsProps {

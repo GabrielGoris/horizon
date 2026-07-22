@@ -25,6 +25,7 @@ export type CategorySectionProps = {
   mediaType?: MediaType;
   onPrioritizeMedia: (item: MediaItem) => void;
   onSelectMedia: (item: MediaItem) => void;
+  onAddClick: () => void;
 };
 
 export type ActiveMediaSectionProps = {
@@ -67,6 +68,7 @@ export interface MediaFormatFiltersProps {
 };
 
 export type OverviewSectionProps = {
+  onAddClick: () => void;
   onManageWishlist: (mediaType: MediaType) => void;
   onPrioritizeMedia: (item: MediaItem) => void;
   priorityItemsByCategory: Map<string, MediaItem[]>;

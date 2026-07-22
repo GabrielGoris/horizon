@@ -105,9 +105,12 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
       }
     };
 
-    void synchronize();
+    const syncTimer = window.setTimeout(() => {
+      void synchronize();
+    }, 10_000);
 
     return () => {
+      window.clearTimeout(syncTimer);
       isActive.current = false;
     };
   }, [session]);

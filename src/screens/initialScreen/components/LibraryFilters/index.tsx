@@ -1,4 +1,5 @@
 import { SlidersHorizontal } from "lucide-react";
+import { HorizonSelect } from "../../../../components/HorizonSelect";
 import { GAME_PLATFORM_OPTIONS } from "../../../../consts/gamePlatforms";
 import { getMediaStatusLabel, getMediaStatusOptions } from "../../../../consts/mediaStatus";
 import type { GamePlatformFilter, SortMode } from "../../types";
@@ -73,10 +74,21 @@ export function LibraryFilters({
     mediaType,
     mediaFormatFilter === "all" ? undefined : mediaFormatFilter
   );
+  const statusFilterOptions = [
+    { value: "all", label: "Todos" },
+    ...statusOptions.map((status) => ({
+      value: status,
+      label: getMediaStatusLabel(status, mediaType),
+    })),
+  ];
+  const platformOptions = [
+    { value: "all", label: "Todas as plataformas" },
+    ...GAME_PLATFORM_OPTIONS.map((platform) => ({ value: platform.label, label: platform.label })),
+  ];
 
   return (
-    <div className="relative flex items-center gap-3">
-      <span className="rounded border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-neutral-500">
+    <div className="relative flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
+      <span className="whitespace-nowrap rounded border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-neutral-500">
         {itemCount} itens catalogados
       </span>
       <button
@@ -126,66 +138,34 @@ export function LibraryFilters({
               <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500">
                 Estado
               </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => onStatusFilterChange("all")}
-                  className={`rounded-lg border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                    statusFilter === "all"
-                      ? "border-noir-gold/50 bg-noir-gold/15 text-noir-gold"
-                      : "border-white/10 bg-white/[0.03] text-neutral-500 hover:text-white"
-                  }`}
-                >
-                  Todos
-                </button>
-                {statusOptions.map((status) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => onStatusFilterChange(status)}
-                    className={`rounded-lg border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${
-                      statusFilter === status
-                        ? "border-noir-gold/50 bg-noir-gold/15 text-noir-gold"
-                        : "border-white/10 bg-white/[0.03] text-neutral-500 hover:text-white"
-                    }`}
-                  >
-                    {getMediaStatusLabel(status, mediaType)}
-                  </button>
-                ))}
-              </div>
+              <HorizonSelect
+                ariaLabel="Filtrar por estado"
+                value={statusFilter}
+                options={statusFilterOptions}
+                onChange={(value) => onStatusFilterChange(value as typeof statusFilter)}
+              />
             </div>
 
             <div className={`grid grid-cols-1 gap-3 ${activeTab === "games" ? "md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.35fr)_minmax(0,0.8fr)]" : "md:grid-cols-2"}`}>
               <label className="flex min-w-0 flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                 Ordenar por
-                <select
+                <HorizonSelect
+                  ariaLabel="Ordenar por"
                   value={sortMode}
-                  onChange={(event) => onSortModeChange(event.target.value as SortMode)}
-                  className="w-full min-w-0 rounded-lg border border-white/10 bg-[#131315] py-2 pl-3 pr-9 text-sm text-white outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
-                >
-                  {sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  options={sortOptions}
+                  onChange={(value) => onSortModeChange(value as SortMode)}
+                />
               </label>
 
               {activeTab === "games" && (
                 <label className="flex min-w-0 flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
                   Plataforma
-                  <select
+                  <HorizonSelect
+                    ariaLabel="Filtrar por plataforma"
                     value={gamePlatformFilter}
-                    onChange={(event) => onGamePlatformFilterChange(event.target.value as GamePlatformFilter)}
-                    className="w-full min-w-0 rounded-lg border border-white/10 bg-[#131315] py-2 pl-3 pr-9 text-sm text-white outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
-                  >
-                    <option value="all">Todas as plataformas</option>
-                    {GAME_PLATFORM_OPTIONS.map((platform) => (
-                      <option key={platform.label} value={platform.label}>
-                        {platform.label}
-                      </option>
-                    ))}
-                  </select>
+                    options={platformOptions}
+                    onChange={(value) => onGamePlatformFilterChange(value as GamePlatformFilter)}
+                  />
                 </label>
               )}
 

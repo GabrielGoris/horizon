@@ -37,8 +37,16 @@ export function useAuthSession() {
     };
   }, []);
 
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+
+    if (error) throw error;
+    setSession(null);
+  };
+
   return {
     isLoadingSession,
     session,
+    signOut,
   };
 }

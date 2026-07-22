@@ -1,4 +1,6 @@
 import { getMediaStatusOptions } from "../../../../consts/mediaStatus";
+import { ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { formatDateInput } from "../../../../utils/date";
 import { CompletionRatingField } from "../CompletionRatingField";
 import { GamePlatformField } from "../GamePlatformField";
@@ -27,6 +29,7 @@ export function TypeSpecificFields({
   statusValue,
   setValue,
 }: TypeSpecificFieldsProps) {
+  const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
   const isFinished = statusValue === "complete";
   const statusOptions = getMediaStatusOptions(selectedType, mediaFormat);
 
@@ -126,17 +129,28 @@ export function TypeSpecificFields({
           </label>
         )}
 
-        <label className={labelClass}>
-          Estado na Biblioteca *
-          <select {...register("status")} className={inputClass}>
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {copy.statusOptions[status]}
-              </option>
-            ))}
-          </select>
+        <div className={labelClass}>
+          <span>Estado na Biblioteca *</span>
+          <div className="relative">
+            <button type="button" aria-haspopup="listbox" aria-expanded={isStatusSelectOpen} onClick={() => setIsStatusSelectOpen((current) => !current)} className={`${inputClass} flex items-center justify-between text-left`}>
+              <span>{statusValue ? copy.statusOptions[statusValue] : "Selecione um estado"}</span>
+              <ChevronDown size={16} className={`text-neutral-500 transition-transform ${isStatusSelectOpen ? "rotate-180" : ""}`} />
+            </button>
+            {isStatusSelectOpen && (
+              <div role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.4rem)] z-50 overflow-hidden rounded-xl border border-white/10 bg-[#17171a] p-1 shadow-2xl shadow-black/60">
+                {statusOptions.map((status) => (
+                  <button key={status} type="button" role="option" aria-selected={statusValue === status} onClick={() => {
+                    setValue("status", status, { shouldDirty: true, shouldValidate: true });
+                    setIsStatusSelectOpen(false);
+                  }} className={`flex w-full rounded-lg px-3 py-2.5 text-left font-mono text-[10px] uppercase tracking-wide transition ${statusValue === status ? "bg-noir-gold/15 text-noir-champagne" : "text-neutral-400 hover:bg-white/[0.05] hover:text-white"}`}>
+                    {copy.statusOptions[status]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           {errors.status && <span className={errorClass}>{errors.status.message}</span>}
-        </label>
+        </div>
 
         <label className={labelClass}>
           Adicionado em

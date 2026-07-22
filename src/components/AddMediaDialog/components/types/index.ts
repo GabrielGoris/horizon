@@ -20,6 +20,7 @@ export type BasicInfoFieldsProps = {
 export type CoverDetailsFieldsProps = {
   catalogSearch: MediaCatalogSearch;
   copy: AddMediaFieldCopy;
+  backdropValue?: string;
   coverValue?: string;
   errorClass: string;
   errors: FieldErrors<CreateMediaDTO>;
@@ -33,6 +34,8 @@ export type CoverDetailsFieldsProps = {
   selectedType: CreateMediaDTO["type"];
   setValue: UseFormSetValue<CreateMediaDTO>;
   statusValue?: CreateMediaDTO["status"];
+  onUpload: (file: File, kind: "cover" | "backdrop") => void | Promise<void>;
+  isUploading?: boolean;
 };
 
 export type FormActionsProps = {
@@ -49,5 +52,6 @@ export type CompletionRatingFieldProps = {
 
 export type GamePlatformFieldProps = {
   metaValue?: string;
-  setValue: UseFormSetValue<CreateMediaDTO>;
+  setValue?: UseFormSetValue<CreateMediaDTO>;
+  onChange?: (value: string) => void;
 };

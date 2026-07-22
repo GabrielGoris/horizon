@@ -1,17 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AddMediaDialog } from "../../components/AddMediaDialog";
-import { DeleteMediaDialog } from "../../components/DeleteMediaDialog";
 import { Header } from "../../components/Header";
-import { MediaDossier } from "../../components/MediaDossier";
 import { Sidebar } from "../../components/Sidebar";
-import { WishlistPriorityDialog } from "../../components/WishlistPriorityDialog";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { getWishlistItems, WISHLIST_LIMIT } from "../../services/wishlistService";
 import { warmGameCatalog } from "../../services/gameCatalogService";
 import { CategorySection } from "./components/CategorySection";
 import { CustomCategorySection } from "./components/CustomCategorySection";
-import { CustomLibraryOverlays } from "./components/CustomLibraryOverlays";
 import { OverviewSection } from "./components/OverviewSection";
 import { CATEGORIES } from "./consts";
 import { useFilteredCollection } from "./hooks/useFilteredCollection";
@@ -23,10 +18,18 @@ import { useWishlistPriority } from "./hooks/useWishlistPriority";
 import type { InitialScreenProps } from "./types";
 import { sortMediaItemsByPriority } from "./utils";
 
-export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenProps) {
+const AddMediaDialog = lazy(() => import("../../components/AddMediaDialog").then((module) => ({ default: module.AddMediaDialog })));
+const DeleteMediaDialog = lazy(() => import("../../components/DeleteMediaDialog").then((module) => ({ default: module.DeleteMediaDialog })));
+const loadMediaDossier = () => import("../../components/MediaDossier").then((module) => ({ default: module.MediaDossier }));
+const MediaDossier = lazy(loadMediaDossier);
+const WishlistPriorityDialog = lazy(() => import("../../components/WishlistPriorityDialog").then((module) => ({ default: module.WishlistPriorityDialog })));
+const CustomLibraryOverlays = lazy(() => import("./components/CustomLibraryOverlays").then((module) => ({ default: module.CustomLibraryOverlays })));
+
+export function InitialScreen({ activeTab, customCategorySlug, userEmail }: InitialScreenProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mediaCollection = useMediaCollection();
   const customCategories = useCustomCategories();
   const filters = useLibraryFilters(activeTab);
@@ -38,8 +41,20 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
   useEffect(() => {
     if (activeTab !== "games") return;
 
-    void warmGameCatalog();
+    const warmupTimer = window.setTimeout(() => {
+      void warmGameCatalog();
+    }, 1200);
+
+    return () => window.clearTimeout(warmupTimer);
   }, [activeTab]);
+
+  useEffect(() => {
+    const preloadTimer = window.setTimeout(() => {
+      void loadMediaDossier();
+    }, 2_000);
+
+    return () => window.clearTimeout(preloadTimer);
+  }, []);
 
   const activeCategory = CATEGORIES.find((category) => category.id === activeTab);
   const customCategory = customCategories.categories.find((category) => category.slug === customCategorySlug);
@@ -50,6 +65,66 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
     navigate,
     refreshCategories: customCategories.refresh,
   });
+
+  useEffect(() => {
+    const handleNativeBack = (event: Event) => {
+      if (mediaCollection.selectedMedia) {
+        event.preventDefault();
+        mediaCollection.setSelectedMedia(null);
+        return;
+      }
+
+      if (mediaCollection.mediaToDelete && !mediaCollection.isDeletingMedia) {
+        event.preventDefault();
+        mediaCollection.setMediaToDelete(null);
+        return;
+      }
+
+      if (wishlistPriority.mediaToPrioritize || wishlistPriority.managedWishlistType) {
+        event.preventDefault();
+        wishlistPriority.cancelWishlistPriority();
+        return;
+      }
+
+      if (isAddMediaModalOpen) {
+        event.preventDefault();
+        setIsAddMediaModalOpen(false);
+        return;
+      }
+
+      if (customLibrary.selectedEntry) {
+        event.preventDefault();
+        customLibrary.selectEntry(null);
+        return;
+      }
+
+      if (customLibrary.entryToDelete && !customLibrary.isSavingEntry) {
+        event.preventDefault();
+        customLibrary.cancelRemoveEntry();
+        return;
+      }
+
+      if (customLibrary.isEntryDialogOpen && !customLibrary.isSavingEntry) {
+        event.preventDefault();
+        customLibrary.closeEntryDialog();
+        return;
+      }
+
+      if (customLibrary.categoryToDelete && !customLibrary.isSavingCategory) {
+        event.preventDefault();
+        customLibrary.cancelRemoveCategory();
+        return;
+      }
+
+      if (customLibrary.isCategoryDialogOpen && !customLibrary.isSavingCategory) {
+        event.preventDefault();
+        customLibrary.closeCategoryDialog();
+      }
+    };
+
+    window.addEventListener("horizon:back", handleNativeBack);
+    return () => window.removeEventListener("horizon:back", handleNativeBack);
+  }, [customLibrary, isAddMediaModalOpen, mediaCollection, wishlistPriority]);
   const activeLabel = activeTab === "overview" ? "Visão Geral" : activeCategory?.plural ?? "Nova Categoria";
   const addMediaInitialType = activeTab === "overview" ? null : activeCategory?.id;
   const filteredCollection = useFilteredCollection({
@@ -93,20 +168,22 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
   }, [filteredCollection]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-noir-base font-sans text-white">
-      <Sidebar categories={CATEGORIES} customCategories={customCategories.categories} onAddCategory={customLibrary.openNewCategory} />
+    <div className="flex h-[100dvh] w-full overflow-hidden bg-noir-base font-sans text-white">
+      <Sidebar categories={CATEGORIES} customCategories={customCategories.categories} onAddCategory={customLibrary.openNewCategory} isMobileMenuOpen={isMobileMenuOpen} onMobileMenuOpenChange={setIsMobileMenuOpen} />
 
-      <div className="relative flex h-screen flex-1 flex-col">
+      <div className="relative flex h-full min-w-0 flex-1 flex-col">
         <Header
           addLabel={customCategory ? `Adicionar ${customCategory.name_singular}` : "Adicionar obra"}
           searchPlaceholder={customCategory ? `Buscar em ${customCategory.name_plural.toLowerCase()}...` : "Buscar obras na biblioteca..."}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onAddClick={() => customCategory ? customLibrary.openNewEntry() : setIsAddMediaModalOpen(true)}
+          onMobileMenuClick={() => setIsMobileMenuOpen(true)}
+          userEmail={userEmail}
         />
 
-        <main className="flex-1 overflow-y-auto p-8 lg:p-12">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 pb-10">
+        <main className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:p-8 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:p-12">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 pb-4 sm:gap-12 sm:pb-10">
             {mediaCollection.mediaLoadError && (
               <div
                 role="alert"
@@ -117,7 +194,7 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
                   type="button"
                   className="self-start rounded-lg border border-red-300/30 px-3 py-1.5 font-semibold transition hover:bg-red-400/10 disabled:opacity-50 sm:self-auto"
                   disabled={mediaCollection.isLoadingMedia}
-                  onClick={() => void mediaCollection.refreshMedia().catch(() => undefined)}
+                  onClick={() => void mediaCollection.refreshMedia(true).catch(() => undefined)}
                 >
                   {mediaCollection.isLoadingMedia ? "Tentando..." : "Tentar novamente"}
                 </button>
@@ -133,6 +210,7 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
                   error={customLibrary.entriesError}
                   isLoading={customLibrary.isLoadingEntries}
                   searchQuery={searchQuery}
+                  onAddEntry={customLibrary.openNewEntry}
                   onEditCategory={() => customLibrary.openCategoryEditor(customCategory)}
                   onSelectEntry={customLibrary.selectEntry}
                   onRetry={() => void customLibrary.refreshEntries()}
@@ -146,6 +224,7 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
               )
             ) : activeTab === "overview" ? (
               <OverviewSection
+                onAddClick={() => setIsAddMediaModalOpen(true)}
                 onManageWishlist={wishlistPriority.setManagedWishlistType}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
                 priorityItemsByCategory={overviewPriorityItems}
@@ -159,6 +238,7 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
                 filters={filters}
                 items={filteredCollection}
                 mediaType={addMediaInitialType ?? undefined}
+                onAddClick={() => setIsAddMediaModalOpen(true)}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
                 onSelectMedia={mediaCollection.setSelectedMedia}
               />
@@ -168,65 +248,81 @@ export function InitialScreen({ activeTab, customCategorySlug }: InitialScreenPr
       </div>
 
       {!isCustomCategoryRoute && (
-        <AddMediaDialog
-          isOpen={isAddMediaModalOpen}
-          onClose={() => setIsAddMediaModalOpen(false)}
-          onSuccess={async () => {
-            await mediaCollection.refreshMedia();
-          }}
-          onPriorityCreate={wishlistPriority.setMediaToPrioritize}
-          initialType={addMediaInitialType}
-        />
+        isAddMediaModalOpen && (
+          <Suspense fallback={null}>
+            <AddMediaDialog
+              isOpen
+              onClose={() => setIsAddMediaModalOpen(false)}
+              onSuccess={async () => {
+                await mediaCollection.refreshMedia();
+              }}
+              onPriorityCreate={wishlistPriority.setMediaToPrioritize}
+              initialType={addMediaInitialType}
+            />
+          </Suspense>
+        )
       )}
 
-      <CustomLibraryOverlays category={customCategory} workspace={customLibrary} />
+      {(customLibrary.isCategoryDialogOpen || customLibrary.isEntryDialogOpen || customLibrary.selectedEntry || customLibrary.entryToDelete || customLibrary.categoryToDelete) && (
+        <Suspense fallback={null}>
+          <CustomLibraryOverlays category={customCategory} workspace={customLibrary} />
+        </Suspense>
+      )}
 
       {mediaCollection.selectedMedia && (
-        <MediaDossier
-          item={mediaCollection.selectedMedia}
-          onClose={() => mediaCollection.setSelectedMedia(null)}
-          onComplete={mediaCollection.handleCompleteMedia}
-          onDelete={mediaCollection.setMediaToDelete}
-          onDetailsChange={mediaCollection.handleUpdateMediaDetails}
-          onMetaChange={mediaCollection.handleUpdateMediaMeta}
-          onStatusChange={mediaCollection.handleUpdateMediaStatus}
-          onSaveAudiovisualCompletion={mediaCollection.handleSaveAudiovisualCompletion}
-          onSaveBookCompletion={mediaCollection.handleSaveBookCompletion}
-          onSaveGameCompletion={mediaCollection.handleSaveGameCompletion}
-        />
+        <Suspense fallback={null}>
+          <MediaDossier
+            item={mediaCollection.selectedMedia}
+            onClose={() => mediaCollection.setSelectedMedia(null)}
+            onComplete={mediaCollection.handleCompleteMedia}
+            onDelete={mediaCollection.setMediaToDelete}
+            onDetailsChange={mediaCollection.handleUpdateMediaDetails}
+            onMetaChange={mediaCollection.handleUpdateMediaMeta}
+            onStatusChange={mediaCollection.handleUpdateMediaStatus}
+            onSaveAudiovisualCompletion={mediaCollection.handleSaveAudiovisualCompletion}
+            onSaveBookCompletion={mediaCollection.handleSaveBookCompletion}
+            onSaveGameCompletion={mediaCollection.handleSaveGameCompletion}
+          />
+        </Suspense>
       )}
 
       {mediaCollection.mediaToDelete && (
-        <DeleteMediaDialog
-          item={mediaCollection.mediaToDelete}
-          isDeleting={mediaCollection.isDeletingMedia}
-          onCancel={() => {
-            if (!mediaCollection.isDeletingMedia) {
-              mediaCollection.setMediaToDelete(null);
-            }
-          }}
-          onConfirm={mediaCollection.confirmDeleteMedia}
-        />
+        <Suspense fallback={null}>
+          <DeleteMediaDialog
+            item={mediaCollection.mediaToDelete}
+            isDeleting={mediaCollection.isDeletingMedia}
+            onCancel={() => {
+              if (!mediaCollection.isDeletingMedia) {
+                mediaCollection.setMediaToDelete(null);
+              }
+            }}
+            onConfirm={mediaCollection.confirmDeleteMedia}
+          />
+        </Suspense>
       )}
 
       {wishlistPriority.mediaToPrioritize && (
-        <WishlistPriorityDialog
-          collection={wishlistPriority.wishlistDialogCollection}
-          item={wishlistPriority.mediaToPrioritize}
-          isSaving={wishlistPriority.isSavingWishlist}
-          onCancel={wishlistPriority.cancelWishlistPriority}
-          onConfirm={wishlistPriority.confirmWishlistPosition}
-        />
+        <Suspense fallback={null}>
+          <WishlistPriorityDialog
+            collection={wishlistPriority.wishlistDialogCollection}
+            item={wishlistPriority.mediaToPrioritize}
+            isSaving={wishlistPriority.isSavingWishlist}
+            onCancel={wishlistPriority.cancelWishlistPriority}
+            onConfirm={wishlistPriority.confirmWishlistPosition}
+          />
+        </Suspense>
       )}
       {wishlistPriority.managedWishlistType && !wishlistPriority.mediaToPrioritize && (
-        <WishlistPriorityDialog
-          collection={mediaCollection.collection}
-          mediaType={wishlistPriority.managedWishlistType}
-          isSaving={wishlistPriority.isSavingWishlist}
-          onCancel={wishlistPriority.cancelWishlistPriority}
-          onMoveItem={wishlistPriority.moveWishlistItem}
-          onRemoveItem={wishlistPriority.removeWishlistItem}
-        />
+        <Suspense fallback={null}>
+          <WishlistPriorityDialog
+            collection={mediaCollection.collection}
+            mediaType={wishlistPriority.managedWishlistType}
+            isSaving={wishlistPriority.isSavingWishlist}
+            onCancel={wishlistPriority.cancelWishlistPriority}
+            onMoveItem={wishlistPriority.moveWishlistItem}
+            onRemoveItem={wishlistPriority.removeWishlistItem}
+          />
+        </Suspense>
       )}
     </div>
   );

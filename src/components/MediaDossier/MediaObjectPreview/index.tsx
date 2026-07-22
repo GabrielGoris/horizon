@@ -1,4 +1,5 @@
 import type { MediaItem } from "../../../types";
+import { useEffect, useState } from "react";
 
 interface MediaObjectPreviewProps {
   item: MediaItem;
@@ -30,9 +31,24 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
   const spineTitle = item.title.length > 28 ? `${item.title.slice(0, 28)}...` : item.title;
   const coverUrl = item.cover?.trim();
   const backgroundImage = item.backdrop?.trim() || coverUrl;
+  const [isAnimationReady, setIsAnimationReady] = useState(false);
+  const [isCoverReady, setIsCoverReady] = useState(!coverUrl);
+  const canAnimate = isAnimationReady && isCoverReady;
+
+  useEffect(() => {
+    let secondFrame: number | undefined;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => setIsAnimationReady(true));
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+      if (secondFrame !== undefined) window.cancelAnimationFrame(secondFrame);
+    };
+  }, []);
 
   return (
-    <div className="relative mx-auto mb-8 flex h-[250px] items-center justify-center overflow-hidden rounded-2xl [perspective:900px]">
+    <div className="relative mx-auto mb-8 flex h-[250px] items-center justify-center overflow-hidden rounded-2xl [contain:layout_paint] [perspective:900px]">
       {backgroundImage && (
         <>
           <img
@@ -47,7 +63,7 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
       )}
 
       <div
-        className="animate-media-object-float transform-style-3d relative z-10 h-[210px] w-[148px]"
+        className={`${canAnimate ? "animate-media-object-float" : "[transform:rotateY(-20deg)_rotateX(5deg)]"} transform-style-3d relative z-10 h-[210px] w-[148px] will-change-transform`}
         style={{
           ["--object-depth" as string]: `${depth}px`,
           ["--object-width" as string]: `${width}px`,
@@ -63,6 +79,9 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
               <img
                 src={coverUrl}
                 alt={`Capa de ${item.title}`}
+                decoding="async"
+                onLoad={() => setIsCoverReady(true)}
+                onError={() => setIsCoverReady(true)}
                 className="h-full w-full object-cover"
               />
             ) : (

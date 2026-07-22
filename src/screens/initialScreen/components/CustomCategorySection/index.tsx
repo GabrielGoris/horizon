@@ -1,6 +1,8 @@
-import { Image, Pencil } from "lucide-react";
+import { Image, Pencil, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { CustomCategoryIcon } from "../../../../components/CustomCategoryIcon";
+import { VirtualMediaGrid } from "../../../../components/VirtualMediaGrid";
+import { useInfiniteList } from "../../../../hooks/useInfiniteList";
 import type { CustomEntry, CustomLibraryCategory } from "../../../../types/customLibrary";
 import { formatCustomFieldValue } from "../../../../utils/customLibrary";
 import { CustomLibraryFilters, type CustomSortMode, type CustomStatusFilter } from "../CustomLibraryFilters";
@@ -12,6 +14,7 @@ interface CustomCategorySectionProps {
   isLoading: boolean;
   searchQuery: string;
   onEditCategory: () => void;
+  onAddEntry: () => void;
   onSelectEntry: (entry: CustomEntry) => void;
   onRetry: () => void;
 }
@@ -23,6 +26,7 @@ export function CustomCategorySection({
   isLoading,
   searchQuery,
   onEditCategory,
+  onAddEntry,
   onSelectEntry,
   onRetry,
 }: CustomCategorySectionProps) {
@@ -45,6 +49,7 @@ export function CustomCategorySection({
     });
   }, [entries, searchQuery, sortMode, statusFilter]);
   const hasActiveFilters = statusFilter !== "all" || sortMode !== "title_asc";
+  const { hasMore, sentinelRef, visibleItems } = useInfiniteList(filteredEntries);
 
   return (
     <section>
@@ -59,6 +64,7 @@ export function CustomCategorySection({
           {category.description && <p className="max-w-2xl text-sm leading-6 text-neutral-500">{category.description}</p>}
         </div>
         <div className="flex flex-wrap items-center gap-3 self-start">
+          <button type="button" onClick={onAddEntry} aria-label={`Adicionar em ${category.name_plural}`} className="flex h-8 w-8 items-center justify-center rounded-md bg-white/[0.04] text-noir-gold transition hover:bg-noir-gold/15 hover:text-noir-champagne md:hidden"><Plus size={16} /></button>
           <button type="button" onClick={onEditCategory} className="flex h-8 items-center gap-2 rounded border border-white/10 bg-white/5 px-3 font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 transition-colors hover:border-white/20 hover:text-white">
             <Pencil size={13} /> Configurar
           </button>
@@ -89,12 +95,14 @@ export function CustomCategorySection({
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
           {Array.from({ length: 5 }, (_, index) => <div key={index} className="aspect-[2/3] animate-pulse bg-white/[0.04]" />)}
         </div>
       ) : filteredEntries.length > 0 ? (
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4 lg:grid-cols-5">
-          {filteredEntries.map((entry) => {
+        <>
+          <VirtualMediaGrid
+            items={visibleItems}
+            renderItem={(entry) => {
             const previewFields = category.fields
               .map((field) => ({ field, value: formatCustomFieldValue(field, entry.values[field.id]) }))
               .filter((item) => item.value)
@@ -128,8 +136,10 @@ export function CustomCategorySection({
                 </span>
               </button>
             );
-          })}
-        </div>
+            }}
+          />
+          {hasMore && <div ref={sentinelRef} className="h-10" aria-label="Carregando mais itens" />}
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-neutral-600">
           <p className="text-sm">Nenhum item nesta categoria.</p>

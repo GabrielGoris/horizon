@@ -1,4 +1,5 @@
 import { SlidersHorizontal } from "lucide-react";
+import { HorizonSelect } from "../../../../components/HorizonSelect";
 import type { CustomEntryStatus, CustomLibraryCategory } from "../../../../types/customLibrary";
 
 export type CustomStatusFilter = "all" | CustomEntryStatus;
@@ -63,26 +64,25 @@ export function CustomLibraryFilters({
 
             <div className="flex flex-col gap-2">
               <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500">Estado</span>
-              <div className="flex flex-wrap gap-2">
-                {statusOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => onStatusChange(option.value)}
-                    className={`rounded-lg border px-3 py-2 font-mono text-[10px] uppercase tracking-widest transition-colors ${statusFilter === option.value ? "border-noir-gold/50 bg-noir-gold/15 text-noir-gold" : "border-white/10 bg-white/[0.03] text-neutral-500 hover:text-white"}`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
+              <HorizonSelect
+                ariaLabel="Filtrar por estado"
+                value={statusFilter}
+                options={statusOptions}
+                onChange={(value) => onStatusChange(value as CustomStatusFilter)}
+              />
             </div>
 
             <label className="flex min-w-0 flex-col gap-1.5 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
               Ordenar por
-              <select value={sortMode} onChange={(event) => onSortChange(event.target.value as CustomSortMode)} className="w-full min-w-0 rounded-lg border border-white/10 bg-[#131315] py-2 pl-3 pr-9 text-sm text-white outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold">
-                <option value="title_asc">Título: A–Z</option>
-                <option value="title_desc">Título: Z–A</option>
-              </select>
+              <HorizonSelect
+                ariaLabel="Ordenar por"
+                value={sortMode}
+                options={[
+                  { value: "title_asc", label: "Título: A–Z" },
+                  { value: "title_desc", label: "Título: Z–A" },
+                ]}
+                onChange={(value) => onSortChange(value as CustomSortMode)}
+              />
             </label>
           </div>
         </>

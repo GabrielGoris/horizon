@@ -14,6 +14,8 @@ export interface SidebarProps {
   categories: CategoryDef[];
   customCategories?: CustomLibraryCategory[];
   onAddCategory?: () => void;
+  isMobileMenuOpen?: boolean;
+  onMobileMenuOpenChange?: (isOpen: boolean) => void;
 }
 
 export interface SidebarItemProps {

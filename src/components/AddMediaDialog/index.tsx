@@ -4,6 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import { createMedia, hasDuplicateMedia } from "../../services/mediaService";
+import { uploadMediaAsset } from "../../services/mediaAssetService";
 import type { MediaType } from "../../types";
 import { DuplicateMediaDialog } from "../DuplicateMediaDialog";
 import { useToast } from "../ToastProvider/hooks/useToast";
@@ -21,6 +22,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   const [mediaFormat, setMediaFormat] = useState<"movie" | "series">("movie");
   const [pendingDuplicate, setPendingDuplicate] = useState<PendingDuplicateMedia | null>(null);
   const [isConfirmingDuplicate, setIsConfirmingDuplicate] = useState(false);
+  const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const {
     control,
     formState: { errors, isSubmitting },
@@ -36,6 +38,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   const selectedType = initialType ?? manualSelectedType;
   const catalogSearch = useMediaCatalogSearch({ getValues, isOpen, selectedType, setValue });
   const coverValue = useWatch({ control, name: "cover" });
+  const backdropValue = useWatch({ control, name: "backdrop" });
   const metaValue = useWatch({ control, name: "meta" });
   const ratingValue = useWatch({ control, name: "rating" });
   const statusValue = useWatch({ control, name: "status" });
@@ -76,6 +79,19 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     setValue("episode_count", "", { shouldDirty: true, shouldValidate: true });
     if (selectedType === "movies" && nextMediaFormat === "movie" && getValues("status") === "incomplete") {
       setValue("status", "queue", { shouldDirty: true, shouldValidate: true });
+    }
+  };
+
+  const handleAssetUpload = async (file: File, kind: "cover" | "backdrop") => {
+    setIsUploadingAsset(true);
+    try {
+      const url = await uploadMediaAsset(file, kind);
+      setValue(kind, url, { shouldDirty: true, shouldValidate: true });
+    } catch (error) {
+      notify({ tone: "error", title: "Imagem não enviada", message: error instanceof Error ? error.message : "Não foi possível enviar a imagem." });
+      throw error;
+    } finally {
+      setIsUploadingAsset(false);
     }
   };
 
@@ -125,7 +141,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     }
   };
 
-  const isFormBusy = isSubmitting || catalogSearch.isCatalogSelectionLoading;
+  const isFormBusy = isSubmitting || catalogSearch.isCatalogSelectionLoading || isUploadingAsset;
 
   if (!isOpen) return null;
 
@@ -137,9 +153,9 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
       }}
     >
       <div
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1e] shadow-2xl"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#1a1a1e] shadow-2xl sm:max-h-[90vh]"
       >
-        <div className="shrink-0 border-b border-white/5 px-8 pb-4 pt-8">
+        <div className="shrink-0 border-b border-white/5 px-5 pb-4 pt-5 sm:px-8 sm:pt-8">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-serif text-3xl font-bold text-[#ebdcb9]">
@@ -171,14 +187,14 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
         </div>
 
         {!selectedType && (
-          <div className="overflow-y-auto px-8 py-6">
+          <div className="overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
             <MediaTypePicker onSelect={selectType} />
           </div>
         )}
 
         {selectedType && copy && (
-          <form onSubmit={handleSubmit((data) => onSubmit(data))} className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 overflow-y-auto px-8 py-6">
+          <form noValidate onSubmit={handleSubmit((data) => onSubmit(data))} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
               <div className="flex flex-col gap-6">
                 <BasicInfoFields
                   catalogSearch={catalogSearch}
@@ -198,6 +214,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
                   catalogSearch={catalogSearch}
                   copy={copy}
                   coverValue={coverValue}
+                  backdropValue={backdropValue}
                   errorClass={errorClass}
                   errors={errors}
                   inputClass={inputClass}
@@ -210,6 +227,8 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
                   selectedType={selectedType}
                   setValue={setValue}
                   statusValue={statusValue}
+                  onUpload={handleAssetUpload}
+                  isUploading={isUploadingAsset}
                 />
 
                 <label className={labelClass}>

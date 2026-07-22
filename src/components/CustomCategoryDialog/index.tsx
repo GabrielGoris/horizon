@@ -21,6 +21,8 @@ const FIELD_TYPES: Array<{ value: CustomFieldType; label: string }> = [
   { value: "multiselect", label: "Múltiplas escolhas" },
 ];
 
+const ACCENT_COLORS = ["#d4af37", "#d66a5b", "#b76bd1", "#5f9ee8", "#49b58b", "#d99845", "#d75d86", "#f0f0e8"];
+
 type DraftField = Pick<CustomCategoryField, "id" | "label" | "field_type" | "phase" | "required" | "options">;
 
 interface CustomCategoryDialogProps {
@@ -159,9 +161,21 @@ export function CustomCategoryDialog({
             </label>
             <label className={labelClass}>
               Cor de destaque
-              <span className="flex h-11 overflow-hidden rounded-lg border border-white/10 bg-[#111114]">
-                <input type="color" className="h-full w-14 cursor-pointer border-0 bg-transparent p-1" value={accentColor} onChange={(event) => setAccentColor(event.target.value)} />
-                <input className="min-w-0 flex-1 bg-transparent px-3 text-sm uppercase text-white outline-none" value={accentColor} onChange={(event) => setAccentColor(event.target.value)} pattern="^#[0-9A-Fa-f]{6}$" />
+              <span className="rounded-lg border border-white/10 bg-[#111114] p-2">
+                <span className="grid grid-cols-8 gap-2">
+                  {ACCENT_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      aria-label={`Usar a cor ${color}`}
+                      aria-pressed={accentColor.toLowerCase() === color}
+                      onClick={() => setAccentColor(color)}
+                      className={`aspect-square rounded-full border-2 transition ${accentColor.toLowerCase() === color ? "scale-110 border-white" : "border-transparent hover:scale-105"}`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </span>
+                <input className="mt-3 h-9 w-full rounded-md border border-white/10 bg-black/20 px-3 text-sm uppercase text-white outline-none focus:border-noir-gold/70" value={accentColor} onChange={(event) => setAccentColor(event.target.value)} pattern="^#[0-9A-Fa-f]{6}$" />
               </span>
             </label>
           </div>

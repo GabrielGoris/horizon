@@ -1,8 +1,8 @@
 import { Check, ChevronDown, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { GAME_PLATFORM_OPTIONS, getGamePlatformOption } from "../../consts/gamePlatforms";
+import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { getMediaStatusLabel, getMediaStatusOptions } from "../../consts/mediaStatus";
-import { GamePlatformLogo } from "../GamePlatformLogo";
+import { GamePlatformSelect } from "../GamePlatformSelect";
 import { CompletionArtifacts } from "./CompletionArtifacts";
 import { DossierEditForm } from "./DossierEditForm";
 import { DossierFacts } from "./DossierFacts";
@@ -25,6 +25,7 @@ export function MediaDossier({
   showDeleteAction = true,
 }: MediaDossierProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const hasSeriesStructure = item.media_format === "series"
     || Number(item.season_count) > 0
     || Number(item.episode_count) > 0;
@@ -42,7 +43,6 @@ export function MediaDossier({
   const isComplete = item.status === "complete";
   const gamePlatform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
   const platformValue = gamePlatform?.label ?? item.meta ?? "";
-  const hasUnknownPlatform = item.type === "games" && platformValue && !gamePlatform;
   const progressPercentage = item.progress
     ? Math.min(100, Math.round((item.progress.current / item.progress.total) * 100))
     : 0;
@@ -53,7 +53,7 @@ export function MediaDossier({
   const statusOptions = getMediaStatusOptions(item.type, statusMediaFormat);
 
   return (
-    <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/75 backdrop-blur-[6px]">
+    <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/80 md:bg-black/75 md:backdrop-blur-[6px]">
       <button
         type="button"
         aria-label="Fechar dossiê"
@@ -119,49 +119,36 @@ export function MediaDossier({
                   <span className={chipClass} title={category}>
                     <span className="truncate">{category}</span>
                   </span>
-                  {item.type === "games" && (
-                    <label className={`relative ${chipClass} px-0`}>
-                      <span className="sr-only">Alterar plataforma principal</span>
-                      {gamePlatform && (
-                        <span className="pointer-events-none absolute left-2.5 top-1/2 flex -translate-y-1/2 text-neutral-400">
-                          <GamePlatformLogo platform={gamePlatform} compact className="h-3 w-3" />
-                        </span>
-                      )}
-                      <select
-                        value={platformValue}
-                        onChange={(event) => void onMetaChange(item, event.target.value)}
-                        className={`h-full w-full cursor-pointer appearance-none truncate rounded-full border-0 bg-transparent pr-6 text-left font-mono text-[10px] leading-none text-neutral-400 outline-none transition-colors hover:text-noir-champagne ${gamePlatform ? "pl-7" : "pl-3"}`}
-                      >
-                        <option value="" className="bg-[#17171a] text-neutral-200">Plataforma</option>
-                        {hasUnknownPlatform && (
-                          <option value={platformValue} className="bg-[#17171a] text-neutral-200">
-                            {platformValue}
-                          </option>
-                        )}
-                        {GAME_PLATFORM_OPTIONS.map((platform) => (
-                          <option key={platform.label} value={platform.label} className="bg-[#17171a] text-neutral-200">
-                            {platform.label}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown size={10} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500" />
-                    </label>
-                  )}
-                  <label className={`relative ${chipClass} px-0`}>
-                    <span className="sr-only">Alterar status da obra</span>
-                    <select
-                      value={item.status}
-                      onChange={(event) => void onStatusChange(item, event.target.value as typeof item.status)}
-                      className="h-full w-full cursor-pointer appearance-none truncate rounded-full border-0 bg-transparent pl-3 pr-6 text-center font-mono text-[10px] leading-none text-neutral-400 outline-none transition-colors hover:text-noir-champagne"
+                  {item.type === "games" && <GamePlatformSelect value={platformValue} onChange={(value) => void onMetaChange(item, value)} />}
+                  <div className={`relative ${chipClass} px-0`}>
+                    <button
+                      type="button"
+                      aria-label="Alterar status da obra"
+                      aria-expanded={isStatusMenuOpen}
+                      onClick={() => setIsStatusMenuOpen((current) => !current)}
+                      className="flex h-full w-full items-center justify-center truncate rounded-full pl-3 pr-6 font-mono text-[10px] leading-none text-neutral-400 transition-colors hover:text-noir-champagne"
                     >
-                      {statusOptions.map((statusOption) => (
-                        <option key={statusOption} value={statusOption} className="bg-[#17171a] text-neutral-200">
-                          {getMediaStatusLabel(statusOption, item.type)}
-                        </option>
-                      ))}
-                    </select>
+                      {getMediaStatusLabel(item.status, item.type)}
+                    </button>
                     <ChevronDown size={10} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500" />
-                  </label>
+                    {isStatusMenuOpen && (
+                      <div className="absolute left-1/2 top-[calc(100%+0.5rem)] z-30 w-44 -translate-x-1/2 overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1e] p-1 shadow-2xl shadow-black/70">
+                        {statusOptions.map((statusOption) => (
+                          <button
+                            key={statusOption}
+                            type="button"
+                            onClick={() => {
+                              setIsStatusMenuOpen(false);
+                              void onStatusChange(item, statusOption);
+                            }}
+                            className={`flex w-full rounded-lg px-3 py-2 text-left font-mono text-[10px] uppercase tracking-wide transition ${item.status === statusOption ? "bg-noir-gold/15 text-noir-champagne" : "text-neutral-400 hover:bg-white/[0.05] hover:text-white"}`}
+                          >
+                            {getMediaStatusLabel(statusOption, item.type)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
