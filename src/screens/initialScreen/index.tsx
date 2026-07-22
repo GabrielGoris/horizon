@@ -51,6 +51,66 @@ export function InitialScreen({ activeTab, customCategorySlug, userEmail }: Init
     navigate,
     refreshCategories: customCategories.refresh,
   });
+
+  useEffect(() => {
+    const handleNativeBack = (event: Event) => {
+      if (mediaCollection.selectedMedia) {
+        event.preventDefault();
+        mediaCollection.setSelectedMedia(null);
+        return;
+      }
+
+      if (mediaCollection.mediaToDelete && !mediaCollection.isDeletingMedia) {
+        event.preventDefault();
+        mediaCollection.setMediaToDelete(null);
+        return;
+      }
+
+      if (wishlistPriority.mediaToPrioritize || wishlistPriority.managedWishlistType) {
+        event.preventDefault();
+        wishlistPriority.cancelWishlistPriority();
+        return;
+      }
+
+      if (isAddMediaModalOpen) {
+        event.preventDefault();
+        setIsAddMediaModalOpen(false);
+        return;
+      }
+
+      if (customLibrary.selectedEntry) {
+        event.preventDefault();
+        customLibrary.selectEntry(null);
+        return;
+      }
+
+      if (customLibrary.entryToDelete && !customLibrary.isSavingEntry) {
+        event.preventDefault();
+        customLibrary.cancelRemoveEntry();
+        return;
+      }
+
+      if (customLibrary.isEntryDialogOpen && !customLibrary.isSavingEntry) {
+        event.preventDefault();
+        customLibrary.closeEntryDialog();
+        return;
+      }
+
+      if (customLibrary.categoryToDelete && !customLibrary.isSavingCategory) {
+        event.preventDefault();
+        customLibrary.cancelRemoveCategory();
+        return;
+      }
+
+      if (customLibrary.isCategoryDialogOpen && !customLibrary.isSavingCategory) {
+        event.preventDefault();
+        customLibrary.closeCategoryDialog();
+      }
+    };
+
+    window.addEventListener("horizon:back", handleNativeBack);
+    return () => window.removeEventListener("horizon:back", handleNativeBack);
+  }, [customLibrary, isAddMediaModalOpen, mediaCollection, wishlistPriority]);
   const activeLabel = activeTab === "overview" ? "Visão Geral" : activeCategory?.plural ?? "Nova Categoria";
   const addMediaInitialType = activeTab === "overview" ? null : activeCategory?.id;
   const filteredCollection = useFilteredCollection({

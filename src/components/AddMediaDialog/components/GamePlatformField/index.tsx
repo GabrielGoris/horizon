@@ -4,7 +4,7 @@ import { GamePlatformLogo } from "../../../GamePlatformLogo";
 import { GAME_PLATFORM_OPTIONS, getGamePlatformOption } from "../../../../consts/gamePlatforms";
 import type { GamePlatformFieldProps } from "../types";
 
-export function GamePlatformField({ metaValue, setValue }: GamePlatformFieldProps) {
+export function GamePlatformField({ metaValue, onChange, setValue }: GamePlatformFieldProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const selectedPlatform = getGamePlatformOption(metaValue);
@@ -23,10 +23,14 @@ export function GamePlatformField({ metaValue, setValue }: GamePlatformFieldProp
   }, [searchTerm]);
 
   const selectPlatform = (label: string) => {
-    setValue("meta", label, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
+    if (onChange) {
+      onChange(label);
+    } else if (setValue) {
+      setValue("meta", label, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    }
     setSearchTerm("");
     setIsOpen(false);
   };

@@ -51,7 +51,7 @@ export function DossierEditForm({ item, onCancel, onSave }: DossierEditFormProps
   });
 
   return (
-    <form className="contents" onSubmit={submit}>
+    <form noValidate className="contents" onSubmit={submit}>
       <div className="animate-dossier-content-in flex-1 overflow-y-auto px-7 py-7">
         <div className="mb-7 border-b border-white/10 pb-5">
           <p className="font-mono text-[9px] font-bold uppercase tracking-[0.22em] text-noir-gold">

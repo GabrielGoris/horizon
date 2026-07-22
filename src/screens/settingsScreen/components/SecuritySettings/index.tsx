@@ -205,7 +205,7 @@ export function SecuritySettings({ session }: SecuritySettingsProps) {
         </div>
 
         {canUsePassword ? (
-          <form onSubmit={handleChangePassword} className="mt-6 grid gap-4 md:grid-cols-3">
+          <form noValidate onSubmit={handleChangePassword} className="mt-6 grid gap-4 md:grid-cols-3">
             <SecurityPasswordInput label="Senha atual" value={currentPassword} onChange={setCurrentPassword} autoComplete="current-password" />
             <SecurityPasswordInput label="Nova senha" value={newPassword} onChange={setNewPassword} autoComplete="new-password" />
             <SecurityPasswordInput label="Confirmar senha" value={passwordConfirmation} onChange={setPasswordConfirmation} autoComplete="new-password" />
@@ -261,7 +261,7 @@ export function SecuritySettings({ session }: SecuritySettingsProps) {
             </div>
 
             {enrollment && (
-              <form onSubmit={handleVerifyMfa} className="mt-6 grid gap-6 md:grid-cols-[190px_1fr] md:items-center">
+              <form noValidate onSubmit={handleVerifyMfa} className="mt-6 grid gap-6 md:grid-cols-[190px_1fr] md:items-center">
                 <img src={enrollment.qrCode} alt="QR code para configurar o aplicativo autenticador" className="h-[190px] w-[190px] rounded-xl bg-white p-3" />
                 <div>
                   <p className="text-sm leading-6 text-neutral-300">Escaneie o QR code e confirme o codigo gerado. Se preferir, use a chave:</p>

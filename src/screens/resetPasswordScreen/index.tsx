@@ -71,7 +71,7 @@ export function ResetPasswordScreen({ isAuthenticated }: ResetPasswordScreenProp
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
+          <form noValidate onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
             <PasswordInput
               label="Nova senha"
               value={password}

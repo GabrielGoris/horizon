@@ -23,8 +23,8 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
     if (!track) return;
 
     const maximumScroll = track.scrollWidth - track.clientWidth;
-    setCanScrollLeft(track.scrollLeft > 1);
-    setCanScrollRight(track.scrollLeft < maximumScroll - 1);
+    setCanScrollLeft(track.scrollLeft > 8);
+    setCanScrollRight(maximumScroll > 8 && track.scrollLeft < maximumScroll - 8);
   }, []);
 
   useEffect(() => {
@@ -54,24 +54,22 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
 
   return (
     <div className="relative lg:-mx-12 lg:px-12">
-      <button
+      {canScrollLeft && <button
         type="button"
         aria-label="Ver item anterior"
-        disabled={!canScrollLeft}
         onClick={() => move(-1)}
-        className="absolute left-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113]/95 text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md transition hover:border-noir-gold/60 hover:text-noir-gold disabled:pointer-events-none disabled:opacity-0 lg:h-10 lg:w-10"
+        className="absolute left-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113]/95 text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md transition hover:border-noir-gold/60 hover:text-noir-gold lg:h-10 lg:w-10"
       >
         <ChevronLeft size={21} />
-      </button>
-      <button
+      </button>}
+      {canScrollRight && <button
         type="button"
         aria-label="Ver próximo item"
-        disabled={!canScrollRight}
         onClick={() => move(1)}
-        className="absolute right-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113]/95 text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md transition hover:border-noir-gold/60 hover:text-noir-gold disabled:pointer-events-none disabled:opacity-0 lg:h-10 lg:w-10"
+        className="absolute right-1 top-1/2 z-40 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#111113]/95 text-[#ebdcb9] shadow-[0_8px_24px_rgba(0,0,0,0.65)] backdrop-blur-md transition hover:border-noir-gold/60 hover:text-noir-gold lg:h-10 lg:w-10"
       >
         <ChevronRight size={21} />
-      </button>
+      </button>}
 
       <div
         ref={trackRef}

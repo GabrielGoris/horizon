@@ -59,7 +59,7 @@ export function MfaChallengeScreen({ onVerified }: MfaChallengeScreenProps) {
         <h1 className="mt-3 font-serif text-4xl font-black italic text-noir-champagne">Confirme que é você.</h1>
         <p className="mt-4 text-sm leading-6 text-neutral-400">Digite o código de seis dígitos do seu aplicativo autenticador.</p>
 
-        <form onSubmit={handleSubmit} className="mt-7 flex flex-col gap-4">
+        <form noValidate onSubmit={handleSubmit} className="mt-7 flex flex-col gap-4">
           <input
             autoFocus
             inputMode="numeric"

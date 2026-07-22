@@ -4,6 +4,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createMediaSchema, type CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import { createMedia, hasDuplicateMedia } from "../../services/mediaService";
+import { uploadMediaAsset } from "../../services/mediaAssetService";
 import type { MediaType } from "../../types";
 import { DuplicateMediaDialog } from "../DuplicateMediaDialog";
 import { useToast } from "../ToastProvider/hooks/useToast";
@@ -21,6 +22,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   const [mediaFormat, setMediaFormat] = useState<"movie" | "series">("movie");
   const [pendingDuplicate, setPendingDuplicate] = useState<PendingDuplicateMedia | null>(null);
   const [isConfirmingDuplicate, setIsConfirmingDuplicate] = useState(false);
+  const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const {
     control,
     formState: { errors, isSubmitting },
@@ -36,6 +38,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
   const selectedType = initialType ?? manualSelectedType;
   const catalogSearch = useMediaCatalogSearch({ getValues, isOpen, selectedType, setValue });
   const coverValue = useWatch({ control, name: "cover" });
+  const backdropValue = useWatch({ control, name: "backdrop" });
   const metaValue = useWatch({ control, name: "meta" });
   const ratingValue = useWatch({ control, name: "rating" });
   const statusValue = useWatch({ control, name: "status" });
@@ -76,6 +79,19 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     setValue("episode_count", "", { shouldDirty: true, shouldValidate: true });
     if (selectedType === "movies" && nextMediaFormat === "movie" && getValues("status") === "incomplete") {
       setValue("status", "queue", { shouldDirty: true, shouldValidate: true });
+    }
+  };
+
+  const handleAssetUpload = async (file: File, kind: "cover" | "backdrop") => {
+    setIsUploadingAsset(true);
+    try {
+      const url = await uploadMediaAsset(file, kind);
+      setValue(kind, url, { shouldDirty: true, shouldValidate: true });
+    } catch (error) {
+      notify({ tone: "error", title: "Imagem não enviada", message: error instanceof Error ? error.message : "Não foi possível enviar a imagem." });
+      throw error;
+    } finally {
+      setIsUploadingAsset(false);
     }
   };
 
@@ -125,7 +141,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
     }
   };
 
-  const isFormBusy = isSubmitting || catalogSearch.isCatalogSelectionLoading;
+  const isFormBusy = isSubmitting || catalogSearch.isCatalogSelectionLoading || isUploadingAsset;
 
   if (!isOpen) return null;
 
@@ -177,7 +193,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
         )}
 
         {selectedType && copy && (
-          <form onSubmit={handleSubmit((data) => onSubmit(data))} className="flex min-h-0 flex-1 flex-col">
+          <form noValidate onSubmit={handleSubmit((data) => onSubmit(data))} className="flex min-h-0 flex-1 flex-col">
             <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
               <div className="flex flex-col gap-6">
                 <BasicInfoFields
@@ -198,6 +214,7 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
                   catalogSearch={catalogSearch}
                   copy={copy}
                   coverValue={coverValue}
+                  backdropValue={backdropValue}
                   errorClass={errorClass}
                   errors={errors}
                   inputClass={inputClass}
@@ -210,6 +227,8 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
                   selectedType={selectedType}
                   setValue={setValue}
                   statusValue={statusValue}
+                  onUpload={handleAssetUpload}
+                  isUploading={isUploadingAsset}
                 />
 
                 <label className={labelClass}>

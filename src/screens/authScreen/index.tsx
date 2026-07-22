@@ -220,7 +220,7 @@ export function AuthScreen() {
           </h2>
           <p className="mt-5 max-w-[500px] text-sm leading-7 text-neutral-400">{copy.description}</p>
 
-          <form onSubmit={handleSubmit} className="mt-9 flex flex-col gap-5">
+          <form noValidate onSubmit={handleSubmit} className="mt-9 flex flex-col gap-5">
             <label className="flex flex-col gap-2">
               <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
                 E-mail

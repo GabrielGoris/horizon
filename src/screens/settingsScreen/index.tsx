@@ -2,6 +2,7 @@ import { AlertTriangle, ArrowLeft, Bell, CreditCard, LogOut, Plug, Shield, Trash
 import { useEffect, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { getApiUrl } from '../../services/apiUrl';
+import { ConfirmationDialog } from '../../components/ConfirmationDialog';
 import { SecuritySettings } from './components/SecuritySettings';
 import { SteamIntegrationSettings } from './components/SteamIntegrationSettings';
 import type {
@@ -22,6 +23,7 @@ const settingsLinks = [
 export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
   const location = useLocation();
   const [isDeleteDialogRequested, setIsDeleteDialogRequested] = useState(false);
+  const [isSignOutDialogRequested, setIsSignOutDialogRequested] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const userEmail = session.user.email ?? 'Conta Horizon';
@@ -96,7 +98,7 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
                 setErrorMessage(null);
                 setIsDeleteDialogRequested(true);
               }}
-              onSignOut={onSignOut}
+              onRequestSignOut={() => setIsSignOutDialogRequested(true)}
               userEmail={userEmail}
             />
           )}
@@ -112,6 +114,16 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
           userEmail={userEmail}
         />
       )}
+      <ConfirmationDialog
+        isOpen={isSignOutDialogRequested}
+        title="Sair da conta?"
+        description="Você precisará entrar novamente para acessar sua biblioteca neste dispositivo."
+        eyebrow="Encerrar sessão"
+        confirmLabel="Sair"
+        confirmIcon={<LogOut size={14} />}
+        onCancel={() => setIsSignOutDialogRequested(false)}
+        onConfirm={() => void onSignOut()}
+      />
     </div>
   );
 }
@@ -187,7 +199,7 @@ function PlanSettings() {
   );
 }
 
-function AccountSettings({ onOpenDelete, onSignOut, userEmail }: AccountSettingsProps) {
+function AccountSettings({ onOpenDelete, onRequestSignOut, userEmail }: AccountSettingsProps) {
   return (
     <>
       <section className="overflow-hidden rounded-xl border border-white/10 bg-[#1a1a1e]">
@@ -198,7 +210,7 @@ function AccountSettings({ onOpenDelete, onSignOut, userEmail }: AccountSettings
           action={(
             <button
               type="button"
-              onClick={onSignOut}
+              onClick={onRequestSignOut}
               className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white/10 px-4 font-mono text-[11px] font-bold uppercase tracking-[0.12em] text-neutral-300 hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
             >
               <LogOut size={15} /> Sair

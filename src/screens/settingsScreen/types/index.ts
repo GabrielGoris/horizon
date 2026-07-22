@@ -8,7 +8,7 @@ export interface SettingsScreenProps {
 
 export type AccountSettingsProps = {
   onOpenDelete: () => void;
-  onSignOut: () => void | Promise<void>;
+  onRequestSignOut: () => void;
   userEmail: string;
 };
 

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { AuthScreen } from './screens/authScreen'
 import { InitialScreen } from './screens/initialScreen/index.tsx'
 import { useAuthSession } from './hooks/useAuthSession'
@@ -9,6 +10,7 @@ import { ResetPasswordScreen } from './screens/resetPasswordScreen'
 import { MfaChallengeScreen } from './screens/mfaChallengeScreen'
 import { SteamAutoSync } from './components/SteamAutoSync'
 import { ConnectionStatus } from './components/ConnectionStatus'
+import { AppSplash } from './components/AppSplash'
 
 function CustomLibraryRoute({ userEmail }: { userEmail?: string }) {
   const { categorySlug = "" } = useParams();
@@ -19,21 +21,14 @@ function CustomLibraryRoute({ userEmail }: { userEmail?: string }) {
 function App() {
   const { isLoadingSession, session, signOut } = useAuthSession()
   const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
+  const [isSplashVisible, setIsSplashVisible] = useState(true)
 
-  if (isLoadingSession || isCheckingMfa) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-noir-base text-white">
-        <div className="flex flex-col items-center gap-4">
-          <span className="font-serif text-[34px] font-extrabold italic leading-none text-noir-champagne lowercase">
-            horizon<span className="text-noir-gold">.</span>
-          </span>
-          <span className="font-mono text-[10px] uppercase tracking-[0.28em] text-neutral-500">
-            Carregando sessão
-          </span>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setIsSplashVisible(false), 800)
+    return () => window.clearTimeout(timeout)
+  }, [])
+
+  if (isSplashVisible || isLoadingSession || isCheckingMfa) return <AppSplash />
 
   const isAuthenticated = Boolean(session)
   const handleSignOut = async () => {
