@@ -25,12 +25,13 @@ const MediaDossier = lazy(loadMediaDossier);
 const WishlistPriorityDialog = lazy(() => import("../../components/WishlistPriorityDialog").then((module) => ({ default: module.WishlistPriorityDialog })));
 const CustomLibraryOverlays = lazy(() => import("./components/CustomLibraryOverlays").then((module) => ({ default: module.CustomLibraryOverlays })));
 
-export function InitialScreen({ activeTab, customCategorySlug, userEmail }: InitialScreenProps) {
+export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, userEmail }: InitialScreenProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mediaCollection = useMediaCollection();
+  const { collection, isLoadingMedia, setSelectedMedia } = mediaCollection;
   const customCategories = useCustomCategories();
   const filters = useLibraryFilters(activeTab);
   const wishlistPriority = useWishlistPriority({
@@ -67,10 +68,18 @@ export function InitialScreen({ activeTab, customCategorySlug, userEmail }: Init
   });
 
   useEffect(() => {
+    if (!dossierMediaId || isLoadingMedia) return;
+
+    const item = collection.find((media) => media.id === dossierMediaId);
+    if (item) setSelectedMedia(item);
+  }, [collection, dossierMediaId, isLoadingMedia, setSelectedMedia]);
+
+  useEffect(() => {
     const handleNativeBack = (event: Event) => {
       if (mediaCollection.selectedMedia) {
         event.preventDefault();
         mediaCollection.setSelectedMedia(null);
+        if (dossierMediaId) navigate("/", { replace: true });
         return;
       }
 
@@ -124,7 +133,7 @@ export function InitialScreen({ activeTab, customCategorySlug, userEmail }: Init
 
     window.addEventListener("horizon:back", handleNativeBack);
     return () => window.removeEventListener("horizon:back", handleNativeBack);
-  }, [customLibrary, isAddMediaModalOpen, mediaCollection, wishlistPriority]);
+  }, [customLibrary, dossierMediaId, isAddMediaModalOpen, mediaCollection, navigate, wishlistPriority]);
   const activeLabel = activeTab === "overview" ? "Visão Geral" : activeCategory?.plural ?? "Nova Categoria";
   const addMediaInitialType = activeTab === "overview" ? null : activeCategory?.id;
   const filteredCollection = useFilteredCollection({
@@ -274,7 +283,10 @@ export function InitialScreen({ activeTab, customCategorySlug, userEmail }: Init
         <Suspense fallback={null}>
           <MediaDossier
             item={mediaCollection.selectedMedia}
-            onClose={() => mediaCollection.setSelectedMedia(null)}
+            onClose={() => {
+              mediaCollection.setSelectedMedia(null);
+              if (dossierMediaId) navigate("/", { replace: true });
+            }}
             onComplete={mediaCollection.handleCompleteMedia}
             onDelete={mediaCollection.setMediaToDelete}
             onDetailsChange={mediaCollection.handleUpdateMediaDetails}
