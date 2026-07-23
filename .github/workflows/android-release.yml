@@ -63,6 +63,7 @@ jobs:
           export VITE_APP_VERSION="$VERSION"
           npm run cap:sync
           cd android
+          chmod +x gradlew
           ./gradlew assembleRelease -PversionName="${VERSION}" -PversionCode="${GITHUB_RUN_NUMBER}"
           cp app/build/outputs/apk/release/app-release.apk "../Horizon-${VERSION}.apk"
 
