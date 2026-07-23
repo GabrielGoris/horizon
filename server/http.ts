@@ -2,6 +2,32 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 export type ApiRequest = IncomingMessage & { body?: unknown };
 
+const NATIVE_APP_ORIGINS = new Set(["https://localhost", "capacitor://localhost"]);
+
+function isAllowedApiOrigin(origin: string) {
+  if (NATIVE_APP_ORIGINS.has(origin)) return true;
+
+  const siteUrl = (process.env.SITE_URL ?? process.env.VITE_SITE_URL ?? "").replace(/\/+$/, "");
+  return Boolean(siteUrl) && origin === siteUrl;
+}
+
+export function handleCorsPreflight(req: ApiRequest, res: ServerResponse, methods: string[]) {
+  const origin = req.headers.origin;
+  if (origin && isAllowedApiOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", methods.join(", "));
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Max-Age", "86400");
+    res.setHeader("Vary", "Origin");
+  }
+
+  if (req.method !== "OPTIONS") return false;
+
+  res.statusCode = origin && isAllowedApiOrigin(origin) ? 204 : 403;
+  res.end();
+  return true;
+}
+
 export function sendJson(res: ServerResponse, statusCode: number, body: unknown) {
   res.statusCode = statusCode;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
