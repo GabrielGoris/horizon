@@ -15,6 +15,12 @@ function isAndroidNativeApp() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
+function getPreviewProtectionHeaders(): Record<string, string> {
+  const configuredSecret = import.meta.env.VITE_VERCEL_PROTECTION_BYPASS as string | undefined;
+  const bypassSecret = configuredSecret?.trim();
+  return bypassSecret ? { "x-vercel-protection-bypass": bypassSecret } : {};
+}
+
 function getSafeRoute(value: unknown) {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
 
@@ -38,6 +44,7 @@ async function savePushDevice(token: string) {
     headers: {
       Authorization: `Bearer ${currentAccessToken}`,
       "Content-Type": "application/json",
+      ...getPreviewProtectionHeaders(),
     },
     body: JSON.stringify({
       token,
@@ -141,6 +148,7 @@ export async function unregisterPushNotifications(session: Session) {
         headers: {
           Authorization: `Bearer ${currentAccessToken}`,
           "Content-Type": "application/json",
+          ...getPreviewProtectionHeaders(),
         },
         body: JSON.stringify({ token }),
       });
@@ -160,6 +168,7 @@ export async function sendPushNotificationTest(session: Session) {
     method: "POST",
     headers: {
       Authorization: `Bearer ${session.access_token}`,
+      ...getPreviewProtectionHeaders(),
     },
   });
 

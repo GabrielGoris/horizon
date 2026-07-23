@@ -16,7 +16,7 @@ export function handleCorsPreflight(req: ApiRequest, res: ServerResponse, method
   if (origin && isAllowedApiOrigin(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
     res.setHeader("Access-Control-Allow-Methods", methods.join(", "));
-    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Vercel-Protection-Bypass");
     res.setHeader("Access-Control-Max-Age", "86400");
     res.setHeader("Vary", "Origin");
   }
