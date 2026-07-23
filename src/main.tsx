@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { ToastProvider } from './components/ToastProvider'
 import { NativeAuthRedirect } from './components/NativeAuthRedirect'
 import { NativeBackNavigation } from './components/NativeBackNavigation'
+import { NativePushNavigation } from './components/NativePushNavigation'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -13,6 +14,7 @@ createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <NativeAuthRedirect />
         <NativeBackNavigation />
+        <NativePushNavigation />
         <App />
       </BrowserRouter>
     </ToastProvider>

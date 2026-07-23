@@ -1,4 +1,11 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/push-weekly-reminders",
+      "schedule": "0 22 * * 0"
+    }
+  ],
   "rewrites": [
     {
       "source": "/:path((?!api/|src/|@vite/|@react-refresh|node_modules/|assets/|.*\\..*).*)",

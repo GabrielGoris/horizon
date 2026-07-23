@@ -6,6 +6,7 @@ import type { InitialScreenProps } from './screens/initialScreen/types'
 import { ConnectionStatus } from './components/ConnectionStatus'
 import { AppSplash } from './components/AppSplash'
 import { AppUpdateDialog } from './components/AppUpdateDialog'
+import { initializePushNotifications, unregisterPushNotifications } from './services/pushNotificationService'
 
 const AuthScreen = lazy(() => import('./screens/authScreen').then((module) => ({ default: module.AuthScreen })))
 const InitialScreen = lazy(() => import('./screens/initialScreen/index.tsx').then((module) => ({ default: module.InitialScreen })))
@@ -20,6 +21,12 @@ function CustomLibraryRoute({ userEmail }: { userEmail?: string }) {
   return <InitialScreen activeTab="custom" customCategorySlug={categorySlug} userEmail={userEmail} />;
 }
 
+function DossierRoute({ userEmail }: { userEmail?: string }) {
+  const { mediaId = "" } = useParams();
+
+  return <InitialScreen activeTab="overview" dossierMediaId={mediaId} userEmail={userEmail} />;
+}
+
 function App() {
   const { isLoadingSession, session, signOut } = useAuthSession()
   const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
@@ -30,10 +37,23 @@ function App() {
     return () => window.clearTimeout(timeout)
   }, [])
 
+  useEffect(() => {
+    if (isSplashVisible || isLoadingSession || isCheckingMfa || !session) return;
+
+    void initializePushNotifications(session).catch((error) => {
+      console.warn("Não foi possível inicializar as notificações.", error);
+    });
+  }, [isCheckingMfa, isLoadingSession, isSplashVisible, session]);
+
   if (isSplashVisible || isLoadingSession || isCheckingMfa) return <AppSplash />
 
   const isAuthenticated = Boolean(session)
   const handleSignOut = async () => {
+    if (session) {
+      await unregisterPushNotifications(session).catch((error) => {
+        console.warn("Não foi possível remover o dispositivo das notificações.", error);
+      });
+    }
     await signOut()
   }
   const renderLibraryRoute = (activeTab: InitialScreenProps['activeTab']) => {
@@ -76,6 +96,7 @@ function App() {
           <Route path="/movies" element={renderLibraryRoute("movies")} />
           <Route path="/games" element={renderLibraryRoute("games")} />
           <Route path="/books" element={renderLibraryRoute("books")} />
+          <Route path="/dossier/:mediaId" element={isAuthenticated ? <DossierRoute userEmail={session?.user.email} /> : <Navigate to="/auth" replace />} />
           <Route path="/c/:categorySlug" element={isAuthenticated ? <CustomLibraryRoute userEmail={session?.user.email} /> : <Navigate to="/auth" replace />} />
           <Route
             path="/settings"

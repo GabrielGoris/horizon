@@ -5,6 +5,7 @@ import { getApiUrl } from '../../services/apiUrl';
 import { ConfirmationDialog } from '../../components/ConfirmationDialog';
 import { SecuritySettings } from './components/SecuritySettings';
 import { SteamIntegrationSettings } from './components/SteamIntegrationSettings';
+import { getPushPermissionState, sendPushNotificationTest } from '../../services/pushNotificationService';
 import type {
   AccountSettingsProps,
   DeleteAccountDialogProps,
@@ -89,7 +90,7 @@ export function SettingsScreen({ onSignOut, session }: SettingsScreenProps) {
           ) : isIntegrationsSection ? (
             <SteamIntegrationSettings session={session} />
           ) : isNotificationsSection ? (
-            <NotificationSettings />
+            <NotificationSettings session={session} />
           ) : isBillingSection ? (
             <PlanSettings />
           ) : (
@@ -162,12 +163,51 @@ function SettingsMobileTopBar({ userEmail }: { userEmail: string }) {
   );
 }
 
-function NotificationSettings() {
-  const [isEnabled, setIsEnabled] = useState(() => localStorage.getItem('horizon-notifications-enabled') === 'true');
+function NotificationSettings({ session }: { session: SettingsScreenProps['session'] }) {
+  const [permission, setPermission] = useState<"checking" | "unsupported" | "prompt" | "prompt-with-rationale" | "granted" | "denied">("checking");
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testMessage, setTestMessage] = useState<string | null>(null);
 
-  const updateEnabled = (enabled: boolean) => {
-    setIsEnabled(enabled);
-    localStorage.setItem('horizon-notifications-enabled', String(enabled));
+  useEffect(() => {
+    let isMounted = true;
+
+    void getPushPermissionState()
+      .then((state) => {
+        if (isMounted) setPermission(state);
+      })
+      .catch(() => {
+        if (isMounted) setPermission("denied");
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const isGranted = permission === "granted";
+  const permissionLabel = permission === "checking"
+    ? "Verificando no Android"
+    : permission === "unsupported"
+      ? "Disponível no aplicativo Android"
+      : isGranted
+        ? "Ativadas no Android"
+        : "Desativadas no Android";
+  const permissionDescription = isGranted
+    ? "O Horizon envia um lembrete semanal sobre as obras que estão em andamento há pelo menos três dias."
+    : "As permissões são pedidas na primeira abertura do aplicativo Android e podem ser alteradas nas configurações do sistema.";
+
+  const handleSendTest = async () => {
+    setIsSendingTest(true);
+    setTestMessage(null);
+
+    try {
+      await sendPushNotificationTest(session);
+      setTestMessage("Notificação enviada para este dispositivo.");
+    } catch (error) {
+      setTestMessage(error instanceof Error ? error.message : "Não foi possível enviar a notificação de teste.");
+    } finally {
+      setIsSendingTest(false);
+    }
   };
 
   return (
@@ -175,13 +215,23 @@ function NotificationSettings() {
       <div className="flex items-center justify-between gap-5 px-6 py-5">
         <div>
           <h2 className="text-sm font-bold text-white">Avisos da biblioteca</h2>
-          <p className="mt-1 max-w-xl text-sm leading-5 text-neutral-500">Mantenha essa preferência salva neste dispositivo para os avisos que adicionarmos ao Horizon.</p>
+          <p className="mt-1 max-w-xl text-sm leading-5 text-neutral-500">{permissionDescription}</p>
         </div>
-        <button type="button" role="switch" aria-checked={isEnabled} onClick={() => updateEnabled(!isEnabled)} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${isEnabled ? 'bg-noir-gold' : 'bg-white/10'}`}>
-          <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${isEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+        <span className={`shrink-0 rounded-full border px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] ${isGranted ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/[0.03] text-neutral-400'}`}>{permissionLabel}</span>
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 px-6 py-4">
+        <p className={`text-xs ${testMessage?.startsWith('Notificação enviada') ? 'text-emerald-200' : 'text-neutral-500'}`} aria-live="polite">
+          {testMessage ?? 'Use o teste para confirmar a configuração deste aparelho.'}
+        </p>
+        <button
+          type="button"
+          disabled={!isGranted || isSendingTest}
+          onClick={() => void handleSendTest()}
+          className="flex h-10 items-center justify-center rounded-lg border border-noir-gold/35 bg-noir-gold/10 px-4 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-noir-champagne transition hover:bg-noir-gold/20 disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          {isSendingTest ? 'Enviando...' : 'Enviar teste'}
         </button>
       </div>
-
     </section>
   );
 }

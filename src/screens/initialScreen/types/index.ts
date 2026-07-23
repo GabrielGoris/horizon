@@ -4,6 +4,7 @@ import type { MediaStatus } from "../../../types";
 export interface InitialScreenProps {
   activeTab: string;
   customCategorySlug?: string;
+  dossierMediaId?: string;
   userEmail?: string;
 }
 

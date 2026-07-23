@@ -23,6 +23,7 @@ jobs:
       ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      FIREBASE_GOOGLE_SERVICES_JSON_BASE64: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON_BASE64 }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       SITE_URL: ${{ secrets.SITE_URL }}
@@ -52,12 +53,13 @@ jobs:
             echo "A versão deve seguir o formato 1.0.0."
             exit 1
           fi
-          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" || -z "$SUPABASE_URL" || -z "$SUPABASE_ANON_KEY" || -z "$SITE_URL" ]]; then
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" || -z "$FIREBASE_GOOGLE_SERVICES_JSON_BASE64" || -z "$SUPABASE_URL" || -z "$SUPABASE_ANON_KEY" || -z "$SITE_URL" ]]; then
             echo "Configure os Secrets de assinatura e de ambiente antes de publicar."
             exit 1
           fi
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/horizon-release.jks
+          echo "$FIREBASE_GOOGLE_SERVICES_JSON_BASE64" | base64 --decode > android/app/google-services.json
 
       - name: Gerar APK assinado
         env:
