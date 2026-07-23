@@ -70,7 +70,7 @@ export async function sendPushMessage(tokens: string[], message: PushMessage) {
           sound: "default",
           tag: message.tag,
         },
-        priority: "normal",
+        priority: "high",
       },
       data: message.route ? { route: message.route } : {},
       notification: {
