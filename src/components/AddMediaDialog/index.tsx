@@ -16,7 +16,7 @@ import { fieldCopy, getDefaultValues } from "./consts";
 import { useMediaCatalogSearch } from "./hooks/useMediaCatalogSearch";
 import type { AddMediaDialogProps, PendingDuplicateMedia } from "./types";
 
-export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, initialType }: AddMediaDialogProps) {
+export function AddMediaDialog({ isOpen, onClose, onOpenDossier, onSuccess, onPriorityCreate, initialType }: AddMediaDialogProps) {
   const { notify } = useToast();
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
   const [mediaFormat, setMediaFormat] = useState<"movie" | "series">("movie");
@@ -107,7 +107,15 @@ export function AddMediaDialog({ isOpen, onClose, onSuccess, onPriorityCreate, i
 
       setPendingDuplicate(null);
       await onSuccess();
-      notify({ tone: "success", title: "Obra adicionada", message: `“${data.title}” entrou na sua biblioteca.` });
+      notify({
+        action: {
+          label: "Abrir dossiê",
+          onAction: () => onOpenDossier?.(createdMedia),
+        },
+        tone: "success",
+        title: "Obra adicionada",
+        message: `“${data.title}” entrou na sua biblioteca.`,
+      });
       clearDialogState(data.type);
       onClose();
 

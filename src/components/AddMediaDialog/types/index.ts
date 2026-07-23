@@ -9,6 +9,7 @@ export type AddMediaFieldCopy = (typeof fieldCopy)[MediaType];
 export interface AddMediaDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenDossier?: (item: MediaItem) => void;
   onSuccess: () => void | Promise<void>;
   onPriorityCreate?: (item: MediaItem) => void | Promise<void>;
   initialType?: MediaType | null;

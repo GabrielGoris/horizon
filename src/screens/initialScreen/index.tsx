@@ -253,6 +253,7 @@ export function InitialScreen({ activeTab, customCategorySlug, userEmail }: Init
             <AddMediaDialog
               isOpen
               onClose={() => setIsAddMediaModalOpen(false)}
+              onOpenDossier={mediaCollection.setSelectedMedia}
               onSuccess={async () => {
                 await mediaCollection.refreshMedia();
               }}

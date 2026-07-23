@@ -14,17 +14,17 @@ const authCopy = {
   login: {
     eyebrow: 'Acesso ao acervo',
     title: 'Bem-vindo ao Horizon.',
-    description: 'Entre para continuar organizando suas obras preferidas no seu acervo.',
+    description: 'Entre para organizar suas obras preferidas no seu acervo.',
     submit: 'Entrar',
-    swapText: 'Ainda nao tem conta?',
+    swapText: 'Ainda não tem conta?',
     swapAction: 'Criar registro',
   },
   register: {
     eyebrow: 'Novo registro',
     title: 'Bem-vindo ao Horizon.',
-    description: 'Crie sua conta para manter sua biblioteca sempre atualizada.',
+    description: 'Crie sua conta para criar seu acervo e manter sua biblioteca sempre atualizada.',
     submit: 'Registrar',
-    swapText: 'Ja tem uma conta?',
+    swapText: 'Já tem uma conta?',
     swapAction: 'Fazer login',
   },
   forgot: {

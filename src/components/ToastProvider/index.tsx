@@ -49,14 +49,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         {toasts.map((toast) => {
           const tone = TONE_STYLES[toast.tone];
           const Icon = tone.icon;
-
-          return (
-            <div key={toast.id} role={toast.tone === "error" ? "alert" : "status"} aria-atomic="true" className={`animate-toast-in pointer-events-auto flex gap-3 rounded-xl border bg-[#1c1c20]/95 p-4 shadow-[0_18px_55px_rgba(0,0,0,0.55)] backdrop-blur-xl ${tone.accent}`}>
+          const toastContent = (
+            <>
               <Icon size={18} className="mt-0.5 shrink-0" />
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold text-neutral-100">{toast.title}</p>
                 <p className="mt-1 text-xs leading-5 text-neutral-400">{toast.message}</p>
               </div>
+              {toast.action && <span className="self-center font-mono text-[10px] font-bold uppercase tracking-wider text-noir-gold">{toast.action.label}</span>}
+            </>
+          );
+
+          return (
+            <div key={toast.id} role={toast.tone === "error" ? "alert" : "status"} aria-atomic="true" className={`animate-toast-in pointer-events-auto flex gap-3 rounded-xl border bg-[#1c1c20]/95 p-4 shadow-[0_18px_55px_rgba(0,0,0,0.55)] backdrop-blur-xl ${tone.accent}`}>
+              {toast.action ? (
+                <button type="button" onClick={() => { toast.action?.onAction(); dismiss(toast.id); }} className="flex min-w-0 flex-1 gap-3 text-left transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-1 focus-visible:ring-noir-gold/70">
+                  {toastContent}
+                </button>
+              ) : toastContent}
               <button type="button" onClick={() => dismiss(toast.id)} aria-label="Fechar notificação" className="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-neutral-600 transition hover:bg-white/5 hover:text-neutral-200">
                 <X size={14} />
               </button>

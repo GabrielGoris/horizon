@@ -14,6 +14,7 @@ export function createToastItem(input: ToastInput | string, id: string): ToastIt
   const tone = normalizedInput.tone ?? "info";
 
   return {
+    action: normalizedInput.action,
     id,
     message: normalizedInput.message,
     title: normalizedInput.title ?? DEFAULT_TITLES[tone],
