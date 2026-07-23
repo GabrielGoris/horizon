@@ -193,7 +193,7 @@ function NotificationSettings({ session }: { session: SettingsScreenProps['sessi
         ? "Ativadas no Android"
         : "Desativadas no Android";
   const permissionDescription = isGranted
-    ? "O Horizon pode enviar lembretes da biblioteca, avisos de sincronização e atualizações."
+    ? "O Horizon envia um lembrete semanal sobre as obras que estão em andamento há pelo menos três dias."
     : "As permissões são pedidas na primeira abertura do aplicativo Android e podem ser alteradas nas configurações do sistema.";
 
   const handleSendTest = async () => {
@@ -218,19 +218,6 @@ function NotificationSettings({ session }: { session: SettingsScreenProps['sessi
           <p className="mt-1 max-w-xl text-sm leading-5 text-neutral-500">{permissionDescription}</p>
         </div>
         <span className={`shrink-0 rounded-full border px-3 py-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.14em] ${isGranted ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-white/10 bg-white/[0.03] text-neutral-400'}`}>{permissionLabel}</span>
-      </div>
-      <div className="grid gap-px border-t border-white/5 bg-white/5 sm:grid-cols-2">
-        {[
-          ['Biblioteca', 'Lembrete semanal para obras em andamento.'],
-          ['Sincronização', 'Alterações offline e problemas que precisem da sua atenção.'],
-          ['Atualizações', 'Novas versões disponíveis do Horizon.'],
-          ['Conta', 'Avisos importantes relacionados ao seu acesso.'],
-        ].map(([label, description]) => (
-          <div key={label} className="bg-[#1a1a1e] px-6 py-4">
-            <p className="text-xs font-bold text-neutral-200">{label}</p>
-            <p className="mt-1 text-xs leading-5 text-neutral-500">{description}</p>
-          </div>
-        ))}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-4 border-t border-white/5 px-6 py-4">
         <p className={`text-xs ${testMessage?.startsWith('Notificação enviada') ? 'text-emerald-200' : 'text-neutral-500'}`} aria-live="polite">

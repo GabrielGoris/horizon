@@ -15,12 +15,6 @@ function isAndroidNativeApp() {
   return Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android";
 }
 
-function getPreviewProtectionHeaders(): Record<string, string> {
-  const configuredSecret = import.meta.env.VITE_VERCEL_PROTECTION_BYPASS as string | undefined;
-  const bypassSecret = configuredSecret?.trim();
-  return bypassSecret ? { "x-vercel-protection-bypass": bypassSecret } : {};
-}
-
 type PushApiResponse = {
   data: { message?: string } | null;
   ok: boolean;
@@ -29,7 +23,6 @@ type PushApiResponse = {
 async function requestPushApi(path: string, options: { body?: Record<string, unknown>; method: "DELETE" | "POST" }) {
   const headers = {
     Authorization: `Bearer ${currentAccessToken}`,
-    ...getPreviewProtectionHeaders(),
     ...(options.body ? { "Content-Type": "application/json" } : {}),
   };
 
@@ -106,36 +99,13 @@ async function ensureListeners() {
 }
 
 async function createNotificationChannels() {
-  await Promise.all([
-    PushNotifications.createChannel({
-      id: "horizon_library",
-      name: "Biblioteca",
-      description: "Lembretes sobre obras em andamento e sua wishlist.",
-      importance: 3,
-      vibration: true,
-    }),
-    PushNotifications.createChannel({
-      id: "horizon_sync",
-      name: "Sincronização",
-      description: "Avisos sobre alterações offline e sincronização da biblioteca.",
-      importance: 4,
-      vibration: true,
-    }),
-    PushNotifications.createChannel({
-      id: "horizon_updates",
-      name: "Atualizações",
-      description: "Novas versões disponíveis para o Horizon.",
-      importance: 3,
-      vibration: false,
-    }),
-    PushNotifications.createChannel({
-      id: "horizon_account",
-      name: "Conta",
-      description: "Avisos importantes relacionados à sua conta.",
-      importance: 4,
-      vibration: true,
-    }),
-  ]);
+  await PushNotifications.createChannel({
+    id: "horizon_library",
+    name: "Biblioteca",
+    description: "Lembretes sobre obras em andamento e sua wishlist.",
+    importance: 3,
+    vibration: true,
+  });
 }
 
 export async function getPushPermissionState(): Promise<PermissionState | "unsupported"> {

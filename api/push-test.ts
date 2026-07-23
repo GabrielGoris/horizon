@@ -1,6 +1,6 @@
 import type { ServerResponse } from "node:http";
 import type { ApiRequest } from "../server/http.js";
-import { handleCorsPreflight, sendJson } from "../server/http.js";
+import { sendJson } from "../server/http.js";
 import { sendPushMessage } from "../server/pushNotifications.js";
 import { authenticateRequest, getSupabaseServerClients } from "../server/supabaseAdmin.js";
 
@@ -15,8 +15,6 @@ if (!process.env.VERCEL) {
 type PushDevice = { token: string };
 
 export default async function handler(req: ApiRequest, res: ServerResponse) {
-  if (handleCorsPreflight(req, res, ["POST", "OPTIONS"])) return;
-
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     sendJson(res, 405, { ok: false, message: "Método não permitido." });

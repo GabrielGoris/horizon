@@ -9,7 +9,7 @@ type FirebaseServiceAccountJson = {
 
 export type PushMessage = {
   body: string;
-  channelId: "horizon_account" | "horizon_library" | "horizon_sync" | "horizon_updates";
+  channelId: "horizon_library";
   route?: string;
   tag: string;
   title: string;

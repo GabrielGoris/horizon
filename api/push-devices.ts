@@ -1,6 +1,6 @@
 import type { ServerResponse } from "node:http";
 import type { ApiRequest } from "../server/http.js";
-import { handleCorsPreflight, readJsonBody, sendJson } from "../server/http.js";
+import { readJsonBody, sendJson } from "../server/http.js";
 import { authenticateRequest, getSupabaseServerClients } from "../server/supabaseAdmin.js";
 
 if (!process.env.VERCEL) {
@@ -23,8 +23,6 @@ function getInputValue(value: unknown, maxLength: number) {
 }
 
 export default async function handler(req: ApiRequest, res: ServerResponse) {
-  if (handleCorsPreflight(req, res, ["POST", "DELETE", "OPTIONS"])) return;
-
   if (req.method !== "POST" && req.method !== "DELETE") {
     res.setHeader("Allow", "POST, DELETE");
     sendJson(res, 405, { ok: false, message: "Método não permitido." });
