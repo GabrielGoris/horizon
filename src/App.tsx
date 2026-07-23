@@ -5,6 +5,7 @@ import { useMfaAssurance } from './hooks/useMfaAssurance'
 import type { InitialScreenProps } from './screens/initialScreen/types'
 import { ConnectionStatus } from './components/ConnectionStatus'
 import { AppSplash } from './components/AppSplash'
+import { AppUpdateDialog } from './components/AppUpdateDialog'
 
 const AuthScreen = lazy(() => import('./screens/authScreen').then((module) => ({ default: module.AuthScreen })))
 const InitialScreen = lazy(() => import('./screens/initialScreen/index.tsx').then((module) => ({ default: module.InitialScreen })))
@@ -55,6 +56,7 @@ function App() {
     <>
       {session && <Suspense fallback={null}><SteamAutoSync session={session} /></Suspense>}
       <ConnectionStatus />
+      <AppUpdateDialog />
       <Suspense fallback={<AppSplash />}>
         <Routes>
           <Route

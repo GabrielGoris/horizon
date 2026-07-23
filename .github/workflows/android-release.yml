@@ -1,0 +1,79 @@
+name: Publicar APK Android
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Versão a publicar, por exemplo 1.0.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_INPUT: ${{ inputs.version || github.ref_name }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Instalar dependências e validar o projeto
+        run: |
+          npm ci
+          npm run lint
+
+      - name: Preparar versão e chave Android
+        run: |
+          VERSION="${VERSION_INPUT#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "A versão deve seguir o formato 1.0.0."
+            exit 1
+          fi
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "Configure os quatro Secrets de assinatura Android antes de publicar."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/horizon-release.jks
+
+      - name: Gerar APK assinado
+        env:
+          ANDROID_KEYSTORE_PATH: horizon-release.jks
+        run: |
+          export VITE_APP_VERSION="$VERSION"
+          npm run cap:sync
+          cd android
+          ./gradlew assembleRelease -PversionName="${VERSION}" -PversionCode="${GITHUB_RUN_NUMBER}"
+          cp app/build/outputs/apk/release/app-release.apk "../Horizon-${VERSION}.apk"
+
+      - name: Publicar GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${VERSION}"
+          APK="Horizon-${VERSION}.apk"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK#Horizon-${VERSION}.apk" --clobber
+          else
+            gh release create "$TAG" "$APK#Horizon-${VERSION}.apk" --title "Horizon ${VERSION}" --generate-notes
+          fi
