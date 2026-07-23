@@ -1,4 +1,4 @@
-import { Capacitor, type PermissionState } from "@capacitor/core";
+import { Capacitor, CapacitorHttp, type PermissionState } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
 import type { Session } from "@supabase/supabase-js";
 import { getApiUrl } from "../apiUrl";
@@ -21,6 +21,43 @@ function getPreviewProtectionHeaders(): Record<string, string> {
   return bypassSecret ? { "x-vercel-protection-bypass": bypassSecret } : {};
 }
 
+type PushApiResponse = {
+  data: { message?: string } | null;
+  ok: boolean;
+};
+
+async function requestPushApi(path: string, options: { body?: Record<string, unknown>; method: "DELETE" | "POST" }) {
+  const headers = {
+    Authorization: `Bearer ${currentAccessToken}`,
+    ...getPreviewProtectionHeaders(),
+    ...(options.body ? { "Content-Type": "application/json" } : {}),
+  };
+
+  if (isAndroidNativeApp()) {
+    const response = await CapacitorHttp.request({
+      data: options.body,
+      headers,
+      method: options.method,
+      responseType: "json",
+      url: getApiUrl(path),
+    });
+
+    return {
+      data: response.data && typeof response.data === "object" ? response.data as { message?: string } : null,
+      ok: response.status >= 200 && response.status < 300,
+    } satisfies PushApiResponse;
+  }
+
+  const response = await fetch(getApiUrl(path), {
+    body: options.body ? JSON.stringify(options.body) : undefined,
+    headers,
+    method: options.method,
+  });
+  const data = await response.json().catch(() => null) as { message?: string } | null;
+
+  return { data, ok: response.ok } satisfies PushApiResponse;
+}
+
 function getSafeRoute(value: unknown) {
   if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) return null;
 
@@ -39,20 +76,15 @@ function emitPushNavigation(data: unknown) {
 async function savePushDevice(token: string) {
   if (!currentAccessToken) return;
 
-  const response = await fetch(getApiUrl("/api/push-devices"), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${currentAccessToken}`,
-      "Content-Type": "application/json",
-      ...getPreviewProtectionHeaders(),
-    },
-    body: JSON.stringify({
+  const response = await requestPushApi("/api/push-devices", {
+    body: {
       token,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-    }),
+    },
+    method: "POST",
   });
 
-  if (!response.ok) throw new Error("Não foi possível registrar este dispositivo para notificações.");
+  if (!response.ok) throw new Error(response.data?.message ?? "Não foi possível registrar este dispositivo para notificações.");
 }
 
 async function ensureListeners() {
@@ -143,14 +175,9 @@ export async function unregisterPushNotifications(session: Session) {
 
   if (token) {
     try {
-      await fetch(getApiUrl("/api/push-devices"), {
+      await requestPushApi("/api/push-devices", {
+        body: { token },
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${currentAccessToken}`,
-          "Content-Type": "application/json",
-          ...getPreviewProtectionHeaders(),
-        },
-        body: JSON.stringify({ token }),
       });
     } finally {
       localStorage.removeItem(PUSH_TOKEN_STORAGE_KEY);
@@ -164,14 +191,8 @@ export async function unregisterPushNotifications(session: Session) {
 export async function sendPushNotificationTest(session: Session) {
   if (!isAndroidNativeApp()) throw new Error("O teste de notificações está disponível apenas no aplicativo Android.");
 
-  const response = await fetch(getApiUrl("/api/push-test"), {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      ...getPreviewProtectionHeaders(),
-    },
-  });
+  currentAccessToken = session.access_token;
+  const response = await requestPushApi("/api/push-test", { method: "POST" });
 
-  const result = await response.json().catch(() => null) as { message?: string } | null;
-  if (!response.ok) throw new Error(result?.message ?? "Não foi possível enviar a notificação de teste.");
+  if (!response.ok) throw new Error(response.data?.message ?? "Não foi possível enviar a notificação de teste.");
 }
