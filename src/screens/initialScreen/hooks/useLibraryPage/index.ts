@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getGamePlatformOption } from "../../../../consts/gamePlatforms";
 import { fetchCachedMedia, fetchMediaPage, fetchOverviewPriorityMedia } from "../../../../services/mediaService";
 import { isNetworkAvailable } from "../../../../services/offlineStore";
@@ -48,6 +48,8 @@ export function useLibraryPage(params: LibraryPageParams) {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState("");
+  const requestIdRef = useRef(0);
+  const isLoadingMoreRef = useRef(false);
   const query = useMemo(() => ({
     activeTab: params.activeTab,
     completedYearFilter: params.completedYearFilter,
@@ -62,12 +64,14 @@ export function useLibraryPage(params: LibraryPageParams) {
   const queryKey = JSON.stringify(query);
 
   const loadFirstPage = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError("");
 
     try {
       if (isOverview) {
         const overviewItems = await fetchOverviewPriorityMedia();
+        if (requestId !== requestIdRef.current) return [];
         setItems(overviewItems);
         setActiveItems([]);
         setTotal(overviewItems.length);
@@ -76,6 +80,7 @@ export function useLibraryPage(params: LibraryPageParams) {
       }
 
       if (!isMediaLibrary) {
+        if (requestId !== requestIdRef.current) return [];
         setItems([]);
         setActiveItems([]);
         setTotal(0);
@@ -85,6 +90,7 @@ export function useLibraryPage(params: LibraryPageParams) {
 
       if (!isNetworkAvailable()) {
         const cachedItems = filterCachedMedia(await fetchCachedMedia(), query);
+        if (requestId !== requestIdRef.current) return [];
         setItems(cachedItems.slice(0, PAGE_SIZE));
         setActiveItems(sortMediaItemsByPriority(cachedItems.filter((item) => item.status === "in_progress").slice(0, PAGE_SIZE)));
         setTotal(cachedItems.length);
@@ -113,6 +119,7 @@ export function useLibraryPage(params: LibraryPageParams) {
         }),
       ]);
 
+      if (requestId !== requestIdRef.current) return [];
       setItems(page.items);
       setActiveItems(sortMediaItemsByPriority(activePage.items));
       setTotal(page.total);
@@ -120,25 +127,32 @@ export function useLibraryPage(params: LibraryPageParams) {
       return page.items;
     } catch (loadError) {
       console.error(loadError);
-      setError("NÃ£o foi possÃ­vel carregar a biblioteca.");
+      if (requestId === requestIdRef.current) {
+        setError("NÃ£o foi possÃ­vel carregar a biblioteca.");
+      }
       throw loadError;
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   }, [isMediaLibrary, isOverview, query]);
 
   const loadMore = useCallback(async () => {
-    if (isLoading || isLoadingMore || !hasMore || !isMediaLibrary) return;
+    if (isLoading || isLoadingMoreRef.current || !hasMore || !isMediaLibrary) return;
 
-    if (!isNetworkAvailable()) {
-      const cachedItems = filterCachedMedia(await fetchCachedMedia(), query);
-      setItems(cachedItems.slice(0, items.length + PAGE_SIZE));
-      setHasMore(cachedItems.length > items.length + PAGE_SIZE);
-      return;
-    }
-
+    const requestId = requestIdRef.current;
+    isLoadingMoreRef.current = true;
     setIsLoadingMore(true);
+
     try {
+      if (!isNetworkAvailable()) {
+        const cachedItems = filterCachedMedia(await fetchCachedMedia(), query);
+        if (requestId !== requestIdRef.current) return;
+
+        setItems(cachedItems.slice(0, items.length + PAGE_SIZE));
+        setHasMore(cachedItems.length > items.length + PAGE_SIZE);
+        return;
+      }
+
       const page = await fetchMediaPage({
         completedYear: query.completedYearFilter,
         gamePlatform: query.gamePlatformFilter,
@@ -151,6 +165,7 @@ export function useLibraryPage(params: LibraryPageParams) {
         type: query.activeTab as MediaType,
       });
 
+      if (requestId !== requestIdRef.current) return;
       setItems((currentItems) => [...currentItems, ...page.items.filter((item) => !currentItems.some((current) => current.id === item.id))]);
       setHasMore(page.hasMore);
       setTotal(page.total);
@@ -158,9 +173,10 @@ export function useLibraryPage(params: LibraryPageParams) {
       console.error(loadError);
       setError("NÃ£o foi possÃ­vel carregar mais obras.");
     } finally {
+      isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [hasMore, isLoading, isLoadingMore, isMediaLibrary, items.length, query]);
+  }, [hasMore, isLoading, isMediaLibrary, items.length, query]);
 
   useEffect(() => {
     void Promise.resolve().then(loadFirstPage).catch(() => undefined);

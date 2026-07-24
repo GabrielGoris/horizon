@@ -1,5 +1,6 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
 import { getWishlistItems, WISHLIST_LIMIT } from "../../services/wishlistService";
@@ -30,12 +31,13 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const filters = useLibraryFilters(activeTab);
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const debouncedSearchQuery = useDebouncedValue(deferredSearchQuery);
   const libraryPage = useLibraryPage({
     activeTab,
     completedYearFilter: filters.completedYearFilter,
     gamePlatformFilter: filters.gamePlatformFilter,
     mediaFormatFilter: filters.mediaFormatFilter,
-    searchQuery: deferredSearchQuery,
+    searchQuery: debouncedSearchQuery,
     sortMode: filters.sortMode,
     statusFilter: filters.statusFilter,
   });
