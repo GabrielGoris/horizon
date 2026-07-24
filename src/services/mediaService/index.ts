@@ -21,7 +21,7 @@ import type { UpdateMediaDetailsDTO } from "../../schemas/media/dto/update-media
 import type { BaseMediaStatus, MediaItem, MediaItemRow, MediaStatus, MediaStatusDetail } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
 import { isSameMedia } from "./helpers";
-import type { ExistingMediaIdentity, MediaPage, MediaPageQuery } from "./types";
+import type { ExistingMediaIdentity, MediaPage, MediaPageCursor, MediaPageQuery } from "./types";
 
 const MEDIA_PAGE_SIZE = 30;
 const MEDIA_SELECT = "*, audiovisual_completions(*), book_completions(*), game_completions(*)";
@@ -250,10 +250,46 @@ function getSortDefinition(sortMode: MediaPageQuery["sortMode"]) {
   }
 }
 
+function toPostgrestValue(value: number | string) {
+  if (typeof value === "number") return String(value);
+
+  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"`;
+}
+
+function getCursorFilter(
+  column: ReturnType<typeof getSortDefinition>["column"],
+  ascending: boolean,
+  cursor: MediaPageCursor,
+) {
+  const id = toPostgrestValue(cursor.id);
+
+  if (cursor.sortValue === null) {
+    return `and(${column}.is.null,id.gt.${id})`;
+  }
+
+  const sortValue = toPostgrestValue(cursor.sortValue);
+  const comparison = ascending ? "gt" : "lt";
+
+  return `${column}.${comparison}.${sortValue},and(${column}.eq.${sortValue},id.gt.${id}),${column}.is.null`;
+}
+
+function getPageCursor(
+  item: MediaItemRow | undefined,
+  column: ReturnType<typeof getSortDefinition>["column"],
+): MediaPageCursor | null {
+  if (!item?.id) return null;
+
+  const sortValue = item[column as keyof MediaItemRow];
+
+  return {
+    id: item.id,
+    sortValue: typeof sortValue === "number" || typeof sortValue === "string" ? sortValue : null,
+  };
+}
+
 export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage> {
   const userId = await getCurrentUserId();
   const pageSize = request.pageSize ?? MEDIA_PAGE_SIZE;
-  const offset = request.offset ?? 0;
   const { column, ascending } = getSortDefinition(request.sortMode);
   let query = supabase
     .from("media_items")
@@ -281,19 +317,27 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
     }
   }
 
+  if (request.cursor) {
+    query = query.or(getCursorFilter(column, ascending, request.cursor));
+  }
+
   const { data, error, count } = await query
     .order(column, { ascending, nullsFirst: false })
     .order("id", { ascending: true })
-    .range(offset, offset + pageSize - 1);
+    .range(0, pageSize);
 
   if (error) throw error;
 
-  const items = (data ?? []).map((item) => normalizeMediaItem(item as MediaItemRow));
+  const rows = (data ?? []) as MediaItemRow[];
+  const hasMore = rows.length > pageSize;
+  const pageRows = rows.slice(0, pageSize);
+  const items = pageRows.map((item) => normalizeMediaItem(item));
   await upsertCachedMediaBatch(userId, items);
 
   return {
-    hasMore: offset + items.length < (count ?? 0),
+    hasMore,
     items,
+    nextCursor: hasMore ? getPageCursor(pageRows.at(-1), column) : null,
     total: count ?? items.length,
   };
 }
@@ -682,10 +726,6 @@ export async function fetchMedia({ forceRemote = false }: { forceRemote?: boolea
 
   if (!isNetworkAvailable()) return cachedMedia;
 
-  // A biblioteca local é a fonte da tela durante a navegação. Fazer uma leitura,
-  // normalização e escrita de toda a coleção logo depois da abertura disputava a
-  // thread principal com a rolagem e com o dossiê. A atualização completa fica
-  // reservada para reconexão e eventos explícitos (forceRemote).
   if (!forceRemote && cachedMedia.length > 0) {
     scheduleOfflineMediaSync();
     return cachedMedia;

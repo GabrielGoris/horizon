@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getGamePlatformOption } from "../../../../consts/gamePlatforms";
 import { fetchCachedMedia, fetchMediaPage, fetchOverviewPriorityMedia } from "../../../../services/mediaService";
+import type { MediaPageCursor } from "../../../../services/mediaService/types";
 import { isNetworkAvailable } from "../../../../services/offlineStore";
 import type { MediaItem, MediaType } from "../../../../types";
 import { LIBRARY_UPDATED_EVENT } from "../../../../utils/libraryEvents";
@@ -45,6 +46,7 @@ export function useLibraryPage(params: LibraryPageParams) {
   const [activeItems, setActiveItems] = useState<MediaItem[]>([]);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<MediaPageCursor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState("");
@@ -76,6 +78,7 @@ export function useLibraryPage(params: LibraryPageParams) {
         setActiveItems([]);
         setTotal(overviewItems.length);
         setHasMore(false);
+        setNextCursor(null);
         return overviewItems;
       }
 
@@ -85,6 +88,7 @@ export function useLibraryPage(params: LibraryPageParams) {
         setActiveItems([]);
         setTotal(0);
         setHasMore(false);
+        setNextCursor(null);
         return [];
       }
 
@@ -95,6 +99,7 @@ export function useLibraryPage(params: LibraryPageParams) {
         setActiveItems(sortMediaItemsByPriority(cachedItems.filter((item) => item.status === "in_progress").slice(0, PAGE_SIZE)));
         setTotal(cachedItems.length);
         setHasMore(cachedItems.length > PAGE_SIZE);
+        setNextCursor(null);
         return cachedItems.slice(0, PAGE_SIZE);
       }
 
@@ -124,6 +129,7 @@ export function useLibraryPage(params: LibraryPageParams) {
       setActiveItems(sortMediaItemsByPriority(activePage.items));
       setTotal(page.total);
       setHasMore(page.hasMore);
+      setNextCursor(page.nextCursor);
       return page.items;
     } catch (loadError) {
       console.error(loadError);
@@ -148,8 +154,9 @@ export function useLibraryPage(params: LibraryPageParams) {
         const cachedItems = filterCachedMedia(await fetchCachedMedia(), query);
         if (requestId !== requestIdRef.current) return;
 
-        setItems(cachedItems.slice(0, items.length + PAGE_SIZE));
-        setHasMore(cachedItems.length > items.length + PAGE_SIZE);
+      setItems(cachedItems.slice(0, items.length + PAGE_SIZE));
+      setHasMore(cachedItems.length > items.length + PAGE_SIZE);
+      setNextCursor(null);
         return;
       }
 
@@ -157,7 +164,7 @@ export function useLibraryPage(params: LibraryPageParams) {
         completedYear: query.completedYearFilter,
         gamePlatform: query.gamePlatformFilter,
         mediaFormat: query.mediaFormatFilter,
-        offset: items.length,
+        cursor: nextCursor ?? undefined,
         pageSize: PAGE_SIZE,
         searchQuery: query.searchQuery,
         sortMode: query.sortMode,
@@ -169,6 +176,7 @@ export function useLibraryPage(params: LibraryPageParams) {
       setItems((currentItems) => [...currentItems, ...page.items.filter((item) => !currentItems.some((current) => current.id === item.id))]);
       setHasMore(page.hasMore);
       setTotal(page.total);
+      setNextCursor(page.nextCursor);
     } catch (loadError) {
       console.error(loadError);
       setError("NÃ£o foi possÃ­vel carregar mais obras.");
@@ -176,7 +184,7 @@ export function useLibraryPage(params: LibraryPageParams) {
       isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [hasMore, isLoading, isMediaLibrary, items.length, query]);
+  }, [hasMore, isLoading, isMediaLibrary, items.length, nextCursor, query]);
 
   useEffect(() => {
     void Promise.resolve().then(loadFirstPage).catch(() => undefined);

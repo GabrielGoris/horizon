@@ -21,10 +21,10 @@ export type MediaListSortMode =
   | "title_desc";
 
 export type MediaPageQuery = {
+  cursor?: MediaPageCursor;
   completedYear?: string;
   gamePlatform?: string;
   mediaFormat?: "movie" | "series" | "all";
-  offset?: number;
   pageSize?: number;
   searchQuery?: string;
   sortMode?: MediaListSortMode;
@@ -32,8 +32,14 @@ export type MediaPageQuery = {
   type: MediaType;
 };
 
+export type MediaPageCursor = {
+  id: string;
+  sortValue: number | string | null;
+};
+
 export type MediaPage = {
   hasMore: boolean;
   items: MediaItem[];
+  nextCursor: MediaPageCursor | null;
   total: number;
 };
