@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { HowLongToBeatService, SearchModifier } from "howlongtobeat-ts";
+import { authenticateRequest, getSupabaseServerClients } from "../server/supabaseAdmin.js";
 
 if (!process.env.VERCEL) {
   try {
@@ -58,7 +59,7 @@ function sendJson(res: ApiResponse, statusCode: number, body: unknown) {
 function setCorsHeaders(res: ApiResponse) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type");
 }
 
 async function readRequestBody(req: ApiRequest) {
@@ -171,13 +172,13 @@ function getClientIp(req: ApiRequest) {
   return value?.split(",")[0]?.trim() || req.socket.remoteAddress || "unknown";
 }
 
-function isWithinRateLimit(req: ApiRequest) {
+function isWithinRateLimit(req: ApiRequest, userId: string) {
   const now = Date.now();
-  const clientIp = getClientIp(req);
-  const current = proxyRateLimits.get(clientIp);
+  const rateLimitKey = `${userId}:${getClientIp(req)}`;
+  const current = proxyRateLimits.get(rateLimitKey);
 
   if (!current || now >= current.resetAt) {
-    proxyRateLimits.set(clientIp, { count: 1, resetAt: now + rateLimitWindowMs });
+    proxyRateLimits.set(rateLimitKey, { count: 1, resetAt: now + rateLimitWindowMs });
     return true;
   }
 
@@ -485,7 +486,19 @@ export default async function handler(req: ApiRequest, res: ApiResponse) {
       return;
     }
 
-    if (!isWithinRateLimit(req)) {
+    const clients = getSupabaseServerClients();
+    if (!clients) {
+      sendJson(res, 503, { ok: false, message: "Serviço de catálogo indisponível." });
+      return;
+    }
+
+    const user = await authenticateRequest(req, clients);
+    if (!user) {
+      sendJson(res, 401, { ok: false, message: "Entre na sua conta para consultar o catálogo." });
+      return;
+    }
+
+    if (!isWithinRateLimit(req, user.id)) {
       res.setHeader("Retry-After", "60");
       sendJson(res, 429, { ok: false, message: "Muitas consultas ao catálogo. Tente novamente em instantes." });
       return;

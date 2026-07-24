@@ -293,7 +293,7 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   const { column, ascending } = getSortDefinition(request.sortMode);
   let query = supabase
     .from("media_items")
-    .select(MEDIA_SELECT, { count: "estimated" })
+    .select(MEDIA_SELECT, { count: "exact" })
     .eq("user_id", userId)
     .eq("type", request.type)
     .is("hidden_at", null);
@@ -303,7 +303,7 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   } else if (request.status === "want_to_buy") {
     query = query.eq("status", "queue").eq("status_detail", "want_to_buy");
   } else if (request.status && request.status !== "all") {
-    query = query.eq("status", request.status);
+    query = query.eq("status", request.status).is("status_detail", null);
   }
   if (request.mediaFormat && request.mediaFormat !== "all") query = query.eq("media_format", request.mediaFormat);
   if (request.completedYear?.trim()) query = query.eq("completed_year", Number(request.completedYear));

@@ -1,4 +1,5 @@
 import { getApiUrl } from "../apiUrl";
+import { supabase } from "../../lib/supabase";
 
 export type CatalogProxyService = "books" | "brasil-api" | "google-books" | "hltb" | "igdb" | "steam" | "tmdb";
 
@@ -53,8 +54,17 @@ export async function requestCatalog<T>(
   }
 
   try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    if (!accessToken) throw new Error("Entre na sua conta para consultar o catálogo.");
+
+    const headers = new Headers(requestInit.headers);
+    headers.set("Authorization", `Bearer ${accessToken}`);
+
     const response = await fetch(getCatalogProxyUrl(service, endpoint, searchParams), {
       ...requestInit,
+      headers,
       signal: controller.signal,
     });
     const content = await response.text();

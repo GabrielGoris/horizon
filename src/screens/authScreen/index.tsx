@@ -7,7 +7,6 @@ import { CaptchaField } from '../../components/CaptchaField';
 import { getAuthErrorMessage, getPasswordValidationMessage, MIN_PASSWORD_LENGTH } from '../../lib/auth';
 import { supabase } from '../../lib/supabase';
 import { getAuthRedirectUrl } from '../../lib/nativeAuth';
-import { emailHasAccount } from '../../services/authService';
 import type { AuthMode } from './types';
 
 const authCopy = {
@@ -88,34 +87,16 @@ export function AuthScreen() {
         return;
       }
 
-      try {
-        const alreadyRegistered = await emailHasAccount(normalizedEmail);
-
-        if (alreadyRegistered) {
-          error = { message: 'Email already registered' };
-        } else {
-          const signUpResult = await supabase.auth.signUp({
-            email: normalizedEmail,
-            password,
-            options: {
-              captchaToken: captchaToken ?? undefined,
+      const signUpResult = await supabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          captchaToken: captchaToken ?? undefined,
           emailRedirectTo: getAuthRedirectUrl(),
-            },
-          });
+        },
+      });
 
-          error = signUpResult.error;
-
-          if (!error && signUpResult.data.user?.identities?.length === 0) {
-            error = { message: 'Email already registered' };
-          }
-        }
-      } catch (checkError) {
-        error = {
-          message: checkError instanceof Error
-            ? checkError.message
-            : 'Não foi possível verificar o e-mail agora.',
-        };
-      }
+      error = signUpResult.error;
     } else if (mode === 'forgot') {
       ({ error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
         captchaToken: captchaToken ?? undefined,
@@ -140,7 +121,7 @@ export function AuthScreen() {
     }
 
     if (mode === 'register') {
-      setFeedback('Registro criado. Confirme seu e-mail antes de entrar.');
+      setFeedback('Se o cadastro for novo, enviaremos uma confirmação para o e-mail informado.');
     }
 
     if (mode === 'forgot') {

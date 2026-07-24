@@ -33,6 +33,18 @@ export function VirtualMediaGrid<T>({ items, renderItem }: VirtualMediaGridProps
     const updateLayout = () => {
       if (grid.clientWidth === 0) return;
       const nextLayout = getGridLayout(grid.clientWidth);
+      const initialRange = {
+        startRow: 0,
+        endRow: Math.min(Math.ceil(items.length / nextLayout.columns), 4),
+      };
+
+      if (
+        rangeRef.current.startRow !== initialRange.startRow
+        || rangeRef.current.endRow === 0
+      ) {
+        rangeRef.current = initialRange;
+        setRange(initialRange);
+      }
 
       setLayout((current) => (
         current
