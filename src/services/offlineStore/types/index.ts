@@ -17,6 +17,18 @@ export type CachedMediaSnapshot = {
   updatedAt: string
 }
 
+export type CachedMediaItem = {
+  key: string
+  userId: string
+  item: MediaItem
+  updatedAt: string
+}
+
+export type CachedMediaMetadata = {
+  userId: string
+  updatedAt: string
+}
+
 export type QueuedOperation = OfflineMediaOperation & {
   id?: number
   userId: string

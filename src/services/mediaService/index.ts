@@ -6,7 +6,9 @@ import {
   readCachedMedia,
   readCachedMediaSnapshot,
   removeQueuedOperation,
-  updateCachedMedia,
+  removeCachedMedia,
+  updateCachedMediaItem,
+  upsertCachedMedia,
   writeCachedMedia,
 } from "../offlineStore";
 import type { AudiovisualCompletionDTO } from "../../schemas/media/dto/audiovisual-completion.dto";
@@ -184,6 +186,7 @@ function normalizeMediaItem(item: MediaItemRow): MediaItem {
     meta: item.meta ?? "",
     rating: formatRating(completion?.rating ?? item.rating),
     description: item.description ?? "",
+    created_at: item.created_at ?? undefined,
     added_at: item.added_at ?? undefined,
     completed_year: item.completed_year ?? undefined,
     watched_at: audiovisualCompletion?.watched_at ?? undefined,
@@ -415,6 +418,7 @@ function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = cry
     meta: data.meta ?? "",
     rating: data.rating ?? "",
     description: data.description ?? "",
+    created_at: new Date().toISOString(),
     added_at: data.added_at,
     completed_year: isComplete ? data.completed_year ?? new Date().getFullYear() : undefined,
     watched_at: data.type === "movies" || data.type === "animes" ? data.watched_at : undefined,
@@ -430,7 +434,7 @@ function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = cry
 }
 
 async function mutateCachedItem(userId: string, itemId: string, update: (item: MediaItem) => MediaItem) {
-  await updateCachedMedia(userId, (items) => items.map((item) => (item.id === itemId ? update(item) : item)));
+  await updateCachedMediaItem(userId, itemId, update);
 }
 
 export async function syncOfflineMediaChanges() {
@@ -520,7 +524,7 @@ export async function createMedia(data: CreateMediaDTO) {
 
   if (!isNetworkAvailable()) {
     const localMedia = createLocalMedia(data, userId);
-    await updateCachedMedia(userId, (items) => [localMedia, ...items]);
+    await upsertCachedMedia(userId, localMedia);
     await enqueueOfflineOperation(userId, { kind: "create", mediaId: localMedia.id, payload: { data, id: localMedia.id } });
     return localMedia;
   }
@@ -528,7 +532,7 @@ export async function createMedia(data: CreateMediaDTO) {
   const createdMedia = await createRemoteMedia(data);
   if (createdMedia) {
     const cachedMedia = createLocalMedia(data, userId, createdMedia.id);
-    await updateCachedMedia(userId, (items) => [cachedMedia, ...items.filter((item) => item.id !== createdMedia.id)]);
+    await upsertCachedMedia(userId, cachedMedia);
   }
   return createdMedia;
 }
@@ -594,7 +598,7 @@ export async function updateMediaDetails(itemId: string, details: UpdateMediaDet
 
 export async function deleteMedia(item: MediaItem) {
   const userId = await getCurrentUserId();
-  await updateCachedMedia(userId, (items) => items.filter((cachedItem) => cachedItem.id !== item.id));
+  await removeCachedMedia(userId, item.id);
 
   if (!isNetworkAvailable()) {
     await enqueueOfflineOperation(userId, { kind: "delete", mediaId: item.id, payload: item });

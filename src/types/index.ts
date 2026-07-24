@@ -22,6 +22,7 @@ export interface MediaItem {
   meta: string;
   rating: string;
   description: string;
+  created_at?: string;
   added_at?: string;
   completed_year?: number | string;
   watched_at?: string;
