@@ -11,6 +11,13 @@ type ReminderCandidate = {
   user_id: string;
 };
 
+type WishlistCandidate = {
+  media_id: string;
+  title: string;
+  user_id: string;
+  wishlist_added_at: string;
+};
+
 type PushDevice = {
   token: string;
   user_id: string;
@@ -36,6 +43,12 @@ function getWeekStart() {
   return weekStart.toISOString().slice(0, 10);
 }
 
+function getSixMonthsAgo() {
+  const threshold = new Date();
+  threshold.setUTCMonth(threshold.getUTCMonth() - 6);
+  return threshold.toISOString();
+}
+
 export async function pushWeeklyReminders(req: ApiRequest, res: ServerResponse) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -55,6 +68,7 @@ export async function pushWeeklyReminders(req: ApiRequest, res: ServerResponse) 
   }
 
   const threshold = new Date(Date.now() - THREE_DAYS_MS).toISOString();
+  const wishlistThreshold = getSixMonthsAgo();
   const periodStart = getWeekStart();
   const { data: candidates, error: candidatesError } = await clients.adminClient.rpc(
     "get_weekly_progress_reminders",
@@ -93,12 +107,43 @@ export async function pushWeeklyReminders(req: ApiRequest, res: ServerResponse) 
       user_id: userId,
     }));
   }
-  if (reminders.length === 0) {
+  const { data: wishlistRows, error: wishlistError } = await clients.adminClient
+    .from("media_items")
+    .select("id, title, user_id, wishlist_added_at")
+    .not("wishlist_position", "is", null)
+    .not("wishlist_added_at", "is", null)
+    .lte("wishlist_added_at", wishlistThreshold)
+    .is("hidden_at", null)
+    .order("wishlist_added_at", { ascending: true });
+
+  if (wishlistError) {
+    console.error("[push-weekly-reminders] Failed to load stale wishlist items:", wishlistError.message);
+    sendJson(res, 500, { ok: false, message: "Não foi possí­vel consultar a wishlist." });
+    return;
+  }
+
+  const wishlistByUser = new Map<string, WishlistCandidate[]>();
+  for (const row of wishlistRows ?? []) {
+    const item = row as { id: string; title: string; user_id: string; wishlist_added_at: string };
+    const items = wishlistByUser.get(item.user_id) ?? [];
+    items.push({
+      media_id: item.id,
+      title: item.title,
+      user_id: item.user_id,
+      wishlist_added_at: item.wishlist_added_at,
+    });
+    wishlistByUser.set(item.user_id, items);
+  }
+
+  if (reminders.length === 0 && wishlistByUser.size === 0) {
     sendJson(res, 200, { ok: true, sent: 0 });
     return;
   }
 
-  const userIds = reminders.map((item) => item.user_id);
+  const userIds = [...new Set([
+    ...reminders.map((item) => item.user_id),
+    ...wishlistByUser.keys(),
+  ])];
   const { data: devices, error: devicesError } = await clients.adminClient
     .from("push_devices")
     .select("token, user_id")
@@ -151,6 +196,42 @@ export async function pushWeeklyReminders(req: ApiRequest, res: ServerResponse) 
 
     invalidTokens.push(...result.invalidTokens);
     sent += result.sentCount;
+  }
+
+  for (const [userId, items] of wishlistByUser) {
+    const tokens = tokensByUser.get(userId) ?? [];
+    if (tokens.length === 0) continue;
+
+    for (const item of items) {
+      const { data: delivery, error: deliveryError } = await clients.adminClient
+        .from("notification_deliveries")
+        .upsert({
+          kind: `wishlist_stale:${item.media_id}`,
+          period_start: item.wishlist_added_at.slice(0, 10),
+          user_id: item.user_id,
+        }, { ignoreDuplicates: true, onConflict: "user_id,kind,period_start" })
+        .select("id")
+        .maybeSingle();
+
+      if (deliveryError) {
+        console.error("[push-weekly-reminders] Failed to reserve wishlist delivery:", deliveryError.message);
+        continue;
+      }
+
+      if (!delivery) continue;
+
+      const result = await sendPushMessage(tokens, {
+        body: `${item.title} está na sua wishlist há mais de seis meses. Ainda faz sentido para você?`,
+        channelId: "horizon_library",
+        route: `/dossier/${item.media_id}`,
+        tag: `wishlist-stale-${item.media_id}`,
+        title: "Uma escolha pendente",
+      });
+
+      invalidTokens.push(...result.invalidTokens);
+      sent += result.sentCount;
+      break;
+    }
   }
 
   if (invalidTokens.length > 0) {

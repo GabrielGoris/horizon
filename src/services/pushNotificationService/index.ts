@@ -166,3 +166,19 @@ export async function sendPushNotificationTest(session: Session) {
 
   if (!response.ok) throw new Error(response.data?.message ?? "Não foi possível enviar a notificação de teste.");
 }
+
+export async function sendSteamSyncNotification(
+  session: Session,
+  event: "discovered" | "failed",
+  gameCount = 0,
+) {
+  if (!isAndroidNativeApp()) return;
+
+  currentAccessToken = session.access_token;
+  const response = await requestPushApi("/api/push-steam-sync", {
+    body: { event, gameCount },
+    method: "POST",
+  });
+
+  if (!response.ok) throw new Error(response.data?.message ?? "Não foi possível registrar a notificação da Steam.");
+}

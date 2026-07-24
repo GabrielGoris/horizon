@@ -27,6 +27,7 @@ jobs:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
       SITE_URL: ${{ secrets.SITE_URL }}
+      PUSH_NOTIFICATION_SECRET: ${{ secrets.PUSH_NOTIFICATION_SECRET }}
 
     steps:
       - uses: actions/checkout@v4
@@ -86,3 +87,12 @@ jobs:
           else
             gh release create "$TAG" "$APK#Horizon-${VERSION}.apk" --title "Horizon ${VERSION}" --generate-notes
           fi
+
+      - name: Avisar sobre a atualização
+        if: env.PUSH_NOTIFICATION_SECRET != ''
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST "${SITE_URL%/}/api/push-app-update" \
+            --header "Authorization: Bearer ${PUSH_NOTIFICATION_SECRET}" \
+            --header "Content-Type: application/json" \
+            --data "{\"version\":\"${VERSION}\"}"

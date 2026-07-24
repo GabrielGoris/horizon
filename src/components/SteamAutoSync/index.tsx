@@ -8,6 +8,7 @@ import {
   type SteamDiscoveredGame,
 } from "../../services/steamIntegrationService";
 import { isSteamAutoSyncDue } from "../../utils/steamAutoSync";
+import { sendSteamSyncNotification } from "../../services/pushNotificationService";
 import {
   notifyLibraryUpdated,
   notifySteamGamesAdded,
@@ -70,6 +71,8 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
         if (newGames.length > 0) {
           notifySteamGamesAdded(newGames);
           notifyLibraryUpdated();
+          void sendSteamSyncNotification(session, "discovered", newGames.length)
+            .catch((error) => console.warn("[steam-auto-sync] Não foi possível avisar sobre jogos novos:", error));
         }
 
         if (!result.enrichmentAppIds.length) return;
@@ -102,6 +105,10 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
         }
       } catch (error) {
         console.error("[steam-auto-sync] Não foi possível sincronizar a biblioteca:", error);
+        if (isActive.current) {
+          void sendSteamSyncNotification(session, "failed")
+            .catch((notificationError) => console.warn("[steam-auto-sync] Não foi possível avisar sobre a falha:", notificationError));
+        }
       }
     };
 

@@ -16,6 +16,7 @@ import {
   type SteamEnrichmentFailure,
   type SteamSyncResult,
 } from "../../../../services/steamIntegrationService";
+import { sendSteamSyncNotification } from "../../../../services/pushNotificationService";
 import type { SteamIntegrationSettingsProps } from "./types";
 import {
   LIBRARY_UPDATED_EVENT,
@@ -122,6 +123,10 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
       const incompleteGames = result.incompleteGames ?? [];
 
       notifySteamGamesAdded(result.newGames ?? []);
+      if (result.newGames?.length) {
+        void sendSteamSyncNotification(session, "discovered", result.newGames.length)
+          .catch((error) => console.warn("Não foi possível avisar sobre os novos jogos da Steam:", error));
+      }
 
       setSyncResult(result);
       setEnrichmentFailures(incompleteGames);
@@ -160,6 +165,8 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Não foi possível importar sua biblioteca.");
+      void sendSteamSyncNotification(session, "failed")
+        .catch((notificationError) => console.warn("Não foi possível avisar sobre a falha da Steam:", notificationError));
     } finally {
       setAction(null);
     }
