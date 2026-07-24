@@ -5,11 +5,13 @@ export type CategorySectionProps = {
   activeItems: MediaItem[];
   activeLabel: string;
   activeTab: string;
+  hasMore: boolean;
   filters: {
     clearFilters: () => void;
     completedYearFilter: string;
     gamePlatformFilter: LibraryFilterState["gamePlatformFilter"];
     hasActiveFilters: boolean;
+    isLocked: boolean;
     isFiltersOpen: boolean;
     mediaFormatFilter: LibraryFilterState["mediaFormatFilter"];
     setCompletedYearFilter: (value: string) => void;
@@ -20,10 +22,14 @@ export type CategorySectionProps = {
     setStatusFilter: (value: LibraryFilterState["statusFilter"]) => void;
     sortMode: LibraryFilterState["sortMode"];
     statusFilter: LibraryFilterState["statusFilter"];
+    toggleLock: () => void;
   };
   items: MediaItem[];
+  itemCount: number;
+  isLoadingMore: boolean;
   mediaType?: MediaType;
   onPrioritizeMedia: (item: MediaItem) => void;
+  onLoadMore: () => void;
   onSelectMedia: (item: MediaItem) => void;
   onAddClick: () => void;
 };
@@ -46,6 +52,7 @@ export interface LibraryFiltersProps {
   itemCount: number;
   isOpen: boolean;
   hasActiveFilters: boolean;
+  isLocked: boolean;
   statusFilter: StatusFilter;
   completedYearFilter: string;
   gamePlatformFilter: GamePlatformFilter;
@@ -59,6 +66,7 @@ export interface LibraryFiltersProps {
   onMediaFormatFilterChange: (mediaFormat: MediaFormatFilter) => void;
   onSortModeChange: (sortMode: SortMode) => void;
   onClearFilters: () => void;
+  onToggleLock: () => void;
 };
 
 

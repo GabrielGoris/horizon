@@ -137,7 +137,6 @@ export function getDefaultValues(type: MediaType): CreateMediaDTO {
     backdrop: "",
     status: "queue",
     release_year: "",
-    added_at: new Date().toLocaleDateString("pt-BR"),
     completed_year: "",
     watched_at: "",
     isbn: "",

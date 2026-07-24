@@ -8,6 +8,7 @@ export interface MediaDossierProps {
   onDelete: (item: MediaItem) => void | Promise<void>;
   onDetailsChange: (item: MediaItem, details: UpdateMediaDetailsDTO) => void | Promise<void>;
   onMetaChange: (item: MediaItem, meta: string) => void | Promise<void>;
+  onRatingChange: (item: MediaItem, rating: string) => void | Promise<void>;
   onStatusChange: (item: MediaItem, status: MediaStatus) => void | Promise<void>;
   onSaveAudiovisualCompletion: (item: MediaItem, completion: AudiovisualCompletionDTO) => void | Promise<void>;
   onSaveBookCompletion: (item: MediaItem, completion: BookCompletionDTO) => void | Promise<void>;

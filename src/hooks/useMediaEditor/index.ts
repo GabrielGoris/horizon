@@ -16,6 +16,7 @@ import {
   saveGameCompletion,
   updateMediaDetails,
   updateMediaMeta,
+  updateMediaRating,
   updateMediaStatus,
 } from "../../services/mediaService";
 import type { MediaItem, MediaStatus } from "../../types";
@@ -60,8 +61,13 @@ export function useMediaEditor() {
     setSelectedMedia({ ...item, meta });
   }, []);
 
+  const handleUpdateMediaRating = useCallback(async (item: MediaItem, rating: string) => {
+    await updateMediaRating(item.id, rating);
+    setSelectedMedia({ ...item, rating });
+  }, []);
+
   const handleUpdateMediaStatus = useCallback(async (item: MediaItem, status: MediaStatus) => {
-    if (status === "complete") await completeMedia(item.id);
+    if (status === "complete") await completeMedia(item);
     else await updateMediaStatus(item.id, status);
 
     await refreshSelectedMedia(item);
@@ -90,6 +96,7 @@ export function useMediaEditor() {
     handleSaveGameCompletion,
     handleUpdateMediaDetails,
     handleUpdateMediaMeta,
+    handleUpdateMediaRating,
     handleUpdateMediaStatus,
     isOpeningMedia,
     openMedia,

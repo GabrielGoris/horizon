@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { GridLayout, RenderRange, VirtualMediaGridProps } from "./types";
 
 const OVERSCAN_ROWS = 2;
@@ -19,22 +19,24 @@ function getGridLayout(width: number): GridLayout {
 
 export function VirtualMediaGrid<T>({ items, renderItem }: VirtualMediaGridProps<T>) {
   const gridRef = useRef<HTMLDivElement>(null);
-  const [layout, setLayout] = useState<GridLayout>({ columns: 3, gap: 10, rowHeight: 200 });
-  const totalRows = Math.ceil(items.length / layout.columns);
+  const [layout, setLayout] = useState<GridLayout | null>(null);
+  const totalRows = layout ? Math.ceil(items.length / layout.columns) : 0;
   const [range, setRange] = useState<RenderRange>({ endRow: Math.min(totalRows, 4), startRow: 0 });
   const rangeRef = useRef(range);
   const scrollFrameRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const grid = gridRef.current;
 
     if (!grid) return;
 
     const updateLayout = () => {
+      if (grid.clientWidth === 0) return;
       const nextLayout = getGridLayout(grid.clientWidth);
 
       setLayout((current) => (
-        current.columns === nextLayout.columns
+        current
+          && current.columns === nextLayout.columns
           && current.gap === nextLayout.gap
           && Math.abs(current.rowHeight - nextLayout.rowHeight) < 1
           ? current
@@ -52,13 +54,13 @@ export function VirtualMediaGrid<T>({ items, renderItem }: VirtualMediaGridProps
       observer.disconnect();
       window.removeEventListener("resize", updateLayout);
     };
-  }, []);
+  }, [items.length]);
 
   useEffect(() => {
     const grid = gridRef.current;
     const scrollRoot = grid?.closest("main");
 
-    if (!grid || !scrollRoot) return;
+    if (!grid || !scrollRoot || !layout) return;
 
     const updateRange = () => {
       const rootRect = scrollRoot.getBoundingClientRect();
@@ -101,9 +103,11 @@ export function VirtualMediaGrid<T>({ items, renderItem }: VirtualMediaGridProps
       observer.disconnect();
       scrollRoot.removeEventListener("scroll", requestRangeUpdate);
     };
-  }, [layout.rowHeight, totalRows]);
+  }, [layout, totalRows]);
 
   const rows = useMemo(() => {
+    if (!layout) return [];
+
     const visibleRows = [];
 
     for (let rowIndex = range.startRow; rowIndex < Math.min(range.endRow, totalRows); rowIndex += 1) {
@@ -116,9 +120,21 @@ export function VirtualMediaGrid<T>({ items, renderItem }: VirtualMediaGridProps
     }
 
     return visibleRows;
-  }, [items, layout.columns, range, totalRows]);
+  }, [items, layout, range, totalRows]);
 
   if (!items.length) return null;
+
+  if (!layout) {
+    return (
+      <div
+        ref={gridRef}
+        className="grid w-full grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5"
+        aria-busy="true"
+      >
+        {items.map((item, index) => renderItem(item, index))}
+      </div>
+    );
+  }
 
   return (
     <div

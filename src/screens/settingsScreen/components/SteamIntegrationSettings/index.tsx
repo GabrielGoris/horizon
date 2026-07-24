@@ -428,6 +428,7 @@ export function SteamIntegrationSettings({ session }: SteamIntegrationSettingsPr
           onDelete={setMediaToDelete}
           onDetailsChange={handleDetailsChange}
           onMetaChange={mediaEditor.handleUpdateMediaMeta}
+          onRatingChange={mediaEditor.handleUpdateMediaRating}
           onStatusChange={mediaEditor.handleUpdateMediaStatus}
           onSaveAudiovisualCompletion={mediaEditor.handleSaveAudiovisualCompletion}
           onSaveBookCompletion={mediaEditor.handleSaveBookCompletion}

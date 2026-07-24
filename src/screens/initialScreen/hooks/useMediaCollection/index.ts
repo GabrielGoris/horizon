@@ -7,6 +7,8 @@ import {
   applyGameCompletion,
   completeMedia,
   deleteMedia,
+  fetchWishlistMedia,
+  fetchMediaItem,
   fetchMedia,
   markMediaAsComplete,
   saveAudiovisualCompletion,
@@ -14,6 +16,7 @@ import {
   saveGameCompletion,
   syncOfflineMediaChanges,
   updateMediaMeta,
+  updateMediaRating,
   updateMediaDetails,
   updateMediaStatus,
 } from "../../../../services/mediaService";
@@ -21,16 +24,18 @@ import { removeMediaFromWishlist } from "../../../../services/wishlistService";
 import type { MediaItem, MediaStatus } from "../../../../types";
 import { LIBRARY_UPDATED_EVENT } from "../../../../utils/libraryEvents";
 
-export function useMediaCollection() {
+export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoad?: boolean } = {}) {
   const { notify } = useToast();
   const [collection, setCollection] = useState<MediaItem[]>([]);
-  const [isLoadingMedia, setIsLoadingMedia] = useState(true);
+  const [isLoadingMedia, setIsLoadingMedia] = useState(!skipInitialLoad);
   const [mediaLoadError, setMediaLoadError] = useState("");
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
   const [mediaToDelete, setMediaToDelete] = useState<MediaItem | null>(null);
   const [isDeletingMedia, setIsDeletingMedia] = useState(false);
 
   useEffect(() => {
+    if (skipInitialLoad) return undefined;
+
     let isMounted = true;
 
     fetchMedia()
@@ -62,7 +67,7 @@ export function useMediaCollection() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [skipInitialLoad]);
 
   const refreshMedia = useCallback(async (forceRemote = false) => {
     setIsLoadingMedia(true);
@@ -84,6 +89,8 @@ export function useMediaCollection() {
   }, []);
 
   useEffect(() => {
+    if (skipInitialLoad) return undefined;
+
     const handleLibraryUpdate = () => {
       void refreshMedia(true).catch(() => undefined);
     };
@@ -93,7 +100,7 @@ export function useMediaCollection() {
     return () => {
       window.removeEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
     };
-  }, [refreshMedia]);
+  }, [refreshMedia, skipInitialLoad]);
 
   useEffect(() => {
     const handleReconnect = () => {
@@ -119,10 +126,16 @@ export function useMediaCollection() {
     setSelectedMedia(updatedMedia);
   }, []);
 
+  const openMediaById = useCallback(async (mediaId: string) => {
+    const item = await fetchMediaItem({ id: mediaId });
+    if (item) setSelectedMedia(item);
+    return item;
+  }, []);
+
   const handleUpdateMediaStatus = useCallback(async (item: MediaItem, status: MediaStatus) => {
     try {
       if (status === "complete") {
-        await completeMedia(item.id);
+        await completeMedia(item);
       } else {
         await updateMediaStatus(item.id, status);
       }
@@ -134,7 +147,7 @@ export function useMediaCollection() {
 
     if (status === "complete" && item.wishlist_position) {
       try {
-        await removeMediaFromWishlist(collection, item);
+        await removeMediaFromWishlist(await fetchWishlistMedia(item.type), item);
       } catch (error) {
         console.error(error);
         notify({ tone: "warning", title: "Obra concluída", message: "A conclusão foi salva, mas o item continua na lista de prioridade." });
@@ -147,7 +160,7 @@ export function useMediaCollection() {
         : { ...item, status, completed_year: undefined }
     );
     notify({ tone: "success", title: "Status atualizado", message: `O estado de “${item.title}” foi atualizado.` });
-  }, [collection, notify, updateMedia]);
+  }, [notify, updateMedia]);
 
   const handleCompleteMedia = useCallback(async (item: MediaItem) => {
     await handleUpdateMediaStatus(item, "complete");
@@ -205,6 +218,19 @@ export function useMediaCollection() {
     notify({ tone: "success", title: "Plataforma atualizada", message: `A plataforma de “${item.title}” foi alterada.` });
   }, [notify, updateMedia]);
 
+  const handleUpdateMediaRating = useCallback(async (item: MediaItem, rating: string) => {
+    try {
+      await updateMediaRating(item.id, rating);
+    } catch (error) {
+      console.error(error);
+      notify({ tone: "error", title: "Nota não salva", message: "Não foi possível atualizar a nota da obra." });
+      return;
+    }
+
+    updateMedia({ ...item, rating });
+    notify({ tone: "success", title: "Nota atualizada", message: `A nota de “${item.title}” foi salva.` });
+  }, [notify, updateMedia]);
+
   const handleUpdateMediaDetails = useCallback(async (item: MediaItem, details: UpdateMediaDetailsDTO) => {
     try {
       await updateMediaDetails(item.id, details);
@@ -256,12 +282,14 @@ export function useMediaCollection() {
     handleSaveGameCompletion,
     handleSaveAudiovisualCompletion,
     handleUpdateMediaMeta,
+    handleUpdateMediaRating,
     handleUpdateMediaDetails,
     handleUpdateMediaStatus,
     isLoadingMedia,
     isDeletingMedia,
     mediaLoadError,
     mediaToDelete,
+    openMediaById,
     refreshMedia,
     selectedMedia,
     setMediaToDelete,

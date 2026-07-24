@@ -1,6 +1,7 @@
 import { Check, ChevronDown, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
+import { RatingStars } from "../RatingStars";
 import { getMediaStatusLabel, getMediaStatusOptions } from "../../consts/mediaStatus";
 import { GamePlatformSelect } from "../GamePlatformSelect";
 import { CompletionArtifacts } from "./CompletionArtifacts";
@@ -9,7 +10,7 @@ import { DossierFacts } from "./DossierFacts";
 import { MediaObjectPreview } from "./MediaObjectPreview";
 import { typeLabels } from "./consts";
 import type { MediaDossierProps } from "./types";
-import { formatAuthorLine } from "./utils";
+import { formatAuthorLine, getNumericRating } from "./utils";
 
 export function MediaDossier({
   item,
@@ -18,6 +19,7 @@ export function MediaDossier({
   onDelete,
   onDetailsChange,
   onMetaChange,
+  onRatingChange,
   onStatusChange,
   onSaveAudiovisualCompletion,
   onSaveBookCompletion,
@@ -41,6 +43,7 @@ export function MediaDossier({
           : "Livro";
   const category = item.category || (item.type === "games" ? typeLabels[item.type] : item.meta || typeLabels[item.type]);
   const isComplete = item.status === "complete";
+  const canRate = item.status === "dropped" || item.status === "incomplete";
   const gamePlatform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
   const platformValue = gamePlatform?.label ?? item.meta ?? "";
   const progressPercentage = item.progress
@@ -153,6 +156,27 @@ export function MediaDossier({
               </div>
 
               <DossierFacts item={item} mediaDisplayType={mediaDisplayType} />
+
+              {canRate && (
+                <section className="mt-6 rounded-xl border border-white/10 bg-white/[0.025] p-5">
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">
+                      Sua nota
+                    </span>
+                    <span className="font-mono text-xs font-bold text-noir-champagne">
+                      {getNumericRating(item.rating) > 0 ? getNumericRating(item.rating).toFixed(1) : "Sem nota"}
+                    </span>
+                  </div>
+                  <RatingStars
+                    value={getNumericRating(item.rating)}
+                    onChange={() => undefined}
+                    onCommit={(rating) => onRatingChange(item, rating > 0 ? rating.toFixed(1) : "")}
+                    size={19}
+                    emptyClassName="text-white/20"
+                    filledClassName="fill-noir-gold text-noir-gold"
+                  />
+                </section>
+              )}
 
               <div className="my-8 h-px bg-white/10" />
 

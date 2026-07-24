@@ -31,6 +31,12 @@ export function TypeSpecificFields({
 }: TypeSpecificFieldsProps) {
   const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
   const isFinished = statusValue === "complete";
+  const canRate = isFinished || statusValue === "dropped" || statusValue === "incomplete";
+  const ratingSectionClass = isFinished
+    ? selectedType === "games"
+      ? "grid gap-4 md:grid-cols-3"
+      : "grid gap-4 md:grid-cols-2"
+    : "";
   const statusOptions = getMediaStatusOptions(selectedType, mediaFormat);
 
   return (
@@ -63,16 +69,7 @@ export function TypeSpecificFields({
               </div>
             </div>
 
-            {mediaFormat === "movie" ? (
-              <label className={labelClass}>
-                Duração
-                <input
-                  placeholder="Ex: 2h 28 min"
-                  {...register("runtime_minutes")}
-                  className={inputClass}
-                />
-              </label>
-            ) : (
+            {mediaFormat === "series" && (
               <div className="grid grid-cols-2 gap-3">
                 <label className={labelClass}>
                   Temporadas
@@ -129,45 +126,28 @@ export function TypeSpecificFields({
           </label>
         )}
 
-        <div className={labelClass}>
-          <span>Estado na Biblioteca *</span>
-          <div className="relative">
-            <button type="button" aria-haspopup="listbox" aria-expanded={isStatusSelectOpen} onClick={() => setIsStatusSelectOpen((current) => !current)} className={`${inputClass} flex items-center justify-between text-left`}>
-              <span>{statusValue ? copy.statusOptions[statusValue] : "Selecione um estado"}</span>
-              <ChevronDown size={16} className={`text-neutral-500 transition-transform ${isStatusSelectOpen ? "rotate-180" : ""}`} />
-            </button>
-            {isStatusSelectOpen && (
-              <div role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.4rem)] z-50 overflow-hidden rounded-xl border border-white/10 bg-[#17171a] p-1 shadow-2xl shadow-black/60">
-                {statusOptions.map((status) => (
-                  <button key={status} type="button" role="option" aria-selected={statusValue === status} onClick={() => {
-                    setValue("status", status, { shouldDirty: true, shouldValidate: true });
-                    setIsStatusSelectOpen(false);
-                  }} className={`flex w-full rounded-lg px-3 py-2.5 text-left font-mono text-[10px] uppercase tracking-wide transition ${statusValue === status ? "bg-noir-gold/15 text-noir-champagne" : "text-neutral-400 hover:bg-white/[0.05] hover:text-white"}`}>
-                    {copy.statusOptions[status]}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {errors.status && <span className={errorClass}>{errors.status.message}</span>}
-        </div>
-
-        <label className={labelClass}>
-          Adicionado em
-          <input
-            placeholder="Ex: 2026 ou 06/07/2026"
-            inputMode="numeric"
-            {...register("added_at", {
-              onChange: (event) => {
-                event.target.value = formatDateInput(event.target.value);
-              },
-            })}
-            className={inputClass}
-          />
-        </label>
       </div>
 
-      {selectedType === "games" ? (
+      {(selectedType === "movies" || selectedType === "animes") && mediaFormat === "movie" ? (
+        <div className="grid gap-4 md:grid-cols-2">
+          <label className={labelClass}>
+            Duração
+            <input
+              placeholder="Ex: 2h 28 min"
+              {...register("runtime_minutes")}
+              className={inputClass}
+            />
+          </label>
+          <label className={labelClass}>
+            {copy.metaLabel}
+            <input
+              placeholder={copy.metaPlaceholder}
+              {...register("meta")}
+              className={inputClass}
+            />
+          </label>
+        </div>
+      ) : selectedType === "games" ? (
         <GamePlatformField metaValue={metaValue} setValue={setValue} />
       ) : (
         <label className={labelClass}>
@@ -180,21 +160,58 @@ export function TypeSpecificFields({
         </label>
       )}
 
-      {isFinished && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className={labelClass}>
-            {getCompletionLabel(selectedType)}
-            <input
-              placeholder="Ex: 2026 ou 06/07/2026"
-              inputMode="numeric"
-              {...register(selectedType === "movies" || selectedType === "animes" ? "watched_at" : "completed_year", {
-                onChange: (event) => {
-                  event.target.value = formatDateInput(event.target.value);
-                },
-              })}
-              className={inputClass}
-            />
-          </label>
+      <div className={labelClass}>
+        <span>Estado na Biblioteca *</span>
+        <div className="relative">
+          <button type="button" aria-haspopup="listbox" aria-expanded={isStatusSelectOpen} onClick={() => setIsStatusSelectOpen((current) => !current)} className={`${inputClass} flex items-center justify-between text-left`}>
+            <span>{statusValue ? copy.statusOptions[statusValue] : "Selecione um estado"}</span>
+            <ChevronDown size={16} className={`text-neutral-500 transition-transform ${isStatusSelectOpen ? "rotate-180" : ""}`} />
+          </button>
+          {isStatusSelectOpen && (
+            <div role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.4rem)] z-50 overflow-hidden rounded-xl border border-white/10 bg-[#17171a] p-1 shadow-2xl shadow-black/60">
+              {statusOptions.map((status) => (
+                <button key={status} type="button" role="option" aria-selected={statusValue === status} onClick={() => {
+                  setValue("status", status, { shouldDirty: true, shouldValidate: true });
+                  setIsStatusSelectOpen(false);
+                }} className={`flex w-full rounded-lg px-3 py-2.5 text-left font-mono text-[10px] uppercase tracking-wide transition ${statusValue === status ? "bg-noir-gold/15 text-noir-champagne" : "text-neutral-400 hover:bg-white/[0.05] hover:text-white"}`}>
+                  {copy.statusOptions[status]}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {errors.status && <span className={errorClass}>{errors.status.message}</span>}
+      </div>
+
+      {canRate && (
+        <div className={ratingSectionClass}>
+          {isFinished && (
+            <label className={labelClass}>
+              {getCompletionLabel(selectedType)}
+              <input
+                placeholder="Ex: 2026 ou 06/07/2026"
+                inputMode="numeric"
+                {...register(selectedType === "movies" || selectedType === "animes" ? "watched_at" : "completed_year", {
+                  onChange: (event) => {
+                    event.target.value = formatDateInput(event.target.value);
+                  },
+                })}
+                className={inputClass}
+              />
+            </label>
+          )}
+
+          {isFinished && selectedType === "games" && (
+            <label className={labelClass}>
+              Tempo jogado
+              <input
+                placeholder="Ex: 42"
+                inputMode="decimal"
+                {...register("hours_played")}
+                className={inputClass}
+              />
+            </label>
+          )}
 
           <CompletionRatingField ratingValue={ratingValue} setValue={setValue} />
         </div>

@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { GAME_PLATFORM_OPTIONS } from "../../consts/gamePlatforms";
 import {
   enqueueOfflineOperation,
   getQueuedOperations,
@@ -19,7 +20,10 @@ import type { UpdateMediaDetailsDTO } from "../../schemas/media/dto/update-media
 import type { BaseMediaStatus, MediaItem, MediaItemRow, MediaStatus, MediaStatusDetail } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
 import { isSameMedia } from "./helpers";
-import type { ExistingMediaIdentity } from "./types";
+import type { ExistingMediaIdentity, MediaPage, MediaPageQuery } from "./types";
+
+const MEDIA_PAGE_SIZE = 30;
+const MEDIA_SELECT = "*, audiovisual_completions(*), book_completions(*), game_completions(*)";
 
 function getCompletion<T>(completion: T[] | T | null | undefined) {
   if (Array.isArray(completion)) return completion[0];
@@ -150,13 +154,13 @@ function getCreateMediaPayload(data: CreateMediaDTO, userId: string, id?: string
     cover: toNullableText(data.cover),
     backdrop: toNullableText(data.backdrop),
     release_year: toNullableText(data.release_year),
-    added_at: toSupabaseDate(data.added_at),
     completed_year: toNullableNumber(data.completed_year),
     page_count: toNullableNumber(data.page_count),
     runtime_minutes: parseDurationMinutes(data.runtime_minutes),
     season_count: toNullableNumber(data.season_count),
     episode_count: toNullableNumber(data.episode_count),
     campaign_hours: parseDurationHours(data.campaign_hours),
+    rating: toNullableNumber(data.rating),
     meta: toNullableText(data.meta),
     description: toNullableText(data.description),
   };
@@ -209,7 +213,7 @@ async function fetchRemoteMedia() {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("media_items")
-    .select("*, audiovisual_completions(*), book_completions(*), game_completions(*)")
+    .select(MEDIA_SELECT)
     .eq("user_id", userId)
     .is("hidden_at", null)
     .order("created_at", { ascending: false });
@@ -217,6 +221,110 @@ async function fetchRemoteMedia() {
   if (error) throw error;
 
   return (data ?? []).map((item) => normalizeMediaItem(item as MediaItemRow));
+}
+
+function getSortDefinition(sortMode: MediaPageQuery["sortMode"]) {
+  switch (sortMode) {
+    case "rating_asc":
+      return { ascending: true, column: "rating" };
+    case "rating_desc":
+      return { ascending: false, column: "rating" };
+    case "title_desc":
+      return { ascending: false, column: "title" };
+    case "campaign_asc":
+      return { ascending: true, column: "campaign_hours" };
+    case "campaign_desc":
+      return { ascending: false, column: "campaign_hours" };
+    case "runtime_asc":
+      return { ascending: true, column: "runtime_minutes" };
+    case "runtime_desc":
+      return { ascending: false, column: "runtime_minutes" };
+    case "pages_asc":
+      return { ascending: true, column: "page_count" };
+    case "pages_desc":
+      return { ascending: false, column: "page_count" };
+    case "title_asc":
+    default:
+      return { ascending: true, column: "title" };
+  }
+}
+
+export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage> {
+  const userId = await getCurrentUserId();
+  const pageSize = request.pageSize ?? MEDIA_PAGE_SIZE;
+  const offset = request.offset ?? 0;
+  const { column, ascending } = getSortDefinition(request.sortMode);
+  let query = supabase
+    .from("media_items")
+    .select(MEDIA_SELECT, { count: "estimated" })
+    .eq("user_id", userId)
+    .eq("type", request.type)
+    .is("hidden_at", null);
+
+  if (request.status === "incomplete") {
+    query = query.eq("status", "in_progress").eq("status_detail", "incomplete");
+  } else if (request.status === "want_to_buy") {
+    query = query.eq("status", "queue").eq("status_detail", "want_to_buy");
+  } else if (request.status && request.status !== "all") {
+    query = query.eq("status", request.status);
+  }
+  if (request.mediaFormat && request.mediaFormat !== "all") query = query.eq("media_format", request.mediaFormat);
+  if (request.completedYear?.trim()) query = query.eq("completed_year", Number(request.completedYear));
+  if (request.searchQuery?.trim()) query = query.ilike("title", `%${request.searchQuery.trim()}%`);
+
+  if (request.gamePlatform && request.gamePlatform !== "all") {
+    const platform = GAME_PLATFORM_OPTIONS.find((candidate) => candidate.label === request.gamePlatform);
+    if (platform) {
+      const terms = [...new Set([platform.label.toLowerCase(), ...platform.aliases])];
+      query = query.or(terms.map((term) => `meta.ilike.%${term}%`).join(","));
+    }
+  }
+
+  const { data, error, count } = await query
+    .order(column, { ascending, nullsFirst: false })
+    .order("id", { ascending: true })
+    .range(offset, offset + pageSize - 1);
+
+  if (error) throw error;
+
+  const items = (data ?? []).map((item) => normalizeMediaItem(item as MediaItemRow));
+  await Promise.all(items.map((item) => upsertCachedMedia(userId, item)));
+
+  return {
+    hasMore: offset + items.length < (count ?? 0),
+    items,
+    total: count ?? items.length,
+  };
+}
+
+export async function fetchWishlistMedia(type: MediaItem["type"]) {
+  const userId = await getCurrentUserId();
+  const { data, error } = await supabase
+    .from("media_items")
+    .select(MEDIA_SELECT)
+    .eq("user_id", userId)
+    .eq("type", type)
+    .is("hidden_at", null)
+    .not("wishlist_position", "is", null)
+    .order("wishlist_position", { ascending: true })
+    .limit(10);
+
+  if (error) throw error;
+
+  const items = (data ?? []).map((item) => normalizeMediaItem(item as MediaItemRow));
+  await Promise.all(items.map((item) => upsertCachedMedia(userId, item)));
+  return items;
+}
+
+export async function fetchOverviewPriorityMedia() {
+  const pages = await Promise.all([
+    fetchWishlistMedia("animes"),
+    fetchWishlistMedia("movies"),
+    fetchWishlistMedia("games"),
+    fetchWishlistMedia("books"),
+  ]);
+
+  return pages.flat();
 }
 
 export async function fetchMediaItem(identity: {
@@ -243,7 +351,9 @@ export async function fetchMediaItem(identity: {
 
   if (error) throw error;
 
-  return data ? normalizeMediaItem(data as MediaItemRow) : null;
+  const item = data ? normalizeMediaItem(data as MediaItemRow) : null;
+  if (item) await upsertCachedMedia(userId, item);
+  return item;
 }
 
 async function createRemoteMedia(data: CreateMediaDTO, id?: string) {
@@ -274,22 +384,57 @@ async function createRemoteMedia(data: CreateMediaDTO, id?: string) {
     await saveGameCompletion(createdMedia.id, {
       finishedAt: data.completed_year ?? "",
       rating: completionRating,
+      hoursPlayed: data.hours_played ?? "",
       completionType: "Campanha",
     });
   }
 
-  return createdMedia ? normalizeMediaItem(createdMedia as MediaItemRow) : null;
+  return createdMedia ? fetchMediaItem({ id: createdMedia.id }) : null;
 }
 
-async function completeRemoteMedia(itemId: string) {
+function getTodayDateInput() {
+  return new Intl.DateTimeFormat("pt-BR").format(new Date());
+}
+
+async function saveInitialCompletion(item: MediaItem) {
+  const finishedAt = getTodayDateInput();
+
+  if (item.type === "movies" || item.type === "animes") {
+    await saveRemoteAudiovisualCompletion(item.id, {
+      rating: item.rating,
+      watchedAt: finishedAt,
+    });
+    return;
+  }
+
+  if (item.type === "books") {
+    await saveRemoteBookCompletion(item.id, {
+      finishedAt,
+      pages: String(item.page_count ?? ""),
+      rating: item.rating,
+    });
+    return;
+  }
+
+  await saveRemoteGameCompletion(item.id, {
+    completionType: item.completion_type || "Campanha",
+    finishedAt,
+    hoursPlayed: String(item.hours_played ?? ""),
+    rating: item.rating,
+  });
+}
+
+async function completeRemoteMedia(item: MediaItem) {
   const userId = await getCurrentUserId();
   const { error } = await supabase
     .from("media_items")
     .update({ status: "complete", status_detail: null, completed_year: new Date().getFullYear() })
-    .eq("id", itemId)
+    .eq("id", item.id)
     .eq("user_id", userId);
 
   if (error) throw error;
+
+  await saveInitialCompletion(item);
 }
 
 async function updateRemoteMediaStatus(itemId: string, status: MediaItem["status"]) {
@@ -313,6 +458,17 @@ async function updateRemoteMediaMeta(itemId: string, meta: string) {
   const { error } = await supabase
     .from("media_items")
     .update({ meta: toNullableText(meta) })
+    .eq("id", itemId)
+    .eq("user_id", userId);
+
+  if (error) throw error;
+}
+
+async function updateRemoteMediaRating(itemId: string, rating: string) {
+  const userId = await getCurrentUserId();
+  const { error } = await supabase
+    .from("media_items")
+    .update({ rating: toNullableNumber(rating) })
     .eq("id", itemId)
     .eq("user_id", userId);
 
@@ -357,7 +513,8 @@ async function deleteRemoteMedia(item: MediaItem) {
 }
 
 async function saveRemoteAudiovisualCompletion(itemId: string, completion: AudiovisualCompletionDTO) {
-  const { error } = await supabase.from("audiovisual_completions").upsert(
+  const userId = await getCurrentUserId();
+  const { error: completionError } = await supabase.from("audiovisual_completions").upsert(
     {
       media_item_id: itemId,
       watched_at: toSupabaseDate(completion.watchedAt),
@@ -366,11 +523,20 @@ async function saveRemoteAudiovisualCompletion(itemId: string, completion: Audio
     { onConflict: "media_item_id" }
   );
 
-  if (error) throw error;
+  if (completionError) throw completionError;
+
+  const { error: mediaError } = await supabase
+    .from("media_items")
+    .update({ rating: toNullableNumber(completion.rating) })
+    .eq("id", itemId)
+    .eq("user_id", userId);
+
+  if (mediaError) throw mediaError;
 }
 
 async function saveRemoteBookCompletion(itemId: string, completion: BookCompletionDTO) {
-  const { error } = await supabase.from("book_completions").upsert(
+  const userId = await getCurrentUserId();
+  const { error: completionError } = await supabase.from("book_completions").upsert(
     {
       media_item_id: itemId,
       finished_at: toSupabaseDate(completion.finishedAt),
@@ -380,11 +546,20 @@ async function saveRemoteBookCompletion(itemId: string, completion: BookCompleti
     { onConflict: "media_item_id" }
   );
 
-  if (error) throw error;
+  if (completionError) throw completionError;
+
+  const { error: mediaError } = await supabase
+    .from("media_items")
+    .update({ rating: toNullableNumber(completion.rating) })
+    .eq("id", itemId)
+    .eq("user_id", userId);
+
+  if (mediaError) throw mediaError;
 }
 
 async function saveRemoteGameCompletion(itemId: string, completion: GameCompletionDTO) {
-  const { error } = await supabase.from("game_completions").upsert(
+  const userId = await getCurrentUserId();
+  const { error: completionError } = await supabase.from("game_completions").upsert(
     {
       media_item_id: itemId,
       finished_at: toSupabaseDate(completion.finishedAt),
@@ -395,7 +570,15 @@ async function saveRemoteGameCompletion(itemId: string, completion: GameCompleti
     { onConflict: "media_item_id" }
   );
 
-  if (error) throw error;
+  if (completionError) throw completionError;
+
+  const { error: mediaError } = await supabase
+    .from("media_items")
+    .update({ rating: toNullableNumber(completion.rating) })
+    .eq("id", itemId)
+    .eq("user_id", userId);
+
+  if (mediaError) throw mediaError;
 }
 
 function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = crypto.randomUUID()): MediaItem {
@@ -419,7 +602,7 @@ function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = cry
     rating: data.rating ?? "",
     description: data.description ?? "",
     created_at: new Date().toISOString(),
-    added_at: data.added_at,
+    added_at: new Date().toISOString(),
     completed_year: isComplete ? data.completed_year ?? new Date().getFullYear() : undefined,
     watched_at: data.type === "movies" || data.type === "animes" ? data.watched_at : undefined,
     completed_at: data.type === "books" || data.type === "games" ? completedAt : undefined,
@@ -428,6 +611,7 @@ function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = cry
     season_count: data.season_count,
     episode_count: data.episode_count,
     campaign_hours: data.campaign_hours,
+    hours_played: data.type === "games" && isComplete ? data.hours_played : undefined,
     pages: data.type === "books" && isComplete ? data.page_count : undefined,
     completion_type: data.type === "games" && isComplete ? "Campanha" : undefined,
   };
@@ -451,13 +635,21 @@ export async function syncOfflineMediaChanges() {
         break;
       }
       case "complete":
-        await completeRemoteMedia(operation.mediaId);
+        if (operation.payload) {
+          await completeRemoteMedia(operation.payload as MediaItem);
+        } else {
+          const item = await fetchMediaItem({ id: operation.mediaId });
+          if (item) await completeRemoteMedia(item);
+        }
         break;
       case "status":
         await updateRemoteMediaStatus(operation.mediaId, operation.payload as MediaItem["status"]);
         break;
       case "meta":
         await updateRemoteMediaMeta(operation.mediaId, operation.payload as string);
+        break;
+      case "rating":
+        await updateRemoteMediaRating(operation.mediaId, operation.payload as string);
         break;
       case "details":
         await updateRemoteMediaDetails(operation.mediaId, operation.payload as UpdateMediaDetailsDTO);
@@ -531,22 +723,21 @@ export async function createMedia(data: CreateMediaDTO) {
 
   const createdMedia = await createRemoteMedia(data);
   if (createdMedia) {
-    const cachedMedia = createLocalMedia(data, userId, createdMedia.id);
-    await upsertCachedMedia(userId, cachedMedia);
+    await upsertCachedMedia(userId, createdMedia);
   }
   return createdMedia;
 }
 
-export async function completeMedia(itemId: string) {
+export async function completeMedia(item: MediaItem) {
   const userId = await getCurrentUserId();
-  await mutateCachedItem(userId, itemId, markMediaAsComplete);
+  await mutateCachedItem(userId, item.id, markMediaAsComplete);
 
   if (!isNetworkAvailable()) {
-    await enqueueOfflineOperation(userId, { kind: "complete", mediaId: itemId });
+    await enqueueOfflineOperation(userId, { kind: "complete", mediaId: item.id, payload: item });
     return;
   }
 
-  await completeRemoteMedia(itemId);
+  await completeRemoteMedia(item);
 }
 
 export async function updateMediaStatus(itemId: string, status: MediaItem["status"]) {
@@ -571,6 +762,18 @@ export async function updateMediaMeta(itemId: string, meta: string) {
   }
 
   await updateRemoteMediaMeta(itemId, meta);
+}
+
+export async function updateMediaRating(itemId: string, rating: string) {
+  const userId = await getCurrentUserId();
+  await mutateCachedItem(userId, itemId, (item) => ({ ...item, rating }));
+
+  if (!isNetworkAvailable()) {
+    await enqueueOfflineOperation(userId, { kind: "rating", mediaId: itemId, payload: rating });
+    return;
+  }
+
+  await updateRemoteMediaRating(itemId, rating);
 }
 
 export async function updateMediaDetails(itemId: string, details: UpdateMediaDetailsDTO) {

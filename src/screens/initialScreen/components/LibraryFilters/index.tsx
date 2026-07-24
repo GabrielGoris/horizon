@@ -1,4 +1,4 @@
-import { SlidersHorizontal } from "lucide-react";
+import { Lock, LockKeyholeOpen, SlidersHorizontal } from "lucide-react";
 import { HorizonSelect } from "../../../../components/HorizonSelect";
 import { GAME_PLATFORM_OPTIONS } from "../../../../consts/gamePlatforms";
 import { getMediaStatusLabel, getMediaStatusOptions } from "../../../../consts/mediaStatus";
@@ -55,6 +55,7 @@ export function LibraryFilters({
   itemCount,
   isOpen,
   hasActiveFilters,
+  isLocked,
   statusFilter,
   completedYearFilter,
   gamePlatformFilter,
@@ -68,6 +69,7 @@ export function LibraryFilters({
   onMediaFormatFilterChange,
   onSortModeChange,
   onClearFilters,
+  onToggleLock,
 }: LibraryFiltersProps) {
   const sortOptions = getSortOptions(activeTab);
   const statusOptions = getMediaStatusOptions(
@@ -95,13 +97,14 @@ export function LibraryFilters({
         type="button"
         onClick={onToggle}
         className={`flex h-8 items-center gap-2 rounded border px-3 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors ${
-          isOpen || hasActiveFilters
+          isOpen || hasActiveFilters || isLocked
             ? "border-noir-gold/45 bg-noir-gold/15 text-noir-gold"
             : "border-white/10 bg-white/5 text-neutral-500 hover:border-white/20 hover:text-white"
         }`}
       >
         <SlidersHorizontal size={13} />
         Filtros
+        {isLocked && <Lock size={11} aria-label="Predefinição de filtro fixada" />}
         {hasActiveFilters && (
           <span className="h-1.5 w-1.5 rounded-full bg-noir-gold" />
         )}
@@ -118,13 +121,26 @@ export function LibraryFilters({
               <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500">
                 Filtrar biblioteca
               </span>
-              <button
-                type="button"
-                onClick={onClearFilters}
-                className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 transition-colors hover:text-white"
-              >
-                Limpar
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onToggleLock}
+                  title={isLocked ? "Destravar predefinição" : "Fixar filtros como predefinição"}
+                  className={`flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest transition-colors ${
+                    isLocked ? "text-noir-gold hover:text-noir-champagne" : "text-neutral-500 hover:text-white"
+                  }`}
+                >
+                  {isLocked ? <Lock size={12} /> : <LockKeyholeOpen size={12} />}
+                  {isLocked ? "Fixado" : "Fixar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClearFilters}
+                  className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 transition-colors hover:text-white"
+                >
+                  Limpar
+                </button>
+              </div>
             </div>
 
             {(activeTab === "movies" || activeTab === "animes") && (

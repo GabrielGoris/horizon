@@ -1,15 +1,56 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { LibraryFilterState } from "../../types";
 
+const LOCKED_FILTERS_STORAGE_KEY = "horizon:locked-library-filters";
+
+type LockedFilterPreset = Omit<LibraryFilterState, "activeTab" | "isFiltersOpen">;
+
+function getLockedFilters() {
+  if (typeof window === "undefined") return {} as Record<string, LockedFilterPreset>;
+
+  try {
+    const storedValue = window.localStorage.getItem(LOCKED_FILTERS_STORAGE_KEY);
+    return storedValue ? JSON.parse(storedValue) as Record<string, LockedFilterPreset> : {};
+  } catch {
+    return {} as Record<string, LockedFilterPreset>;
+  }
+}
+
+function getLockedFilterPreset(activeTab: string) {
+  return getLockedFilters()[activeTab];
+}
+
+function saveLockedFilterPreset(activeTab: string, filterState: LibraryFilterState) {
+  const lockedFilters = getLockedFilters();
+  lockedFilters[activeTab] = {
+    completedYearFilter: filterState.completedYearFilter,
+    gamePlatformFilter: filterState.gamePlatformFilter,
+    mediaFormatFilter: filterState.mediaFormatFilter,
+    sortMode: filterState.sortMode,
+    statusFilter: filterState.statusFilter,
+  };
+  window.localStorage.setItem(LOCKED_FILTERS_STORAGE_KEY, JSON.stringify(lockedFilters));
+}
+
+function removeLockedFilterPreset(activeTab: string) {
+  const lockedFilters = getLockedFilters();
+  delete lockedFilters[activeTab];
+  window.localStorage.setItem(LOCKED_FILTERS_STORAGE_KEY, JSON.stringify(lockedFilters));
+}
+
 function getDefaultFilterState(activeTab: string): LibraryFilterState {
-  return {
-    activeTab,
+  const defaultPreset: LockedFilterPreset = {
     completedYearFilter: "",
     gamePlatformFilter: "all",
-    isFiltersOpen: false,
     mediaFormatFilter: "all",
     sortMode: "title_asc",
     statusFilter: "all",
+  };
+
+  return {
+    activeTab,
+    isFiltersOpen: false,
+    ...(getLockedFilterPreset(activeTab) ?? defaultPreset),
   };
 }
 
@@ -21,7 +62,10 @@ function updateFilterState(
   setFilterState((currentState) => {
     const baseState = currentState.activeTab === activeTab ? currentState : getDefaultFilterState(activeTab);
 
-    return { ...baseState, ...nextFilterState };
+    const nextState = { ...baseState, ...nextFilterState };
+    if (getLockedFilterPreset(activeTab)) saveLockedFilterPreset(activeTab, nextState);
+
+    return nextState;
   });
 }
 
@@ -36,6 +80,7 @@ export function useLibraryFilters(activeTab: string) {
     sortMode,
     statusFilter,
   } = activeFilterState;
+  const isLocked = Boolean(getLockedFilterPreset(activeTab));
   const hasActiveFilters =
     statusFilter !== "all" ||
     mediaFormatFilter !== "all" ||
@@ -44,10 +89,14 @@ export function useLibraryFilters(activeTab: string) {
     sortMode !== "title_asc";
 
   return {
-    clearFilters: () => setFilterState(getDefaultFilterState(activeTab)),
+    clearFilters: () => {
+      removeLockedFilterPreset(activeTab);
+      setFilterState(getDefaultFilterState(activeTab));
+    },
     completedYearFilter,
     gamePlatformFilter,
     hasActiveFilters,
+    isLocked,
     isFiltersOpen,
     mediaFormatFilter,
     setCompletedYearFilter: (nextCompletedYearFilter: string) => updateFilterState(activeTab, setFilterState, { completedYearFilter: nextCompletedYearFilter }),
@@ -58,5 +107,15 @@ export function useLibraryFilters(activeTab: string) {
     setStatusFilter: (nextStatusFilter: LibraryFilterState["statusFilter"]) => updateFilterState(activeTab, setFilterState, { statusFilter: nextStatusFilter }),
     sortMode,
     statusFilter,
+    toggleLock: () => {
+      if (isLocked) {
+        removeLockedFilterPreset(activeTab);
+        setFilterState({ ...activeFilterState });
+        return;
+      }
+
+      saveLockedFilterPreset(activeTab, activeFilterState);
+      setFilterState({ ...activeFilterState });
+    },
   };
 }

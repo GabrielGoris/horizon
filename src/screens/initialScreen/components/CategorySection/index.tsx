@@ -6,8 +6,8 @@ import { ActiveMediaSection } from "../ActiveMediaSection";
 import { LibraryFilters } from "../LibraryFilters/index";
 import type { CategorySectionProps } from "../types";
 
-export function CategorySection({ activeItems, activeLabel, activeTab, filters, items, mediaType, onAddClick, onPrioritizeMedia, onSelectMedia }: CategorySectionProps) {
-  const { hasMore, sentinelRef, visibleItems } = useInfiniteList(items);
+export function CategorySection({ activeItems, activeLabel, activeTab, filters, hasMore, isLoadingMore, itemCount, items, mediaType, onAddClick, onLoadMore, onPrioritizeMedia, onSelectMedia }: CategorySectionProps) {
+  const { sentinelRef, visibleItems } = useInfiniteList(items, 30, { hasMore, onLoadMore });
 
   return (
     <>
@@ -27,9 +27,10 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
           <LibraryFilters
             activeTab={activeTab}
             mediaType={mediaType}
-            itemCount={items.length}
+            itemCount={itemCount}
             isOpen={filters.isFiltersOpen}
             hasActiveFilters={filters.hasActiveFilters}
+            isLocked={filters.isLocked}
             statusFilter={filters.statusFilter}
             completedYearFilter={filters.completedYearFilter}
             gamePlatformFilter={filters.gamePlatformFilter}
@@ -43,6 +44,7 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
             onMediaFormatFilterChange={filters.setMediaFormatFilter}
             onSortModeChange={filters.setSortMode}
             onClearFilters={filters.clearFilters}
+            onToggleLock={filters.toggleLock}
           />
         </div>
 
@@ -57,7 +59,7 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
             />
           )}
         />
-        {hasMore && <div ref={sentinelRef} className="h-10" aria-label="Carregando mais obras" />}
+        {hasMore && <div ref={sentinelRef} className="flex h-12 items-center justify-center font-mono text-[10px] uppercase tracking-widest text-neutral-600" aria-label="Carregando mais obras">{isLoadingMore ? "Carregando obras" : ""}</div>}
       </section>
     </>
   );
