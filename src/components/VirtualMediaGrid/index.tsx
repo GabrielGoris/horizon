@@ -39,8 +39,11 @@ export function VirtualMediaGrid<T>({ items, renderItem }: VirtualMediaGridProps
       };
 
       if (
-        rangeRef.current.startRow !== initialRange.startRow
-        || rangeRef.current.endRow === 0
+        rangeRef.current.endRow === 0
+        || (
+          rangeRef.current.startRow === 0
+          && rangeRef.current.endRow < initialRange.endRow
+        )
       ) {
         rangeRef.current = initialRange;
         setRange(initialRange);
