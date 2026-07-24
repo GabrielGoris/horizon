@@ -22,7 +22,7 @@ import {
 } from "../../../../services/mediaService";
 import { removeMediaFromWishlist } from "../../../../services/wishlistService";
 import type { MediaItem, MediaStatus } from "../../../../types";
-import { LIBRARY_UPDATED_EVENT } from "../../../../utils/libraryEvents";
+import { LIBRARY_UPDATED_EVENT, notifyLibraryUpdated } from "../../../../utils/libraryEvents";
 
 export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoad?: boolean } = {}) {
   const { notify } = useToast();
@@ -105,7 +105,17 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
   useEffect(() => {
     const handleReconnect = () => {
       void syncOfflineMediaChanges()
-        .then((didSync) => refreshMedia(true).then(() => didSync))
+        .then(async (didSync) => {
+          if (!didSync) return false;
+
+          if (skipInitialLoad) {
+            notifyLibraryUpdated();
+            return true;
+          }
+
+          await refreshMedia(true);
+          return true;
+        })
         .then((didSync) => {
           if (didSync) {
             notify({ tone: "success", title: "Biblioteca sincronizada", message: "As alterações feitas offline foram enviadas." });
@@ -117,7 +127,7 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
     window.addEventListener("online", handleReconnect);
 
     return () => window.removeEventListener("online", handleReconnect);
-  }, [notify, refreshMedia]);
+  }, [notify, refreshMedia, skipInitialLoad]);
 
   const updateMedia = useCallback((updatedMedia: MediaItem) => {
     setCollection((currentCollection) =>

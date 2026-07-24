@@ -201,6 +201,37 @@ export async function upsertCachedMedia(userId: string, item: MediaItem) {
   })
 }
 
+export async function upsertCachedMediaBatch(userId: string, items: MediaItem[]) {
+  if (!items.length) return
+
+  const updatedAt = new Date().toISOString()
+  const database = await openDatabase()
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction([MEDIA_ITEMS_STORE, MEDIA_METADATA_STORE], 'readwrite')
+    const mediaItems = transaction.objectStore(MEDIA_ITEMS_STORE)
+
+    for (const item of items) {
+      mediaItems.put({
+        key: getMediaCacheKey(userId, item.id),
+        userId,
+        item,
+        updatedAt,
+      } satisfies CachedMediaItem)
+    }
+
+    transaction.objectStore(MEDIA_METADATA_STORE).put({ userId, updatedAt } satisfies CachedMediaMetadata)
+    transaction.oncomplete = () => {
+      database.close()
+      resolve()
+    }
+    transaction.onerror = () => {
+      database.close()
+      reject(transaction.error ?? new Error('Não foi possí­vel atualizar o armazenamento local.'))
+    }
+  })
+}
+
 export async function updateCachedMediaItem(userId: string, itemId: string, update: (item: MediaItem) => MediaItem) {
   const database = await openDatabase()
   const key = getMediaCacheKey(userId, itemId)

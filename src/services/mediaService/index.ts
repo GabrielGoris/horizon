@@ -10,6 +10,7 @@ import {
   removeCachedMedia,
   updateCachedMediaItem,
   upsertCachedMedia,
+  upsertCachedMediaBatch,
   writeCachedMedia,
 } from "../offlineStore";
 import type { AudiovisualCompletionDTO } from "../../schemas/media/dto/audiovisual-completion.dto";
@@ -288,7 +289,7 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   if (error) throw error;
 
   const items = (data ?? []).map((item) => normalizeMediaItem(item as MediaItemRow));
-  await Promise.all(items.map((item) => upsertCachedMedia(userId, item)));
+  await upsertCachedMediaBatch(userId, items);
 
   return {
     hasMore: offset + items.length < (count ?? 0),
@@ -312,7 +313,7 @@ export async function fetchWishlistMedia(type: MediaItem["type"]) {
   if (error) throw error;
 
   const items = (data ?? []).map((item) => normalizeMediaItem(item as MediaItemRow));
-  await Promise.all(items.map((item) => upsertCachedMedia(userId, item)));
+  await upsertCachedMediaBatch(userId, items);
   return items;
 }
 
