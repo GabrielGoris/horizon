@@ -1,3 +1,4 @@
+import { Capacitor, CapacitorHttp } from "@capacitor/core";
 import type { Session } from "@supabase/supabase-js";
 import { getApiUrl } from "../apiUrl";
 import type { ApiResponse, SteamEnrichmentResult, SteamIntegrationState, SteamSyncResult } from "./types";
@@ -11,18 +12,40 @@ export type {
   SteamSyncResult,
 } from "./types";
 
-
 async function requestSteamApi<T>(session: Session, path: string, init?: RequestInit) {
-  const response = await fetch(getApiUrl(path), {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-      ...init?.headers,
-    },
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${session.access_token}`,
+  };
+  new Headers(init?.headers).forEach((value, key) => {
+    headers[key] = value;
   });
-  const result = await response.json().catch(() => ({ ok: false })) as ApiResponse<T>;
+  let result: ApiResponse<T>;
+  let isSuccessful: boolean;
 
-  if (!response.ok) throw new Error(result.message ?? "Não foi possível acessar a integração com a Steam.");
+  if (Capacitor.isNativePlatform()) {
+    const response = await CapacitorHttp.request({
+      data: init?.body ? JSON.parse(String(init.body)) : undefined,
+      headers,
+      method: init?.method ?? "GET",
+      responseType: "json",
+      url: getApiUrl(path),
+    });
+
+    result = response.data && typeof response.data === "object"
+      ? response.data as ApiResponse<T>
+      : { ok: false } as ApiResponse<T>;
+    isSuccessful = response.status >= 200 && response.status < 300;
+  } else {
+    const response = await fetch(getApiUrl(path), {
+      ...init,
+      headers,
+    });
+
+    result = await response.json().catch(() => ({ ok: false })) as ApiResponse<T>;
+    isSuccessful = response.ok;
+  }
+
+  if (!isSuccessful) throw new Error(result.message ?? "Não foi possível acessar a integração com a Steam.");
 
   return result;
 }
