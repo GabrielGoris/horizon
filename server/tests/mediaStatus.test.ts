@@ -18,3 +18,10 @@ test("oferece quero comprar apenas para livros", () => {
   assert.ok(!getMediaStatusOptions("games").includes("want_to_buy"));
   assert.ok(!getMediaStatusOptions("movies", "series").includes("want_to_buy"));
 });
+
+test("oferece não planejado apenas para jogos e livros", () => {
+  assert.ok(getMediaStatusOptions("games").includes("unplanned"));
+  assert.ok(getMediaStatusOptions("books").includes("unplanned"));
+  assert.ok(!getMediaStatusOptions("animes").includes("unplanned"));
+  assert.ok(!getMediaStatusOptions("movies", "series").includes("unplanned"));
+});

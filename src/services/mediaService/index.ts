@@ -90,7 +90,7 @@ function getPersistedMediaStatus(status: MediaStatus): {
   status_detail: MediaStatusDetail | null;
 } {
   if (status === "incomplete") return { status: "in_progress", status_detail: status };
-  if (status === "want_to_buy") return { status: "queue", status_detail: status };
+  if (status === "want_to_buy" || status === "unplanned") return { status: "queue", status_detail: status };
 
   return { status, status_detail: null };
 }
@@ -300,8 +300,8 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
 
   if (request.status === "incomplete") {
     query = query.eq("status", "in_progress").eq("status_detail", "incomplete");
-  } else if (request.status === "want_to_buy") {
-    query = query.eq("status", "queue").eq("status_detail", "want_to_buy");
+  } else if (request.status === "want_to_buy" || request.status === "unplanned") {
+    query = query.eq("status", "queue").eq("status_detail", request.status);
   } else if (request.status && request.status !== "all") {
     query = query.eq("status", request.status).is("status_detail", null);
   }

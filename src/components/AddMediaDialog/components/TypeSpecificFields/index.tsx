@@ -1,4 +1,4 @@
-import { getMediaStatusOptions } from "../../../../consts/mediaStatus";
+import { getMediaStatusLabel, getMediaStatusOptions } from "../../../../consts/mediaStatus";
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { formatDateInput } from "../../../../utils/date";
@@ -38,6 +38,9 @@ export function TypeSpecificFields({
       : "grid gap-4 md:grid-cols-2"
     : "";
   const statusOptions = getMediaStatusOptions(selectedType, mediaFormat);
+  const getStatusLabel = (status: typeof statusOptions[number]) => (
+    status === "unplanned" ? getMediaStatusLabel(status, selectedType) : copy.statusOptions[status]
+  );
 
   return (
     <>
@@ -164,7 +167,7 @@ export function TypeSpecificFields({
         <span>Estado na Biblioteca *</span>
         <div className="relative">
           <button type="button" aria-haspopup="listbox" aria-expanded={isStatusSelectOpen} onClick={() => setIsStatusSelectOpen((current) => !current)} className={`${inputClass} flex items-center justify-between text-left`}>
-            <span>{statusValue ? copy.statusOptions[statusValue] : "Selecione um estado"}</span>
+            <span>{statusValue ? getStatusLabel(statusValue) : "Selecione um estado"}</span>
             <ChevronDown size={16} className={`text-neutral-500 transition-transform ${isStatusSelectOpen ? "rotate-180" : ""}`} />
           </button>
           {isStatusSelectOpen && (
@@ -174,7 +177,7 @@ export function TypeSpecificFields({
                   setValue("status", status, { shouldDirty: true, shouldValidate: true });
                   setIsStatusSelectOpen(false);
                 }} className={`flex w-full rounded-lg px-3 py-2.5 text-left font-mono text-[10px] uppercase tracking-wide transition ${statusValue === status ? "bg-noir-gold/15 text-noir-champagne" : "text-neutral-400 hover:bg-white/[0.05] hover:text-white"}`}>
-                  {copy.statusOptions[status]}
+                  {getStatusLabel(status)}
                 </button>
               ))}
             </div>

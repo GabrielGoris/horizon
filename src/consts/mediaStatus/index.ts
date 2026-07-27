@@ -8,6 +8,7 @@ export const mediaStatusLabels: Record<MediaStatus, string> = {
   incomplete: "Incompleto",
   in_progress: "Em andamento",
   queue: "Na fila",
+  unplanned: "Não planejado",
   want_to_buy: "Quero comprar",
 };
 
@@ -18,6 +19,7 @@ export const mediaStatusLabelsByType: Record<MediaType, Record<MediaStatus, stri
     incomplete: "Incompleto",
     in_progress: "Assistindo",
     queue: "Na fila",
+    unplanned: "Não planejado",
     want_to_buy: "Quero comprar",
   },
   games: {
@@ -26,6 +28,7 @@ export const mediaStatusLabelsByType: Record<MediaType, Record<MediaStatus, stri
     incomplete: "Incompleto",
     in_progress: "Jogando",
     queue: "Na fila",
+    unplanned: "Não planejado",
     want_to_buy: "Quero comprar",
   },
   movies: {
@@ -34,6 +37,7 @@ export const mediaStatusLabelsByType: Record<MediaType, Record<MediaStatus, stri
     incomplete: "Incompleto",
     in_progress: "Assistindo",
     queue: "Na fila",
+    unplanned: "Não planejado",
     want_to_buy: "Quero comprar",
   },
   books: {
@@ -42,6 +46,7 @@ export const mediaStatusLabelsByType: Record<MediaType, Record<MediaStatus, stri
     incomplete: "Incompleto",
     in_progress: "Lendo",
     queue: "Na fila",
+    unplanned: "Não planejado",
     want_to_buy: "Quero comprar",
   },
 };
@@ -53,7 +58,8 @@ export function getMediaStatusLabel(status: MediaStatus, type?: MediaType) {
 }
 
 export function getMediaStatusOptions(type?: MediaType, mediaFormat?: MediaFormat): MediaStatus[] {
-  if (type === "books") return ["want_to_buy", ...BASE_MEDIA_STATUS_OPTIONS] satisfies MediaStatus[];
+  if (type === "books") return ["want_to_buy", "unplanned", ...BASE_MEDIA_STATUS_OPTIONS] satisfies MediaStatus[];
+  if (type === "games") return ["unplanned", ...BASE_MEDIA_STATUS_OPTIONS] satisfies MediaStatus[];
 
   const supportsIncomplete = type === "animes" || (type === "movies" && mediaFormat !== "movie");
   if (!supportsIncomplete) return BASE_MEDIA_STATUS_OPTIONS;

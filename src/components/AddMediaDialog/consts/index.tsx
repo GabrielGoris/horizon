@@ -51,6 +51,7 @@ export const fieldCopy = {
     descriptionPlaceholder: "Sobre o que é este anime?",
     statusOptions: {
       queue: "Na Fila (Quero assistir)",
+      unplanned: "Não planejado",
       in_progress: "Assistindo",
       incomplete: "Incompleto",
       dropped: "Dropado",
@@ -72,6 +73,7 @@ export const fieldCopy = {
     descriptionPlaceholder: "Sobre o que é este jogo?",
     statusOptions: {
       queue: "Na Fila (Quero jogar)",
+      unplanned: "Não planejado",
       in_progress: "Jogando",
       incomplete: "Incompleto",
       dropped: "Dropado",
@@ -89,12 +91,13 @@ export const fieldCopy = {
     directorPlaceholder: "Ex: Denis Villeneuve, Vince Gilligan...",
     metaLabel: "Origem / Idioma",
     metaPlaceholder: "Ex: Estados Unidos, França...",
-    categoryPlaceholder: "Ex: Ficcao Cientifica, Drama...",
+    categoryPlaceholder: "Ex: Ficção Cientifica, Drama...",
     coverLabel: "URL do Poster",
     descriptionLabel: "Sinopse",
     descriptionPlaceholder: "Sobre o que é esta obra?",
     statusOptions: {
       queue: "Na Fila (Quero ver)",
+      unplanned: "Não planejado",
       in_progress: "Assistindo",
       incomplete: "Incompleto",
       dropped: "Dropado",
@@ -116,6 +119,7 @@ export const fieldCopy = {
     descriptionPlaceholder: "Sobre o que e este livro?",
     statusOptions: {
       queue: "Na Fila (Quero ler)",
+      unplanned: "Não planejado",
       in_progress: "Lendo",
       incomplete: "Incompleto",
       dropped: "Dropado",

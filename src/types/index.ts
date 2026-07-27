@@ -1,6 +1,6 @@
 export type MediaType = 'animes' | 'movies' | 'games' | 'books';
 export type BaseMediaStatus = 'complete' | 'dropped' | 'in_progress' | 'queue';
-export type MediaStatusDetail = 'incomplete' | 'want_to_buy';
+export type MediaStatusDetail = 'incomplete' | 'want_to_buy' | 'unplanned';
 export type MediaStatus = BaseMediaStatus | MediaStatusDetail;
 export type MediaFormat = 'movie' | 'series';
 
