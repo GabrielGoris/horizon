@@ -1,5 +1,5 @@
-import { lazy, Suspense, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type TouchEvent } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
@@ -23,12 +23,18 @@ const loadMediaDossier = () => import("../../components/MediaDossier").then((mod
 const MediaDossier = lazy(loadMediaDossier);
 const WishlistPriorityDialog = lazy(() => import("../../components/WishlistPriorityDialog").then((module) => ({ default: module.WishlistPriorityDialog })));
 const CustomLibraryOverlays = lazy(() => import("./components/CustomLibraryOverlays").then((module) => ({ default: module.CustomLibraryOverlays })));
+const SWIPE_MIN_DISTANCE = 84;
 
 export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, userEmail }: InitialScreenProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [slideAnimation, setSlideAnimation] = useState<"backward" | "forward" | null>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const slideAnimationFrameRef = useRef<number | null>(null);
+  const swipeStartRef = useRef<{ target: EventTarget | null; x: number; y: number } | null>(null);
   const filters = useLibraryFilters(activeTab);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const debouncedSearchQuery = useDebouncedValue(deferredSearchQuery);
@@ -160,6 +166,48 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
     );
   }, [libraryPage.items]);
 
+  useLayoutEffect(() => {
+    mainRef.current?.scrollTo({ behavior: "auto", top: 0 });
+  }, [activeTab, customCategorySlug, location.key]);
+
+  const handleTouchStart = (event: TouchEvent<HTMLElement>) => {
+    const touch = event.touches[0];
+    if (!touch || event.touches.length !== 1) return;
+
+    swipeStartRef.current = { target: event.target, x: touch.clientX, y: touch.clientY };
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLElement>) => {
+    const start = swipeStartRef.current;
+    swipeStartRef.current = null;
+    const touch = event.changedTouches[0];
+
+    if (!start || !touch || customCategorySlug || activeTab === "custom") return;
+    if (start.target instanceof Element && start.target.closest("[data-horizontal-scroll]")) return;
+
+    const horizontalDistance = touch.clientX - start.x;
+    const verticalDistance = touch.clientY - start.y;
+
+    if (Math.abs(horizontalDistance) < SWIPE_MIN_DISTANCE || Math.abs(horizontalDistance) < Math.abs(verticalDistance) * 1.4) return;
+
+    const tabs = ["overview", ...CATEGORIES.map((category) => category.id)];
+    const currentIndex = tabs.indexOf(activeTab);
+    const nextIndex = currentIndex + (horizontalDistance < 0 ? 1 : -1);
+    const nextTab = tabs[nextIndex];
+
+    if (!nextTab) return;
+    const direction = horizontalDistance < 0 ? "forward" : "backward";
+
+    if (slideAnimationFrameRef.current !== null) window.cancelAnimationFrame(slideAnimationFrameRef.current);
+    setSlideAnimation(null);
+    slideAnimationFrameRef.current = window.requestAnimationFrame(() => {
+      setSlideAnimation(direction);
+      slideAnimationFrameRef.current = null;
+    });
+
+    navigate(nextTab === "overview" ? "/" : `/${nextTab}`);
+  };
+
   return (
     <div className="flex h-[100dvh] w-full overflow-hidden bg-noir-base font-sans text-white">
       <Sidebar categories={CATEGORIES} customCategories={customCategories.categories} onAddCategory={customLibrary.openNewCategory} isMobileMenuOpen={isMobileMenuOpen} onMobileMenuOpenChange={setIsMobileMenuOpen} />
@@ -175,8 +223,24 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
           userEmail={userEmail}
         />
 
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:p-8 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:p-12">
-          <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 pb-4 sm:gap-12 sm:pb-10">
+        <main
+          ref={mainRef}
+          className="min-h-0 flex-1 overflow-y-auto p-4 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:p-8 sm:pb-[calc(6rem+env(safe-area-inset-bottom))] lg:p-12"
+          onTouchEnd={handleTouchEnd}
+          onTouchStart={handleTouchStart}
+        >
+          <div
+            className={`mx-auto flex w-full max-w-7xl flex-col gap-8 pb-4 sm:gap-12 sm:pb-10 ${
+              slideAnimation === "forward"
+                ? "animate-library-swipe-forward"
+                : slideAnimation === "backward"
+                  ? "animate-library-swipe-backward"
+                  : ""
+            }`}
+            onAnimationEnd={(event) => {
+              if (event.target === event.currentTarget) setSlideAnimation(null);
+            }}
+          >
             {libraryPage.error && (
               <div
                 role="alert"

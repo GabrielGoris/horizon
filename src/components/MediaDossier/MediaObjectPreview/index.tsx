@@ -1,5 +1,6 @@
 import type { MediaItem } from "../../../types";
 import { useEffect, useState } from "react";
+import { getDossierBackdropUrl } from "../../../utils/mediaImages";
 
 interface MediaObjectPreviewProps {
   item: MediaItem;
@@ -30,10 +31,12 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
   const spineTextColor = isBook ? "#d8c08a" : "rgba(255,255,255,0.35)";
   const spineTitle = item.title.length > 28 ? `${item.title.slice(0, 28)}...` : item.title;
   const coverUrl = item.cover?.trim();
-  const backgroundImage = item.backdrop?.trim() || coverUrl;
+  const backgroundImage = getDossierBackdropUrl(item.backdrop?.trim() || coverUrl);
   const [isAnimationReady, setIsAnimationReady] = useState(false);
   const [isCoverReady, setIsCoverReady] = useState(!coverUrl);
+  const [loadedBackdropUrl, setLoadedBackdropUrl] = useState<string | undefined>();
   const canAnimate = isAnimationReady && isCoverReady;
+  const isBackdropReady = !backgroundImage || loadedBackdropUrl === backgroundImage;
 
   useEffect(() => {
     let secondFrame: number | undefined;
@@ -55,7 +58,11 @@ export function MediaObjectPreview({ item }: MediaObjectPreviewProps) {
             src={backgroundImage}
             alt=""
             aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-105 object-cover opacity-60 blur-sm"
+            decoding="async"
+            fetchPriority="high"
+            onLoad={() => setLoadedBackdropUrl(backgroundImage)}
+            onError={() => setLoadedBackdropUrl(backgroundImage)}
+            className={`absolute inset-0 h-full w-full scale-105 object-cover blur-sm transition-opacity duration-300 ${isBackdropReady ? "opacity-60" : "opacity-0"}`}
           />
           <div className="absolute inset-0 bg-[#17171a]/42" />
           <div className="absolute inset-x-8 bottom-4 h-20 rounded-full bg-black/35 blur-2xl" />

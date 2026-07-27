@@ -53,7 +53,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
   };
 
   return (
-    <div className="relative lg:-mx-12 lg:px-12">
+    <div data-horizontal-scroll className="relative lg:-mx-12 lg:px-12">
       {canScrollLeft && <button
         type="button"
         aria-label="Ver item anterior"

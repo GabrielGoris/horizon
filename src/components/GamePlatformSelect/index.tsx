@@ -40,7 +40,11 @@ export function GamePlatformSelect({
       if (triggerRef.current?.contains(event.target as Node) || menuRef.current?.contains(event.target as Node)) return;
       setIsOpen(false);
     };
-    const closeOnViewportChange = () => setIsOpen(false);
+    const closeOnViewportChange = (event: Event) => {
+      if (menuRef.current?.contains(event.target as Node)) return;
+
+      setIsOpen(false);
+    };
 
     document.addEventListener("pointerdown", closeMenu);
     window.addEventListener("resize", closeOnViewportChange);
@@ -95,7 +99,7 @@ export function GamePlatformSelect({
           ref={menuRef}
           role="listbox"
           aria-label={ariaLabel}
-          className="fixed z-[100] max-h-[min(18rem,calc(100dvh-2rem))] overflow-y-auto rounded-xl border border-white/10 bg-[#1a1a1e] p-1.5 shadow-2xl shadow-black/70"
+          className="fixed z-[100] max-h-[min(18rem,calc(100dvh-2rem))] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-[#1a1a1e] p-1.5 shadow-2xl shadow-black/70 [touch-action:pan-y] [-webkit-overflow-scrolling:touch]"
           style={menuPosition}
         >
           {GAME_PLATFORM_OPTIONS.map((platform) => {

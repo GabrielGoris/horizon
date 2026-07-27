@@ -59,7 +59,18 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
             />
           )}
         />
-        {hasMore && <div ref={sentinelRef} className="flex h-12 items-center justify-center font-mono text-[10px] uppercase tracking-widest text-neutral-600" aria-label="Carregando mais obras">{isLoadingMore ? "Carregando obras" : ""}</div>}
+        {hasMore && (
+          <div ref={sentinelRef} className="flex min-h-16 items-center justify-center" aria-label="Carregar mais obras">
+            <button
+              type="button"
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="rounded-lg border border-white/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 transition hover:border-noir-gold/35 hover:text-noir-champagne disabled:cursor-wait disabled:opacity-60"
+            >
+              {isLoadingMore ? "Carregando obras" : "Carregar mais"}
+            </button>
+          </div>
+        )}
       </section>
     </>
   );

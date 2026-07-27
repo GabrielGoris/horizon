@@ -1,8 +1,9 @@
-import { memo } from "react";
+import { memo, useEffect } from "react";
 import { ListPlus } from "lucide-react";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { GamePlatformLogo } from "../GamePlatformLogo";
 import type { MediaCardProps } from "./types";
+import { preloadDossierBackdrop } from "../../utils/mediaImages";
 
 function getTypeLabel(item: MediaCardProps["item"]) {
   if (item.type === "animes") return "Anime";
@@ -18,10 +19,18 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
   const typeLabel = getTypeLabel(item);
   const platform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
   const coverUrl = item.cover?.trim();
+  const backdropUrl = item.backdrop?.trim() || coverUrl;
+
+  useEffect(() => {
+    const preloadTimer = window.setTimeout(() => preloadDossierBackdrop(backdropUrl), 450);
+    return () => window.clearTimeout(preloadTimer);
+  }, [backdropUrl]);
   
   return (
     <div 
       onClick={() => onClick && onClick(item)}
+      onPointerDown={() => preloadDossierBackdrop(backdropUrl)}
+      onPointerEnter={() => preloadDossierBackdrop(backdropUrl)}
       className={`media-card group relative isolate overflow-hidden bg-[#1a1a1e] border cursor-pointer transition-none md:transform-gpu md:transition-all md:duration-500 md:will-change-transform md:[backface-visibility:hidden] md:hover:-translate-y-2 aspect-[2/3] ${
         isBook
           ? 'rounded-none border-white/5 shadow-[0_4px_8px_rgba(0,0,0,0.55),0_10px_20px_rgba(0,0,0,0.3)] hover:border-[#d4af37]/30 hover:shadow-[0_15px_30px_rgba(0,0,0,0.65)]'

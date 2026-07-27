@@ -57,6 +57,14 @@
   .animate-horizon-splash-in {
     animation: horizon-splash-in 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
   }
+
+  .animate-library-swipe-forward {
+    animation: library-swipe-forward 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-library-swipe-backward {
+    animation: library-swipe-backward 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
 }
 
 @keyframes toast-in {
@@ -80,6 +88,37 @@
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes library-swipe-forward {
+  from {
+    opacity: 0.45;
+    transform: translateX(32px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes library-swipe-backward {
+  from {
+    opacity: 0.45;
+    transform: translateX(-32px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-library-swipe-forward,
+  .animate-library-swipe-backward {
+    animation: none;
   }
 }
 

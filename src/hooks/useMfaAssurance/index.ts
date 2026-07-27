@@ -15,14 +15,21 @@ export function useMfaAssurance(session: Session | null) {
 
     if (!session) return
 
-    void supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data, error }) => {
-      if (!isMounted) return
+    void supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      .then(({ data, error }) => {
+        if (!isMounted) return
 
-      setMfaCheck({
-        accessToken: session.access_token,
-        isRequired: !error && data.nextLevel === 'aal2' && data.currentLevel !== 'aal2',
+        setMfaCheck({
+          accessToken: session.access_token,
+          isRequired: !error && data.nextLevel === 'aal2' && data.currentLevel !== 'aal2',
+        })
       })
-    })
+      .catch((error) => {
+        console.warn('Não foi possível verificar o MFA ao iniciar.', error)
+        if (!isMounted) return
+
+        setMfaCheck({ accessToken: session.access_token, isRequired: false })
+      })
 
     return () => {
       isMounted = false

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getGamePlatformOption } from "../../../../consts/gamePlatforms";
 import { fetchCachedMedia, fetchMediaPage, fetchOverviewPriorityMedia } from "../../../../services/mediaService";
 import type { MediaPageCursor } from "../../../../services/mediaService/types";
@@ -9,6 +9,15 @@ import { getCompletionYear, isSeriesItem, sortMediaItems, sortMediaItemsByPriori
 import type { LibraryFilterState } from "../../types";
 
 const PAGE_SIZE = 30;
+const INITIAL_LOAD_RETRY_DELAY_MS = 700;
+
+type CachedPage = {
+  activeItems: MediaItem[];
+  hasMore: boolean;
+  items: MediaItem[];
+  nextCursor: MediaPageCursor | null;
+  total: number;
+};
 
 type LibraryPageParams = {
   activeTab: string;
@@ -41,6 +50,20 @@ function filterCachedMedia(items: MediaItem[], params: LibraryPageParams) {
   }), params.sortMode);
 }
 
+async function retryInitialLoad<T>(load: () => Promise<T>) {
+  try {
+    return await load();
+  } catch (firstError) {
+    await new Promise<void>((resolve) => window.setTimeout(resolve, INITIAL_LOAD_RETRY_DELAY_MS));
+
+    try {
+      return await load();
+    } catch {
+      throw firstError;
+    }
+  }
+}
+
 export function useLibraryPage(params: LibraryPageParams) {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [activeItems, setActiveItems] = useState<MediaItem[]>([]);
@@ -52,6 +75,7 @@ export function useLibraryPage(params: LibraryPageParams) {
   const [error, setError] = useState("");
   const requestIdRef = useRef(0);
   const isLoadingMoreRef = useRef(false);
+  const pageMemoryRef = useRef(new Map<string, CachedPage>());
   const query = useMemo(() => ({
     activeTab: params.activeTab,
     completedYearFilter: params.completedYearFilter,
@@ -67,18 +91,26 @@ export function useLibraryPage(params: LibraryPageParams) {
 
   const loadFirstPage = useCallback(async () => {
     const requestId = ++requestIdRef.current;
+    let hasCachedItems = false;
     setIsLoading(true);
     setError("");
 
     try {
       if (isOverview) {
-        const overviewItems = await fetchOverviewPriorityMedia();
+        const overviewItems = await retryInitialLoad(fetchOverviewPriorityMedia);
         if (requestId !== requestIdRef.current) return [];
         setItems(overviewItems);
         setActiveItems([]);
         setTotal(overviewItems.length);
         setHasMore(false);
         setNextCursor(null);
+        pageMemoryRef.current.set(queryKey, {
+          activeItems: [],
+          hasMore: false,
+          items: overviewItems,
+          nextCursor: null,
+          total: overviewItems.length,
+        });
         return overviewItems;
       }
 
@@ -92,18 +124,36 @@ export function useLibraryPage(params: LibraryPageParams) {
         return [];
       }
 
-      if (!isNetworkAvailable()) {
-        const cachedItems = filterCachedMedia(await fetchCachedMedia(), query);
-        if (requestId !== requestIdRef.current) return [];
-        setItems(cachedItems.slice(0, PAGE_SIZE));
-        setActiveItems(sortMediaItemsByPriority(cachedItems.filter((item) => item.status === "in_progress").slice(0, PAGE_SIZE)));
+      let cachedItems: MediaItem[] = [];
+
+      try {
+        cachedItems = filterCachedMedia(await fetchCachedMedia(), query);
+      } catch (cacheError) {
+        console.warn("Não foi possível ler o cache local da biblioteca.", cacheError);
+      }
+
+      if (requestId !== requestIdRef.current) return [];
+      if (cachedItems.length > 0) {
+        hasCachedItems = true;
+        const cachedPageItems = cachedItems.slice(0, PAGE_SIZE);
+        const cachedActiveItems = sortMediaItemsByPriority(cachedItems.filter((item) => item.status === "in_progress").slice(0, PAGE_SIZE));
+        setItems(cachedPageItems);
+        setActiveItems(cachedActiveItems);
         setTotal(cachedItems.length);
         setHasMore(cachedItems.length > PAGE_SIZE);
         setNextCursor(null);
-        return cachedItems.slice(0, PAGE_SIZE);
+        pageMemoryRef.current.set(queryKey, {
+          activeItems: cachedActiveItems,
+          hasMore: cachedItems.length > PAGE_SIZE,
+          items: cachedPageItems,
+          nextCursor: null,
+          total: cachedItems.length,
+        });
       }
 
-      const [page, activePage] = await Promise.all([
+      if (!isNetworkAvailable()) return cachedItems.slice(0, PAGE_SIZE);
+
+      const [page, activePage] = await retryInitialLoad(() => Promise.all([
         fetchMediaPage({
           completedYear: query.completedYearFilter,
           gamePlatform: query.gamePlatformFilter,
@@ -122,7 +172,7 @@ export function useLibraryPage(params: LibraryPageParams) {
           status: "in_progress",
           type: query.activeTab as MediaType,
         }),
-      ]);
+      ]));
 
       if (requestId !== requestIdRef.current) return [];
       setItems(page.items);
@@ -130,17 +180,24 @@ export function useLibraryPage(params: LibraryPageParams) {
       setTotal(page.total);
       setHasMore(page.hasMore);
       setNextCursor(page.nextCursor);
+      pageMemoryRef.current.set(queryKey, {
+        activeItems: sortMediaItemsByPriority(activePage.items),
+        hasMore: page.hasMore,
+        items: page.items,
+        nextCursor: page.nextCursor,
+        total: page.total,
+      });
       return page.items;
     } catch (loadError) {
       console.error(loadError);
-      if (requestId === requestIdRef.current) {
-        setError("NÃ£o foi possÃ­vel carregar a biblioteca.");
+      if (requestId === requestIdRef.current && !hasCachedItems) {
+        setError("Não foi possí­vel carregar a biblioteca.");
       }
       throw loadError;
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
     }
-  }, [isMediaLibrary, isOverview, query]);
+  }, [isMediaLibrary, isOverview, query, queryKey]);
 
   const loadMore = useCallback(async () => {
     if (isLoading || isLoadingMoreRef.current || !hasMore || !isMediaLibrary) return;
@@ -179,14 +236,30 @@ export function useLibraryPage(params: LibraryPageParams) {
       setNextCursor(page.nextCursor);
     } catch (loadError) {
       console.error(loadError);
-      setError("NÃ£o foi possÃ­vel carregar mais obras.");
+      setError("Não foi possível carregar mais obras.");
     } finally {
       isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
   }, [hasMore, isLoading, isMediaLibrary, items.length, nextCursor, query]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    const memorizedPage = pageMemoryRef.current.get(queryKey);
+
+    if (memorizedPage) {
+      setItems(memorizedPage.items);
+      setActiveItems(memorizedPage.activeItems);
+      setTotal(memorizedPage.total);
+      setHasMore(memorizedPage.hasMore);
+      setNextCursor(memorizedPage.nextCursor);
+    } else {
+      setItems([]);
+      setActiveItems([]);
+      setTotal(0);
+      setHasMore(false);
+      setNextCursor(null);
+    }
+
     void Promise.resolve().then(loadFirstPage).catch(() => undefined);
   }, [loadFirstPage, queryKey]);
 

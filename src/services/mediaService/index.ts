@@ -324,20 +324,19 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   const { data, error, count } = await query
     .order(column, { ascending, nullsFirst: false })
     .order("id", { ascending: true })
-    .range(0, pageSize);
+    .range(0, pageSize - 1);
 
   if (error) throw error;
 
   const rows = (data ?? []) as MediaItemRow[];
-  const hasMore = rows.length > pageSize;
-  const pageRows = rows.slice(0, pageSize);
-  const items = pageRows.map((item) => normalizeMediaItem(item));
+  const items = rows.map((item) => normalizeMediaItem(item));
+  const hasMore = count !== null ? count > rows.length : rows.length === pageSize;
   await upsertCachedMediaBatch(userId, items);
 
   return {
     hasMore,
     items,
-    nextCursor: hasMore ? getPageCursor(pageRows.at(-1), column) : null,
+    nextCursor: hasMore ? getPageCursor(rows.at(-1), column) : null,
     total: count ?? items.length,
   };
 }

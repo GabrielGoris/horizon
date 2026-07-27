@@ -121,7 +121,7 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
             notify({ tone: "success", title: "Biblioteca sincronizada", message: "As alterações feitas offline foram enviadas." });
           }
         })
-        .catch((error) => console.error("NÃ£o foi possí­vel sincronizar a biblioteca:", error));
+        .catch((error) => console.error("Não foi possí­vel sincronizar a biblioteca:", error));
     };
 
     window.addEventListener("online", handleReconnect);

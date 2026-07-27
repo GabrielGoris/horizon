@@ -164,7 +164,7 @@ export async function writeCachedMedia(userId: string, items: MediaItem[]) {
       transaction.objectStore(MEDIA_METADATA_STORE).put({ userId, updatedAt } satisfies CachedMediaMetadata)
       transaction.objectStore(LEGACY_MEDIA_STORE).delete(userId)
     }
-    existingMedia.onerror = () => reject(existingMedia.error ?? new Error('NÃ£o foi possÃ­vel limpar o armazenamento local.'))
+    existingMedia.onerror = () => reject(existingMedia.error ?? new Error('Não foi possível limpar o armazenamento local.'))
 
     transaction.oncomplete = () => {
       database.close()
@@ -251,7 +251,7 @@ export async function updateCachedMediaItem(userId: string, itemId: string, upda
       store.put({ ...current, item: updatedItem, updatedAt })
       transaction.objectStore(MEDIA_METADATA_STORE).put({ userId, updatedAt } satisfies CachedMediaMetadata)
     }
-    request.onerror = () => reject(request.error ?? new Error('NÃ£o foi possÃ­vel atualizar o armazenamento local.'))
+    request.onerror = () => reject(request.error ?? new Error('Não foi possí­vel atualizar o armazenamento local.'))
     transaction.oncomplete = () => {
       database.close()
       resolve(updatedItem)

@@ -17,6 +17,7 @@ export function useInfiniteList<T>(items: T[], pageSize = DEFAULT_PAGE_SIZE, opt
   useEffect(() => {
     const sentinel = sentinelRef.current
     if (!sentinel || !hasMore) return
+    const scrollRoot = sentinel.closest('main')
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -28,7 +29,7 @@ export function useInfiniteList<T>(items: T[], pageSize = DEFAULT_PAGE_SIZE, opt
           }
         }
       },
-      { rootMargin: '240px 0px' },
+      { root: scrollRoot, rootMargin: '360px 0px' },
     )
 
     observer.observe(sentinel)

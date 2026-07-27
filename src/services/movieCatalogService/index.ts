@@ -26,7 +26,7 @@ function normalizeSearchText(value: string) {
     .trim();
 }
 
-function getImageUrl(path: string | null | undefined, size: "w500" | "w1280") {
+function getImageUrl(path: string | null | undefined, size: "w300" | "w500" | "w780" | "w1280") {
   return path ? `${imageBaseUrl}/${size}${path}` : "";
 }
 
@@ -139,7 +139,7 @@ function mapTmdbSearchItem(item: TmdbSearchItem, genres: Record<TmdbMediaType, T
     title,
     releaseYear: getReleaseYear(item),
     cover: getImageUrl(item.poster_path, "w500"),
-    backdrop: getImageUrl(item.backdrop_path, "w1280"),
+    backdrop: getImageUrl(item.backdrop_path, "w300"),
     category: getGenreNamesById(item.genre_ids, genres[item.media_type]),
     meta: getOriginLabel(item.origin_country, item.original_language),
   };
@@ -159,7 +159,7 @@ function mapTmdbDetails(details: TmdbDetails, mediaType: TmdbMediaType): MovieCa
     title: details.title || details.name || "",
     releaseYear: getReleaseYear(details),
     cover: getImageUrl(details.poster_path, "w500"),
-    backdrop: getImageUrl(details.backdrop_path, "w1280"),
+    backdrop: getImageUrl(details.backdrop_path, "w300"),
     category: getGenreNames(details.genres),
     meta: getOriginLabel(details.origin_country, details.original_language),
     creator: getCreator(details, mediaType),
