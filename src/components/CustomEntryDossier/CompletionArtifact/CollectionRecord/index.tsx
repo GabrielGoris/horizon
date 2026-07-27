@@ -1,10 +1,9 @@
 import { Check, ShieldCheck } from "lucide-react";
 import { ArtifactFields } from "../ArtifactFields";
+import { CompletionDateInput } from "../CompletionDateInput";
 import type { CompletionArtifactLayoutProps } from "../types";
-import { formatCompletedDate } from "../utils";
 
 export function CollectionRecord({ entry, ...props }: CompletionArtifactLayoutProps) {
-  const completedDate = formatCompletedDate(entry.completed_at);
   const inventoryNumber = `HZN-${entry.id.replaceAll("-", "").slice(0, 6).toUpperCase()}`;
 
   return (
@@ -33,12 +32,12 @@ export function CollectionRecord({ entry, ...props }: CompletionArtifactLayoutPr
               <Check size={13} /> Peça incorporada ao acervo
             </p>
           </div>
-          {completedDate && <span className="shrink-0 font-mono text-[8px] text-amber-100/35">{completedDate}</span>}
+          <CompletionDateInput value={props.completedAt} onChange={props.onCompletedAtChange} onCommit={props.onCompletedAtCommit} className="shrink-0 text-right text-amber-100/55 [color-scheme:dark]" />
         </div>
 
         {props.fields.length > 0 && <div className="relative my-5 border-t border-dashed border-amber-100/15" />}
         <div className="relative">
-          <ArtifactFields {...props} buttonClass="bg-amber-100 text-[#282217] hover:bg-amber-50" />
+          <ArtifactFields {...props} />
         </div>
 
         <footer className="relative mt-6 flex items-center justify-between border-t border-amber-100/10 pt-3 font-mono text-[7px] font-bold uppercase tracking-[0.18em] text-amber-100/25">

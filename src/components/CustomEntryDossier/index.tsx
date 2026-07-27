@@ -1,9 +1,11 @@
 import { Check, ChevronDown, ExternalLink, Images, Pencil, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { CustomEntry, CustomEntryPhoto, CustomEntryStatus, CustomFieldValue, CustomLibraryCategory } from "../../types/customLibrary";
 import { formatCustomFieldValue } from "../../utils/customLibrary";
+import { toSupabaseDate } from "../../utils/date";
 import { CustomCategoryIcon } from "../CustomCategoryIcon";
 import { CompletionArtifact } from "./CompletionArtifact";
+import { toCompletionDateInput } from "./CompletionArtifact/utils";
 import { Gallery } from "./Gallery";
 
 interface CustomEntryDossierProps {
@@ -14,7 +16,7 @@ interface CustomEntryDossierProps {
   onDeletePhoto: (entry: CustomEntry, photo: CustomEntryPhoto) => Promise<void>;
   onEdit: (entry: CustomEntry) => void;
   onAddPhotos: (entry: CustomEntry, photos: File[]) => Promise<void>;
-  onSaveCompletion: (entry: CustomEntry, values: Record<string, CustomFieldValue>) => Promise<void>;
+  onSaveCompletion: (entry: CustomEntry, values: Record<string, CustomFieldValue>, completedAt: string) => Promise<void>;
   onStatusChange: (entry: CustomEntry, status: CustomEntryStatus) => void | Promise<void>;
 }
 
@@ -30,10 +32,12 @@ export function CustomEntryDossier({
   onStatusChange,
 }: CustomEntryDossierProps) {
   const [draftValues, setDraftValues] = useState<Record<string, CustomFieldValue>>(() => ({ ...entry.values }));
-  const [isSavingCompletion, setIsSavingCompletion] = useState(false);
+  const [completedAt, setCompletedAt] = useState(() => toCompletionDateInput(entry.completed_at));
+  const [, setIsSavingCompletion] = useState(false);
   const [isSavingPhotos, setIsSavingPhotos] = useState(false);
   const [expandedImageUrl, setExpandedImageUrl] = useState("");
   const [actionError, setActionError] = useState("");
+  const completionSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const coverUrl = entry.cover_url || entry.photos[0]?.signed_url;
   const planningFacts = category.fields
     .filter((field) => field.phase === "planning")
@@ -43,10 +47,13 @@ export function CustomEntryDossier({
   const isCompleted = entry.status === "completed";
   const chipClass = "relative inline-flex h-7 min-w-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-3 font-mono text-[10px] leading-none text-neutral-400";
 
-  const saveCompletion = async () => {
+  const saveCompletion = async (
+    values: Record<string, CustomFieldValue> = draftValues,
+    date: string = completedAt,
+  ) => {
     const missingRequiredField = completionFields.find((field) => {
       if (!field.required) return false;
-      const value = draftValues[field.id];
+      const value = values[field.id];
       return value === null || value === "" || (Array.isArray(value) && value.length === 0);
     });
 
@@ -59,12 +66,19 @@ export function CustomEntryDossier({
     setActionError("");
 
     try {
-      await onSaveCompletion(entry, draftValues);
+      await onSaveCompletion(entry, values, date);
     } catch (saveError) {
       setActionError(saveError instanceof Error ? saveError.message : "Não foi possível salvar a conclusão.");
     } finally {
       setIsSavingCompletion(false);
     }
+  };
+
+  const scheduleCompletionSave = (values: Record<string, CustomFieldValue>, date: string) => {
+    if (!toSupabaseDate(date)) return;
+
+    if (completionSaveTimerRef.current) clearTimeout(completionSaveTimerRef.current);
+    completionSaveTimerRef.current = setTimeout(() => void saveCompletion(values, date), 450);
   };
 
   const addPhotos = async (files: File[]) => {
@@ -172,10 +186,15 @@ export function CustomEntryDossier({
               category={category}
               entry={entry}
               fields={completionFields}
+              completedAt={completedAt}
               values={draftValues}
-              isSaving={isSavingCompletion}
-              onChange={(fieldId, value) => setDraftValues((current) => ({ ...current, [fieldId]: value }))}
-              onSave={() => void saveCompletion()}
+              onChange={(fieldId, value) => {
+                const nextValues = { ...draftValues, [fieldId]: value };
+                setDraftValues(nextValues);
+                scheduleCompletionSave(nextValues, completedAt);
+              }}
+              onCompletedAtChange={setCompletedAt}
+              onCompletedAtCommit={(value) => scheduleCompletionSave(draftValues, value)}
             />
           )}
 

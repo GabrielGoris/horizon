@@ -2,6 +2,7 @@ import { ImagePlus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { CustomFieldInput } from "../CustomFieldInput";
 import { useToast } from "../ToastProvider/hooks/useToast";
+import { getYouTubeThumbnailUrl } from "../../utils/youtube";
 import type {
   CustomEntry,
   CustomEntryInput,
@@ -53,13 +54,38 @@ export function CustomEntryDialog({
   const planningFields = category.fields.filter((field) => field.phase === "planning");
   const completionFields = category.fields.filter((field) => field.phase === "completion");
 
+  const getAutomaticCoverUrl = () => {
+    const manualCover = getYouTubeThumbnailUrl(coverUrl) ?? coverUrl.trim();
+    if (manualCover) return manualCover;
+
+    for (const field of category.fields) {
+      const value = values[field.id];
+      const thumbnailUrl = field.field_type === "url" && typeof value === "string"
+        ? getYouTubeThumbnailUrl(value)
+        : undefined;
+
+      if (thumbnailUrl) return thumbnailUrl;
+    }
+
+    return "";
+  };
+
+  const handleFieldChange = (field: CustomLibraryCategory["fields"][number], value: CustomFieldValue) => {
+    setValues((current) => ({ ...current, [field.id]: value }));
+
+    if (field.field_type !== "url" || typeof value !== "string") return;
+
+    const thumbnailUrl = getYouTubeThumbnailUrl(value);
+    if (thumbnailUrl) setCoverUrl((current) => current.trim() || thumbnailUrl);
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       setError(`Informe o nome do ${category.name_singular.toLowerCase()}.`);
       return;
     }
 
-    const normalizedCoverUrl = coverUrl.trim();
+    const normalizedCoverUrl = getAutomaticCoverUrl();
 
     if (normalizedCoverUrl) {
       try {
@@ -155,7 +181,7 @@ export function CustomEntryDialog({
 
           <label className={`${labelClass} mt-5`}>
             Imagem de capa
-            <input type="url" className={inputClass} value={coverUrl} onChange={(event) => setCoverUrl(event.target.value)} placeholder="https://..." />
+            <input type="url" className={inputClass} value={coverUrl} onChange={(event) => setCoverUrl(getYouTubeThumbnailUrl(event.target.value) ?? event.target.value)} placeholder="https://..." />
             <span className="text-[9px] font-normal normal-case tracking-normal text-neutral-600">Usada no card e no topo do dossiê.</span>
           </label>
 
@@ -168,7 +194,7 @@ export function CustomEntryDialog({
             <section className="mt-7">
               <h3 className="mb-4 border-b border-white/10 pb-3 font-serif text-lg font-bold text-white">Planejamento</h3>
               <div className="grid gap-4 md:grid-cols-2">
-                {planningFields.map((field) => <CustomFieldInput key={field.id} field={field} value={values[field.id]} onChange={(value) => setValues((current) => ({ ...current, [field.id]: value }))} />)}
+                {planningFields.map((field) => <CustomFieldInput key={field.id} field={field} value={values[field.id]} onChange={(value) => handleFieldChange(field, value)} />)}
               </div>
             </section>
           )}
@@ -177,7 +203,7 @@ export function CustomEntryDialog({
             <section className="mt-7">
               <h3 className="mb-4 border-b border-white/10 pb-3 font-serif text-lg font-bold text-white">Depois de concluir</h3>
               <div className="grid gap-4 md:grid-cols-2">
-                {completionFields.map((field) => <CustomFieldInput key={field.id} field={field} value={values[field.id]} onChange={(value) => setValues((current) => ({ ...current, [field.id]: value }))} />)}
+                {completionFields.map((field) => <CustomFieldInput key={field.id} field={field} value={values[field.id]} onChange={(value) => handleFieldChange(field, value)} />)}
               </div>
             </section>
           )}

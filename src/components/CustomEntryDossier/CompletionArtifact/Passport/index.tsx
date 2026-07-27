@@ -1,11 +1,10 @@
 import { Check } from "lucide-react";
 import { CustomCategoryIcon } from "../../../CustomCategoryIcon";
 import { ArtifactFields } from "../ArtifactFields";
+import { CompletionDateInput } from "../CompletionDateInput";
 import type { CompletionArtifactLayoutProps } from "../types";
-import { formatCompletedDate } from "../utils";
 
 export function Passport({ category, entry, ...props }: CompletionArtifactLayoutProps) {
-  const completedDate = formatCompletedDate(entry.completed_at);
   const documentNumber = entry.id.replaceAll("-", "").slice(0, 9).toUpperCase();
 
   return (
@@ -36,11 +35,11 @@ export function Passport({ category, entry, ...props }: CompletionArtifactLayout
           <p className="mt-1 font-serif text-2xl font-bold italic text-white">{entry.title}</p>
           <div className="mt-3 flex items-center justify-between gap-3 font-mono text-[8px] uppercase tracking-wider text-sky-100/40">
             <span className="flex items-center gap-1 text-sky-100/65"><Check size={10} /> Visitado</span>
-            {completedDate && <span>{completedDate}</span>}
+            <CompletionDateInput value={props.completedAt} onChange={props.onCompletedAtChange} onCommit={props.onCompletedAtCommit} className="text-right text-sky-100/55 [color-scheme:dark]" />
           </div>
 
           {props.fields.length > 0 && <div className="my-5 border-t border-dashed border-sky-100/15" />}
-          <ArtifactFields {...props} buttonClass="bg-sky-200 text-[#102330] hover:bg-sky-100" />
+          <ArtifactFields {...props} />
         </div>
 
         <footer className="relative mt-6 border-t border-sky-100/10 pt-3 font-mono text-[7px] uppercase tracking-[0.2em] text-sky-100/25">

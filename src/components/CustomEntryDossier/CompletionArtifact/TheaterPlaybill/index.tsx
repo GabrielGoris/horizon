@@ -1,11 +1,9 @@
 import { Check, Drama } from "lucide-react";
 import { ArtifactFields } from "../ArtifactFields";
+import { CompletionDateInput } from "../CompletionDateInput";
 import type { CompletionArtifactLayoutProps } from "../types";
-import { formatCompletedDate } from "../utils";
 
 export function TheaterPlaybill({ entry, ...props }: CompletionArtifactLayoutProps) {
-  const completedDate = formatCompletedDate(entry.completed_at);
-
   return (
     <section className="mt-8 border-t border-white/10 pt-7">
       <div className="relative overflow-hidden rounded-2xl border border-red-500/30 bg-red-950 px-5 py-7 text-amber-50 shadow-[0_24px_55px_rgba(0,0,0,0.42)] sm:px-7">
@@ -26,12 +24,12 @@ export function TheaterPlaybill({ entry, ...props }: CompletionArtifactLayoutPro
             <span className="h-px flex-1 bg-amber-200/30" />
           </div>
           <p className="font-serif text-base font-bold italic text-amber-200">Espetáculo encerrado</p>
-          {completedDate && <p className="mt-1 font-mono text-[9px] text-[#f7ead1]/40">{completedDate}</p>}
+          <CompletionDateInput value={props.completedAt} onChange={props.onCompletedAtChange} onCommit={props.onCompletedAtCommit} className="mx-auto mt-1 block text-center text-[#f7ead1]/55 [color-scheme:dark]" />
         </div>
 
         {props.fields.length > 0 && (
           <div className="relative mt-7 rounded-xl border border-amber-200/15 bg-red-950/90 p-4 shadow-lg backdrop-blur-sm">
-            <ArtifactFields {...props} buttonClass="bg-amber-200 text-red-950 hover:bg-amber-100" />
+            <ArtifactFields {...props} />
           </div>
         )}
       </div>

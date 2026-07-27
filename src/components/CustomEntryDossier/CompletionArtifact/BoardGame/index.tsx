@@ -1,13 +1,11 @@
 import { Check } from "lucide-react";
 import { ArtifactFields } from "../ArtifactFields";
+import { CompletionDateInput } from "../CompletionDateInput";
 import type { CompletionArtifactLayoutProps } from "../types";
-import { formatCompletedDate } from "../utils";
 
 const TRACK_SPACES = Array.from({ length: 6 }, (_, index) => index);
 
 export function BoardGame({ entry, ...props }: CompletionArtifactLayoutProps) {
-  const completedDate = formatCompletedDate(entry.completed_at);
-
   return (
     <section className="mt-8 border-t border-white/10 pt-7">
       <div className="relative overflow-hidden rounded-2xl border-[7px] border-[#694b2c] bg-[#173b32] p-10 shadow-[0_24px_55px_rgba(0,0,0,0.38),inset_0_0_0_2px_rgba(255,255,255,0.08)]">
@@ -23,10 +21,13 @@ export function BoardGame({ entry, ...props }: CompletionArtifactLayoutProps) {
               <Check size={9} /> Fim de jogo
             </span>
           </div>
-          <p className="mt-2 font-mono text-[8px] uppercase tracking-wider text-white/35">Sessão concluída {completedDate && `· ${completedDate}`}</p>
+          <div className="mt-2 flex items-center gap-1 font-mono text-[8px] uppercase tracking-wider text-white/35">
+            <span>Sessão concluída ·</span>
+            <CompletionDateInput value={props.completedAt} onChange={props.onCompletedAtChange} onCommit={props.onCompletedAtCommit} className="text-white/55 [color-scheme:dark]" />
+          </div>
 
           {props.fields.length > 0 && <div className="my-4 border-t border-dashed border-emerald-100/15" />}
-          <ArtifactFields {...props} buttonClass="bg-emerald-200 text-[#10231e] hover:bg-emerald-100" />
+          <ArtifactFields {...props} />
         </div>
       </div>
     </section>

@@ -3,28 +3,30 @@ import { CustomCategoryIcon } from "../../CustomCategoryIcon";
 import { ArtifactDecoration } from "./ArtifactDecoration";
 import { ArtifactFields } from "./ArtifactFields";
 import { BoardGame } from "./BoardGame";
+import { CompletionDateInput } from "./CompletionDateInput";
 import { CollectionRecord } from "./CollectionRecord";
 import { DiningPlate } from "./DiningPlate";
 import { ExhibitionPass } from "./ExhibitionPass";
+import { MediaCassette } from "./MediaCassette";
 import { Passport } from "./Passport";
 import { getCompletionArtifactPreset } from "./presets";
 import { ShoppingBag } from "./ShoppingBag";
+import { ShowTicket } from "./ShowTicket";
 import { TheaterPlaybill } from "./TheaterPlaybill";
 import type { CompletionArtifactLayoutProps } from "./types";
-import { formatCompletedDate } from "./utils";
 
 export function CompletionArtifact({
   category,
+  completedAt,
   entry,
   fields,
   values,
-  isSaving,
   onChange,
-  onSave,
+  onCompletedAtChange,
+  onCompletedAtCommit,
 }: CompletionArtifactLayoutProps) {
   const preset = getCompletionArtifactPreset(category.icon);
-  const completedDate = formatCompletedDate(entry.completed_at);
-  const layoutProps = { category, entry, fields, values, isSaving, onChange, onSave };
+  const layoutProps = { category, completedAt, entry, fields, values, onChange, onCompletedAtChange, onCompletedAtCommit };
 
   if (preset.variant === "dining") return <DiningPlate {...layoutProps} />;
   if (preset.variant === "game") return <BoardGame {...layoutProps} />;
@@ -33,6 +35,8 @@ export function CompletionArtifact({
   if (preset.variant === "archive") return <CollectionRecord {...layoutProps} />;
   if (preset.variant === "exhibition") return <ExhibitionPass {...layoutProps} />;
   if (preset.variant === "theater") return <TheaterPlaybill {...layoutProps} />;
+  if (preset.variant === "show") return <ShowTicket {...layoutProps} />;
+  if (preset.variant === "media") return <MediaCassette {...layoutProps} />;
 
   return (
     <section className="mt-8 border-t border-white/10 pt-7">
@@ -62,13 +66,13 @@ export function CompletionArtifact({
               <p className="font-mono text-[8px] uppercase tracking-[0.2em] text-white/35">Estado do registro</p>
               <p className={`mt-1 font-serif text-base font-bold italic ${preset.accentClass}`}>{preset.status}</p>
             </div>
-            {completedDate && <span className="font-mono text-[9px] text-white/35">{completedDate}</span>}
+            <CompletionDateInput value={completedAt} onChange={onCompletedAtChange} onCommit={onCompletedAtCommit} className="text-right text-white/55 [color-scheme:dark]" />
           </div>
 
           {fields.length > 0 && (
             <>
               <div className="my-5 border-t border-dashed border-white/10" />
-              <ArtifactFields {...layoutProps} buttonClass={preset.buttonClass} />
+              <ArtifactFields {...layoutProps} />
             </>
           )}
         </div>

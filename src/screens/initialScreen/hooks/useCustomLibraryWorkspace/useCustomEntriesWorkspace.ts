@@ -166,7 +166,7 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
 
   const updateEntry = async (
     entry: CustomEntry,
-    changes: Partial<Pick<CustomEntryInput, "status" | "values">>,
+    changes: Partial<Pick<CustomEntryInput, "completedAt" | "status" | "values">>,
     photos: File[] = []
   ) => {
     const updatedEntry = await updateCustomEntry(entry, {
@@ -175,6 +175,7 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
       description: entry.description,
       status: changes.status ?? entry.status,
       values: changes.values ?? entry.values,
+      completedAt: changes.completedAt,
     }, photos);
 
     setSelectedEntry(updatedEntry);
@@ -192,9 +193,13 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
     }
   };
 
-  const saveEntryCompletion = async (entry: CustomEntry, values: Record<string, CustomFieldValue>) => {
+  const saveEntryCompletion = async (
+    entry: CustomEntry,
+    values: Record<string, CustomFieldValue>,
+    completedAt: string,
+  ) => {
     try {
-      await updateEntry(entry, { status: "completed", values });
+      await updateEntry(entry, { completedAt, status: "completed", values });
       notify({ tone: "success", title: "Registro salvo", message: `A conclusão de “${entry.title}” foi atualizada.` });
     } catch (error) {
       console.error(error);

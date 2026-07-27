@@ -76,6 +76,7 @@ export interface CustomCategoryInput {
 }
 
 export interface CustomEntryInput {
+  completedAt?: string;
   title: string;
   cover_url: string;
   description: string;

@@ -1,4 +1,5 @@
 import { supabase } from "../../lib/supabase";
+import { toSupabaseDate } from "../../utils/date";
 import type {
   CustomCategoryField,
   CustomCategoryInput,
@@ -35,6 +36,16 @@ async function getCurrentUserId() {
   if (error || !data.user) throw new Error("Usuário não autenticado.");
 
   return data.user.id;
+}
+
+function toCompletedAt(value?: string, fallback?: string) {
+  if (!value) return fallback ?? new Date().toISOString();
+
+  const normalizedDate = toSupabaseDate(value);
+  if (!normalizedDate) return fallback ?? new Date().toISOString();
+
+  const date = new Date(`${normalizedDate}T12:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? fallback ?? new Date().toISOString() : date.toISOString();
 }
 
 function normalizeCategory(row: CategoryRow): CustomLibraryCategory {
@@ -310,7 +321,7 @@ export async function createCustomEntry(categoryId: string, input: CustomEntryIn
       description: input.description.trim() || null,
       status: input.status,
       values: input.values,
-      completed_at: input.status === "completed" ? new Date().toISOString() : null,
+      completed_at: input.status === "completed" ? toCompletedAt(input.completedAt) : null,
     })
     .select("*")
     .single();
@@ -333,7 +344,7 @@ export async function updateCustomEntry(entry: CustomEntry, input: CustomEntryIn
       description: input.description.trim() || null,
       status: input.status,
       values: input.values,
-      completed_at: input.status === "completed" ? entry.completed_at ?? new Date().toISOString() : null,
+      completed_at: input.status === "completed" ? toCompletedAt(input.completedAt, entry.completed_at) : null,
     })
     .eq("id", entry.id)
     .eq("user_id", userId)

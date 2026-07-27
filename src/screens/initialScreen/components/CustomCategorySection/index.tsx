@@ -126,7 +126,7 @@ export function CustomCategorySection({
                   {entry.status === "completed" ? category.completed_label : category.planned_label}
                 </span>
                 <span className="absolute inset-x-0 bottom-0 p-4">
-                  <strong className="block font-serif text-lg font-bold leading-tight text-white">{entry.title}</strong>
+                  <strong title={entry.title} className="line-clamp-2 break-words font-serif text-base font-bold leading-tight text-white">{entry.title}</strong>
                   {previewFields.map(({ field, value }) => (
                     <span key={field.id} className="mt-1 block truncate text-[10px] text-neutral-400">
                       <span className="text-neutral-600">{field.label}: </span>{value}

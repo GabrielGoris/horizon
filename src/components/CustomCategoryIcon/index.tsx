@@ -2,11 +2,13 @@ import {
   BookMarked,
   Dices,
   Drama,
+  Film,
   FolderHeart,
   Heart,
   Landmark,
   ListChecks,
   MapPin,
+  MicVocal,
   ShoppingBag,
   Utensils,
 } from "lucide-react";
@@ -27,6 +29,8 @@ export function CustomCategoryIcon({ className, name, size = 16 }: CustomCategor
   if (name === "exhibition") return <Landmark {...props} />;
   if (name === "theater") return <Drama {...props} />;
   if (name === "heart") return <Heart {...props} />;
+  if (name === "media") return <Film {...props} />;
+  if (name === "shows") return <MicVocal {...props} />;
   if (name === "book-marked") return <BookMarked {...props} />;
   if (name === "list") return <ListChecks {...props} />;
 

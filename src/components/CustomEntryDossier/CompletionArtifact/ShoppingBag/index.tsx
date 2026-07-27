@@ -1,11 +1,9 @@
 import { Check } from "lucide-react";
 import { ArtifactFields } from "../ArtifactFields";
+import { CompletionDateInput } from "../CompletionDateInput";
 import type { CompletionArtifactLayoutProps } from "../types";
-import { formatCompletedDate } from "../utils";
 
 export function ShoppingBag({ entry, ...props }: CompletionArtifactLayoutProps) {
-  const completedDate = formatCompletedDate(entry.completed_at);
-
   return (
     <section className="mt-8 border-t border-white/10 pt-12">
       <div className="relative mx-auto max-w-[350px]">
@@ -17,13 +15,14 @@ export function ShoppingBag({ entry, ...props }: CompletionArtifactLayoutProps) 
           <div className="text-center">
             <p className="font-mono text-[8px] font-black uppercase tracking-[0.24em] text-violet-200">Aquisição Horizon</p>
             <h3 className="mt-2 font-serif text-2xl font-extrabold text-white">{entry.title}</h3>
-            <p className="mt-2 flex items-center justify-center gap-1 font-mono text-[8px] font-bold uppercase tracking-wider text-violet-100/50">
-              <Check size={10} /> Compra registrada {completedDate && `· ${completedDate}`}
-            </p>
+            <div className="mt-2 flex items-center justify-center gap-1 font-mono text-[8px] font-bold uppercase tracking-wider text-violet-100/50">
+              <Check size={10} /> <span>Compra registrada ·</span>
+              <CompletionDateInput value={props.completedAt} onChange={props.onCompletedAtChange} onCommit={props.onCompletedAtCommit} className="text-violet-100/70 [color-scheme:dark]" />
+            </div>
           </div>
 
           {props.fields.length > 0 && <div className="my-5 border-t border-dashed border-violet-100/15" />}
-          <ArtifactFields {...props} buttonClass="bg-violet-200 text-[#1e172a] hover:bg-violet-100" />
+          <ArtifactFields {...props} />
         </div>
       </div>
     </section>

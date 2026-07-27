@@ -1,11 +1,9 @@
 import { Check, Landmark } from "lucide-react";
 import { ArtifactFields } from "../ArtifactFields";
+import { CompletionDateInput } from "../CompletionDateInput";
 import type { CompletionArtifactLayoutProps } from "../types";
-import { formatCompletedDate } from "../utils";
 
 export function ExhibitionPass({ entry, ...props }: CompletionArtifactLayoutProps) {
-  const completedDate = formatCompletedDate(entry.completed_at);
-
   return (
     <section className="mt-8 border-t border-white/10 pt-7">
       <div className="relative overflow-hidden rounded-2xl border border-stone-400/25 bg-stone-900 px-5 py-6 text-stone-100 shadow-[0_24px_55px_rgba(0,0,0,0.4)] sm:px-7">
@@ -37,7 +35,7 @@ export function ExhibitionPass({ entry, ...props }: CompletionArtifactLayoutProp
               <p className="font-mono text-[7px] font-black uppercase tracking-[0.24em] text-stone-500">Exposição visitada</p>
               <h3 className="mt-2 font-serif text-2xl font-extrabold leading-tight text-stone-50">{entry.title}</h3>
               <p className="mt-2 font-serif text-sm font-bold italic text-amber-100">Acervo contemplado</p>
-              {completedDate && <p className="mt-1 font-mono text-[8px] text-stone-500">{completedDate}</p>}
+              <CompletionDateInput value={props.completedAt} onChange={props.onCompletedAtChange} onCommit={props.onCompletedAtCommit} className="mt-1 text-center text-stone-400 [color-scheme:dark]" />
             </div>
 
             <div className="flex gap-2">
@@ -51,7 +49,7 @@ export function ExhibitionPass({ entry, ...props }: CompletionArtifactLayoutProp
 
         {props.fields.length > 0 && (
           <div className="relative mt-6 border-t border-dashed border-stone-500/40 pt-5">
-            <ArtifactFields {...props} buttonClass="bg-stone-200 text-stone-900 hover:bg-white" />
+            <ArtifactFields {...props} />
           </div>
         )}
       </div>

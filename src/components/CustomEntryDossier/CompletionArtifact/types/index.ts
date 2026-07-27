@@ -2,10 +2,11 @@ import type { CustomCategoryField, CustomEntry, CustomFieldValue, CustomLibraryC
 
 export interface CompletionArtifactLayoutProps {
   category: CustomLibraryCategory;
+  completedAt: string;
   entry: CustomEntry;
   fields: CustomCategoryField[];
   values: Record<string, CustomFieldValue>;
-  isSaving: boolean;
   onChange: (fieldId: string, value: CustomFieldValue) => void;
-  onSave: () => void;
+  onCompletedAtChange: (value: string) => void;
+  onCompletedAtCommit: (value: string) => void;
 }

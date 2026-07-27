@@ -17,7 +17,7 @@ export function BookBookmark({
       <div className="flex items-start justify-between gap-4 border-b border-[#3a2d18]/15 pb-4">
         <div>
           <p className="font-mono text-[8px] font-black uppercase tracking-[0.24em] text-[#3a2d18]/55">
-            Leitura concluida
+            Leitura concluída
           </p>
           <h3 className="mt-2 font-serif text-2xl font-extrabold leading-none">
             {item.title}
