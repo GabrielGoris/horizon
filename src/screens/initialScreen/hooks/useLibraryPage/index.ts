@@ -89,8 +89,9 @@ export function useLibraryPage(params: LibraryPageParams) {
   const isMediaLibrary = isMediaType(query.activeTab);
   const queryKey = JSON.stringify(query);
 
-  const loadFirstPage = useCallback(async () => {
+  const loadFirstPage = useCallback(async (minimumItemCount = PAGE_SIZE) => {
     const requestId = ++requestIdRef.current;
+    const itemCountToKeep = Math.max(PAGE_SIZE, minimumItemCount);
     let hasCachedItems = false;
     setIsLoading(true);
     setError("");
@@ -135,23 +136,23 @@ export function useLibraryPage(params: LibraryPageParams) {
       if (requestId !== requestIdRef.current) return [];
       if (cachedItems.length > 0) {
         hasCachedItems = true;
-        const cachedPageItems = cachedItems.slice(0, PAGE_SIZE);
+        const cachedPageItems = cachedItems.slice(0, itemCountToKeep);
         const cachedActiveItems = sortMediaItemsByPriority(cachedItems.filter((item) => item.status === "in_progress").slice(0, PAGE_SIZE));
         setItems(cachedPageItems);
         setActiveItems(cachedActiveItems);
         setTotal(cachedItems.length);
-        setHasMore(cachedItems.length > PAGE_SIZE);
+        setHasMore(cachedItems.length > itemCountToKeep);
         setNextCursor(null);
         pageMemoryRef.current.set(queryKey, {
           activeItems: cachedActiveItems,
-          hasMore: cachedItems.length > PAGE_SIZE,
+          hasMore: cachedItems.length > itemCountToKeep,
           items: cachedPageItems,
           nextCursor: null,
           total: cachedItems.length,
         });
       }
 
-      if (!isNetworkAvailable()) return cachedItems.slice(0, PAGE_SIZE);
+      if (!isNetworkAvailable()) return cachedItems.slice(0, itemCountToKeep);
 
       const [page, activePage] = await retryInitialLoad(() => Promise.all([
         fetchMediaPage({
@@ -175,19 +176,44 @@ export function useLibraryPage(params: LibraryPageParams) {
       ]));
 
       if (requestId !== requestIdRef.current) return [];
-      setItems(page.items);
+
+      let loadedItems = page.items;
+      let hasMorePages = page.hasMore;
+      let cursor = page.nextCursor;
+
+      while (loadedItems.length < itemCountToKeep && hasMorePages && cursor) {
+        const nextPage = await fetchMediaPage({
+          completedYear: query.completedYearFilter,
+          cursor,
+          gamePlatform: query.gamePlatformFilter,
+          mediaFormat: query.mediaFormatFilter,
+          pageSize: PAGE_SIZE,
+          searchQuery: query.searchQuery,
+          sortMode: query.sortMode,
+          status: query.statusFilter,
+          type: query.activeTab as MediaType,
+        });
+
+        if (requestId !== requestIdRef.current) return [];
+
+        loadedItems = [...loadedItems, ...nextPage.items];
+        hasMorePages = nextPage.hasMore;
+        cursor = nextPage.nextCursor;
+      }
+
+      setItems(loadedItems);
       setActiveItems(sortMediaItemsByPriority(activePage.items));
       setTotal(page.total);
-      setHasMore(page.hasMore);
-      setNextCursor(page.nextCursor);
+      setHasMore(hasMorePages);
+      setNextCursor(cursor);
       pageMemoryRef.current.set(queryKey, {
         activeItems: sortMediaItemsByPriority(activePage.items),
-        hasMore: page.hasMore,
-        items: page.items,
-        nextCursor: page.nextCursor,
+        hasMore: hasMorePages,
+        items: loadedItems,
+        nextCursor: cursor,
         total: page.total,
       });
-      return page.items;
+      return loadedItems;
     } catch (loadError) {
       console.error(loadError);
       if (requestId === requestIdRef.current && !hasCachedItems) {
@@ -260,17 +286,21 @@ export function useLibraryPage(params: LibraryPageParams) {
       setNextCursor(null);
     }
 
-    void Promise.resolve().then(loadFirstPage).catch(() => undefined);
+    void Promise.resolve().then(() => loadFirstPage()).catch(() => undefined);
   }, [loadFirstPage, queryKey]);
+
+  const refresh = useCallback((minimumItemCount?: number) => {
+    return loadFirstPage(minimumItemCount ?? items.length);
+  }, [items.length, loadFirstPage]);
 
   useEffect(() => {
     const handleLibraryUpdate = () => {
-      void loadFirstPage().catch(() => undefined);
+      void refresh().catch(() => undefined);
     };
 
     window.addEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
     return () => window.removeEventListener(LIBRARY_UPDATED_EVENT, handleLibraryUpdate);
-  }, [loadFirstPage]);
+  }, [refresh]);
 
   return {
     activeItems,
@@ -280,7 +310,7 @@ export function useLibraryPage(params: LibraryPageParams) {
     isLoadingMore,
     items,
     loadMore,
-    refresh: loadFirstPage,
+    refresh,
     total,
   };
 }

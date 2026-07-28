@@ -1,5 +1,5 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type TouchEvent } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
@@ -27,7 +27,6 @@ const SWIPE_MIN_DISTANCE = 84;
 
 export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, userEmail }: InitialScreenProps) {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -168,7 +167,21 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
 
   useLayoutEffect(() => {
     mainRef.current?.scrollTo({ behavior: "auto", top: 0 });
-  }, [activeTab, customCategorySlug, location.key]);
+  }, [activeTab, customCategorySlug]);
+
+  const runDossierUpdate = async (operation: () => Promise<unknown>) => {
+    const scrollTop = mainRef.current?.scrollTop ?? 0;
+    const loadedItemCount = libraryPage.items.length;
+
+    await operation();
+    await libraryPage.refresh(loadedItemCount);
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        mainRef.current?.scrollTo({ behavior: "auto", top: scrollTop });
+      });
+    });
+  };
 
   const handleTouchStart = (event: TouchEvent<HTMLElement>) => {
     const touch = event.touches[0];
@@ -340,37 +353,29 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
               if (dossierMediaId) navigate("/", { replace: true });
             }}
             onComplete={async (item) => {
-              await mediaCollection.handleCompleteMedia(item);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleCompleteMedia(item));
             }}
             onDelete={mediaCollection.setMediaToDelete}
             onDetailsChange={async (item, details) => {
-              await mediaCollection.handleUpdateMediaDetails(item, details);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleUpdateMediaDetails(item, details));
             }}
             onMetaChange={async (item, meta) => {
-              await mediaCollection.handleUpdateMediaMeta(item, meta);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleUpdateMediaMeta(item, meta));
             }}
             onRatingChange={async (item, rating) => {
-              await mediaCollection.handleUpdateMediaRating(item, rating);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleUpdateMediaRating(item, rating));
             }}
             onStatusChange={async (item, status) => {
-              await mediaCollection.handleUpdateMediaStatus(item, status);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleUpdateMediaStatus(item, status));
             }}
             onSaveAudiovisualCompletion={async (item, completion) => {
-              await mediaCollection.handleSaveAudiovisualCompletion(item, completion);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleSaveAudiovisualCompletion(item, completion));
             }}
             onSaveBookCompletion={async (item, completion) => {
-              await mediaCollection.handleSaveBookCompletion(item, completion);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleSaveBookCompletion(item, completion));
             }}
             onSaveGameCompletion={async (item, completion) => {
-              await mediaCollection.handleSaveGameCompletion(item, completion);
-              await libraryPage.refresh();
+              await runDossierUpdate(() => mediaCollection.handleSaveGameCompletion(item, completion));
             }}
           />
         </Suspense>
