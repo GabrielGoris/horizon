@@ -7,7 +7,7 @@ import {
   syncSteamLibrary,
   type SteamDiscoveredGame,
 } from "../../services/steamIntegrationService";
-import { isSteamAutoSyncDue } from "../../utils/steamAutoSync";
+import { isSteamAutoSyncDue, STEAM_AUTO_SYNC_CHECK_INTERVAL_MS } from "../../utils/steamAutoSync";
 import { sendSteamSyncNotification } from "../../services/pushNotificationService";
 import {
   notifyLibraryUpdated,
@@ -23,7 +23,7 @@ type SteamAutoSyncProps = {
 export function SteamAutoSync({ session }: SteamAutoSyncProps) {
   const location = useLocation();
   const isActive = useRef(false);
-  const hasStarted = useRef(false);
+  const isSynchronizing = useRef(false);
   const [addedGames, setAddedGames] = useState<SteamDiscoveredGame[]>([]);
   const [isDetailing, setIsDetailing] = useState(false);
   const [detailError, setDetailError] = useState("");
@@ -48,15 +48,10 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
   useEffect(() => {
     isActive.current = true;
 
-    if (hasStarted.current) {
-      return () => {
-        isActive.current = false;
-      };
-    }
-
-    hasStarted.current = true;
-
     const synchronize = async () => {
+      if (isSynchronizing.current) return;
+      isSynchronizing.current = true;
+
       try {
         const state = await getSteamIntegrationState(session);
 
@@ -109,15 +104,21 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
           void sendSteamSyncNotification(session, "failed")
             .catch((notificationError) => console.warn("[steam-auto-sync] Não foi possível avisar sobre a falha:", notificationError));
         }
+      } finally {
+        isSynchronizing.current = false;
       }
     };
 
     const syncTimer = window.setTimeout(() => {
       void synchronize();
     }, 10_000);
+    const syncInterval = window.setInterval(() => {
+      void synchronize();
+    }, STEAM_AUTO_SYNC_CHECK_INTERVAL_MS);
 
     return () => {
       window.clearTimeout(syncTimer);
+      window.clearInterval(syncInterval);
       isActive.current = false;
     };
   }, [session]);
