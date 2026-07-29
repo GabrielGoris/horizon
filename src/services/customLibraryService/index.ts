@@ -265,6 +265,29 @@ export async function fetchCustomEntries(categoryId: string) {
   return Promise.all((data ?? []).map((row) => normalizeEntry(row as EntryRow)));
 }
 
+export async function searchCustomEntries(searchQuery: string, categoryId?: string, limit = 30) {
+  const query = searchQuery.trim();
+
+  if (!query) return [];
+
+  const userId = await getCurrentUserId();
+  let request = supabase
+    .from("custom_entries")
+    .select("*, custom_entry_photos(*)")
+    .eq("user_id", userId)
+    .ilike("title", `%${query}%`)
+    .order("updated_at", { ascending: false })
+    .limit(limit);
+
+  if (categoryId) request = request.eq("category_id", categoryId);
+
+  const { data, error } = await request;
+
+  if (error) throw error;
+
+  return Promise.all((data ?? []).map((row) => normalizeEntry(row as EntryRow)));
+}
+
 function sanitizeFileName(fileName: string) {
   const extension = fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   return `${crypto.randomUUID()}.${extension}`;

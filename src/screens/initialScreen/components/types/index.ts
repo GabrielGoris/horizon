@@ -1,4 +1,5 @@
 import type { MediaItem, MediaType } from "../../../../types";
+import type { CustomEntry, CustomLibraryCategory } from "../../../../types/customLibrary";
 import type { GamePlatformFilter, LibraryFilterState, MediaFormatFilter, SortMode, StatusFilter } from "../../types";
 
 export type CategorySectionProps = {
@@ -76,10 +77,16 @@ export interface MediaFormatFiltersProps {
 };
 
 export type OverviewSectionProps = {
+  customCategories: CustomLibraryCategory[];
+  customSearchResults: CustomEntry[];
+  isSearching: boolean;
   onAddClick: () => void;
   onManageWishlist: (mediaType: MediaType) => void;
   onPrioritizeMedia: (item: MediaItem) => void;
   priorityItemsByCategory: Map<string, MediaItem[]>;
+  searchQuery: string;
+  searchResults: MediaItem[];
+  onSelectCustomEntry: (category: CustomLibraryCategory, entry: CustomEntry) => void;
   onSelectMedia: (item: MediaItem) => void;
 };
 

@@ -5,6 +5,8 @@ import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
 import { getWishlistItems, WISHLIST_LIMIT } from "../../services/wishlistService";
 import { warmGameCatalog } from "../../services/gameCatalogService";
+import { searchCustomEntries } from "../../services/customLibraryService";
+import type { CustomEntry } from "../../types/customLibrary";
 import { CategorySection } from "./components/CategorySection";
 import { CustomCategorySection } from "./components/CustomCategorySection";
 import { OverviewSection } from "./components/OverviewSection";
@@ -28,6 +30,7 @@ const SWIPE_MIN_DISTANCE = 84;
 export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, userEmail }: InitialScreenProps) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const [customGlobalSearch, setCustomGlobalSearch] = useState<{ entries: CustomEntry[]; query: string }>({ entries: [], query: "" });
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [slideAnimation, setSlideAnimation] = useState<"backward" | "forward" | null>(null);
@@ -53,6 +56,34 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
   const wishlistPriority = useWishlistPriority({
     refreshMedia: libraryPage.refresh,
   });
+
+  useEffect(() => {
+    const query = debouncedSearchQuery.trim();
+
+    if (activeTab !== "overview" || !query) return;
+
+    let isCurrent = true;
+
+    void Promise.all(
+      customCategories.categories.map((category) => searchCustomEntries(query, category.id)),
+    )
+      .then((categoryEntries) => {
+        if (isCurrent) setCustomGlobalSearch({ entries: categoryEntries.flat(), query });
+      })
+      .catch((error) => console.warn("Não foi possí­vel pesquisar nas bibliotecas personalizadas.", error));
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [activeTab, customCategories.categories, debouncedSearchQuery]);
+
+  useEffect(() => {
+    const clearSearchTimer = window.setTimeout(() => {
+      setSearchQuery((currentQuery) => currentQuery ? "" : currentQuery);
+    }, 0);
+
+    return () => window.clearTimeout(clearSearchTimer);
+  }, [activeTab, customCategorySlug]);
 
   useEffect(() => {
     if (activeTab !== "games") return;
@@ -228,7 +259,11 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
       <div className="relative flex h-full min-w-0 flex-1 flex-col">
         <Header
           addLabel={customCategory ? `Adicionar ${customCategory.name_singular}` : "Adicionar obra"}
-          searchPlaceholder={customCategory ? `Buscar em ${customCategory.name_plural.toLowerCase()}...` : "Buscar obras na biblioteca..."}
+          searchPlaceholder={customCategory
+            ? `Buscar em ${customCategory.name_plural.toLowerCase()}...`
+            : activeTab === "overview"
+              ? "Buscar em todo o acervo..."
+              : "Buscar obras na biblioteca..."}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onAddClick={() => customCategory ? customLibrary.openNewEntry() : setIsAddMediaModalOpen(true)}
@@ -294,10 +329,19 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
               )
             ) : activeTab === "overview" ? (
               <OverviewSection
+                customCategories={customCategories.categories}
+                customSearchResults={customGlobalSearch.query === debouncedSearchQuery.trim() ? customGlobalSearch.entries : []}
+                isSearching={libraryPage.isLoading}
                 onAddClick={() => setIsAddMediaModalOpen(true)}
                 onManageWishlist={wishlistPriority.setManagedWishlistType}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
                 priorityItemsByCategory={overviewPriorityItems}
+                searchQuery={debouncedSearchQuery}
+                searchResults={libraryPage.items}
+                onSelectCustomEntry={(category, entry) => {
+                  customLibrary.selectEntry(entry);
+                  navigate(`/c/${category.slug}`);
+                }}
                 onSelectMedia={mediaCollection.setSelectedMedia}
               />
             ) : (

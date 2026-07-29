@@ -10,6 +10,7 @@ import type { LibraryFilterState } from "../../types";
 
 const PAGE_SIZE = 30;
 const INITIAL_LOAD_RETRY_DELAY_MS = 700;
+const MEDIA_LIBRARY_TYPES: MediaType[] = ["animes", "movies", "games", "books"];
 
 type CachedPage = {
   activeItems: MediaItem[];
@@ -98,11 +99,22 @@ export function useLibraryPage(params: LibraryPageParams) {
 
     try {
       if (isOverview) {
-        const overviewItems = await retryInitialLoad(fetchOverviewPriorityMedia);
+        const overviewPages = query.searchQuery
+          ? await retryInitialLoad(() => Promise.all(MEDIA_LIBRARY_TYPES.map((type) => fetchMediaPage({
+            pageSize: PAGE_SIZE,
+            searchQuery: query.searchQuery,
+            sortMode: "title_asc",
+            status: "all",
+            type,
+          }))))
+          : null;
+        const overviewItems = overviewPages
+          ? overviewPages.flatMap((page) => page.items)
+          : await retryInitialLoad(fetchOverviewPriorityMedia);
         if (requestId !== requestIdRef.current) return [];
         setItems(overviewItems);
         setActiveItems([]);
-        setTotal(overviewItems.length);
+        setTotal(overviewPages ? overviewPages.reduce((sum, page) => sum + page.total, 0) : overviewItems.length);
         setHasMore(false);
         setNextCursor(null);
         pageMemoryRef.current.set(queryKey, {
@@ -110,7 +122,7 @@ export function useLibraryPage(params: LibraryPageParams) {
           hasMore: false,
           items: overviewItems,
           nextCursor: null,
-          total: overviewItems.length,
+          total: overviewPages ? overviewPages.reduce((sum, page) => sum + page.total, 0) : overviewItems.length,
         });
         return overviewItems;
       }
