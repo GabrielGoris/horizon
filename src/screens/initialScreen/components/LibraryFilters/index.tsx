@@ -1,4 +1,5 @@
 import { Lock, LockKeyholeOpen, SlidersHorizontal } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { HorizonSelect } from "../../../../components/HorizonSelect";
 import { GAME_PLATFORM_OPTIONS } from "../../../../consts/gamePlatforms";
 import { getMediaStatusLabel, getMediaStatusOptions } from "../../../../consts/mediaStatus";
@@ -71,6 +72,7 @@ export function LibraryFilters({
   onClearFilters,
   onToggleLock,
 }: LibraryFiltersProps) {
+  const filtersRef = useRef<HTMLDivElement>(null);
   const sortOptions = getSortOptions(activeTab);
   const statusOptions = getMediaStatusOptions(
     mediaType,
@@ -88,8 +90,20 @@ export function LibraryFilters({
     ...GAME_PLATFORM_OPTIONS.map((platform) => ({ value: platform.label, label: platform.label })),
   ];
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (filtersRef.current?.contains(event.target as Node)) return;
+      onClose();
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [isOpen, onClose]);
+
   return (
-    <div className="relative flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
+    <div ref={filtersRef} className="relative flex w-full items-center justify-between gap-3 md:w-auto md:justify-end">
       <span className="whitespace-nowrap rounded border border-white/10 bg-white/5 px-3 py-1 font-mono text-xs text-neutral-500">
         {itemCount} itens catalogados
       </span>
@@ -111,12 +125,9 @@ export function LibraryFilters({
       </button>
 
       {isOpen && (
-        <>
-          <div className="fixed inset-0 z-[70]" onClick={onClose} />
-          <div
-            className="absolute right-0 top-[calc(100%+0.75rem)] z-[80] flex w-[min(34rem,calc(100vw-2rem))] flex-col gap-4 rounded-xl border border-white/10 bg-[#17171a] p-4 shadow-2xl shadow-black/50"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div
+          className="absolute right-0 top-[calc(100%+0.75rem)] z-[80] flex w-[min(34rem,calc(100vw-2rem))] flex-col gap-4 rounded-xl border border-white/10 bg-[#17171a] p-4 shadow-2xl shadow-black/50"
+        >
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500">
                 Filtrar biblioteca
@@ -196,8 +207,7 @@ export function LibraryFilters({
                 />
               </label>
             </div>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

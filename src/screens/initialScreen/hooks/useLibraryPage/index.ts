@@ -237,9 +237,23 @@ export function useLibraryPage(params: LibraryPageParams) {
         const cachedItems = filterCachedMedia(await fetchCachedMedia(), query);
         if (requestId !== requestIdRef.current) return;
 
-      setItems(cachedItems.slice(0, items.length + PAGE_SIZE));
-      setHasMore(cachedItems.length > items.length + PAGE_SIZE);
-      setNextCursor(null);
+        const nextItems = cachedItems.slice(0, items.length + PAGE_SIZE);
+        const nextHasMore = cachedItems.length > nextItems.length;
+        setItems(nextItems);
+        setHasMore(nextHasMore);
+        setNextCursor(null);
+        pageMemoryRef.current.set(queryKey, {
+          activeItems: pageMemoryRef.current.get(queryKey)?.activeItems ?? activeItems,
+          hasMore: nextHasMore,
+          items: nextItems,
+          nextCursor: null,
+          total: cachedItems.length,
+        });
+        return;
+      }
+
+      if (!nextCursor) {
+        await loadFirstPage(items.length + PAGE_SIZE);
         return;
       }
 
@@ -256,7 +270,22 @@ export function useLibraryPage(params: LibraryPageParams) {
       });
 
       if (requestId !== requestIdRef.current) return;
-      setItems((currentItems) => [...currentItems, ...page.items.filter((item) => !currentItems.some((current) => current.id === item.id))]);
+      setItems((currentItems) => {
+        const nextItems = [
+          ...currentItems,
+          ...page.items.filter((item) => !currentItems.some((current) => current.id === item.id)),
+        ];
+
+        pageMemoryRef.current.set(queryKey, {
+          activeItems: pageMemoryRef.current.get(queryKey)?.activeItems ?? activeItems,
+          hasMore: page.hasMore,
+          items: nextItems,
+          nextCursor: page.nextCursor,
+          total: pageMemoryRef.current.get(queryKey)?.total ?? total,
+        });
+
+        return nextItems;
+      });
       setHasMore(page.hasMore);
       setNextCursor(page.nextCursor);
     } catch (loadError) {
@@ -266,7 +295,7 @@ export function useLibraryPage(params: LibraryPageParams) {
       isLoadingMoreRef.current = false;
       setIsLoadingMore(false);
     }
-  }, [hasMore, isLoading, isMediaLibrary, items.length, nextCursor, query]);
+  }, [activeItems, hasMore, isLoading, isMediaLibrary, items.length, loadFirstPage, nextCursor, query, queryKey, total]);
 
   useLayoutEffect(() => {
     const memorizedPage = pageMemoryRef.current.get(queryKey);
