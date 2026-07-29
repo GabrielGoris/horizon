@@ -8,6 +8,7 @@ import { CompletionArtifacts } from "./CompletionArtifacts";
 import { DossierEditForm } from "./DossierEditForm";
 import { DossierFacts } from "./DossierFacts";
 import { MediaObjectPreview } from "./MediaObjectPreview";
+import { SeasonCompletionTimeline } from "./SeasonCompletionTimeline";
 import { typeLabels } from "./consts";
 import type { MediaDossierProps } from "./types";
 import { formatAuthorLine, getNumericRating } from "./utils";
@@ -156,6 +157,8 @@ export function MediaDossier({
               </div>
 
               <DossierFacts item={item} mediaDisplayType={mediaDisplayType} />
+
+              {isSeries && <SeasonCompletionTimeline item={item} />}
 
               {canRate && (
                 <section className="mt-6 rounded-xl border border-white/10 bg-white/[0.025] p-5">

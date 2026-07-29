@@ -1,6 +1,7 @@
 import { ArrowLeftRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { MediaItem } from "../../../types";
+import { fetchAudiovisualSeasonCompletions } from "../../../services/audiovisualSeasonService";
 import { formatTicketDate } from "../utils";
 
 type Fact = {
@@ -39,7 +40,7 @@ function getGameTimeFact(item: MediaItem, timeView: "campaign" | "played"): Fact
   return { label: "História principal", value: formatGameCampaignTime(item.campaign_hours) };
 }
 
-function getDossierFacts(item: MediaItem, mediaDisplayType: string, gameTimeView: "campaign" | "played"): Fact[] {
+function getDossierFacts(item: MediaItem, mediaDisplayType: string, gameTimeView: "campaign" | "played", seasonPeriod: string): Fact[] {
   const isSeries = item.media_format === "series";
   const isAudiovisual = item.type === "movies" || item.type === "animes";
 
@@ -50,7 +51,7 @@ function getDossierFacts(item: MediaItem, mediaDisplayType: string, gameTimeView
       { label: "Episódios", value: item.episode_count || "Não informado" },
       { label: "Criador", value: item.director || item.creator },
       { label: "Ano", value: item.releaseYear },
-      { label: "Assistida em", value: item.watched_at ? formatTicketDate(item.watched_at) : "" },
+      { label: seasonPeriod ? "Assistida entre" : "Assistida em", value: seasonPeriod || (item.watched_at ? formatTicketDate(item.watched_at) : "") },
     ];
   }
 
@@ -84,6 +85,20 @@ function getDossierFacts(item: MediaItem, mediaDisplayType: string, gameTimeView
 
 export function DossierFacts({ item, mediaDisplayType }: { item: MediaItem; mediaDisplayType: string }) {
   const [gameTimeView, setGameTimeView] = useState<"campaign" | "played">("played");
+  const [seasonPeriod, setSeasonPeriod] = useState("");
+  const isAudiovisualSeries = (item.type === "movies" || item.type === "animes")
+    && (item.media_format === "series" || Number(item.season_count) > 0 || Number(item.episode_count) > 0);
+
+  useEffect(() => {
+    if (!isAudiovisualSeries) return;
+
+    void fetchAudiovisualSeasonCompletions(item.id)
+      .then((entries) => {
+        const years = entries.map((entry) => entry.watchedAt.slice(0, 4)).filter(Boolean).sort();
+        setSeasonPeriod(years.length ? (years[0] === years.at(-1) ? years[0] : `${years[0]} — ${years.at(-1)}`) : "");
+      })
+      .catch(() => setSeasonPeriod(""));
+  }, [isAudiovisualSeries, item.id]);
   const hasCampaignTime = hasTime(item.campaign_hours);
   const hasPlayedTime = hasTime(item.hours_played);
   const canSwitchGameTime = item.type === "games" && hasCampaignTime && hasPlayedTime;
@@ -92,7 +107,7 @@ export function DossierFacts({ item, mediaDisplayType }: { item: MediaItem; medi
     : hasPlayedTime
       ? "played"
       : "campaign";
-  const facts = getDossierFacts(item, mediaDisplayType, activeGameTimeView);
+  const facts = getDossierFacts(item, mediaDisplayType, activeGameTimeView, seasonPeriod);
   const visibleFacts = facts.filter((fact) => fact.value !== undefined && fact.value !== null && String(fact.value).trim() !== "");
 
   if (visibleFacts.length === 0) return null;

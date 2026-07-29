@@ -1,7 +1,7 @@
 import type { MediaItem } from "../../../types";
 import { getDateInputValue } from "../../../utils/date";
 
-export { formatDateInput, formatTicketDate } from "../../../utils/date";
+export { formatDateInput, formatTicketDate, getDateInputValue } from "../../../utils/date";
 
 export function formatAuthorLine(item: MediaItem) {
   const creator = item.creator || "Autor desconhecido";

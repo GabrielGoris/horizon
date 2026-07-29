@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 export type HorizonSelectOption = {
   label: string;
@@ -17,6 +17,7 @@ interface HorizonSelectProps {
 export function HorizonSelect({ ariaLabel, className = "", onChange, options, value }: HorizonSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selectId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
   const selectedOption = options.find((option) => option.value === value);
 
   useEffect(() => {
@@ -30,6 +31,19 @@ export function HorizonSelect({ ariaLabel, className = "", onChange, options, va
     return () => window.removeEventListener("horizon:select-open", closeWhenAnotherSelectOpens);
   }, [selectId]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const closeOnOutsidePointerDown = (event: PointerEvent) => {
+      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", closeOnOutsidePointerDown);
+    return () => window.removeEventListener("pointerdown", closeOnOutsidePointerDown);
+  }, [isOpen]);
+
   const toggle = () => {
     if (!isOpen) {
       window.dispatchEvent(new CustomEvent("horizon:select-open", { detail: selectId }));
@@ -39,7 +53,7 @@ export function HorizonSelect({ ariaLabel, className = "", onChange, options, va
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={rootRef} className={`relative ${className}`}>
       <button
         aria-expanded={isOpen}
         aria-haspopup="listbox"

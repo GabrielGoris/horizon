@@ -258,7 +258,6 @@ export function useLibraryPage(params: LibraryPageParams) {
       if (requestId !== requestIdRef.current) return;
       setItems((currentItems) => [...currentItems, ...page.items.filter((item) => !currentItems.some((current) => current.id === item.id))]);
       setHasMore(page.hasMore);
-      setTotal(page.total);
       setNextCursor(page.nextCursor);
     } catch (loadError) {
       console.error(loadError);
