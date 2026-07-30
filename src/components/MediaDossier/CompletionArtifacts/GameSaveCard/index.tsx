@@ -1,4 +1,5 @@
 import { RatingStars } from "../../../RatingStars";
+import { HorizonSelect } from "../../../HorizonSelect";
 import { formatDateInput } from "../../utils";
 import type { GameSaveCardProps } from "../types";
 
@@ -66,10 +67,10 @@ export function GameSaveCard({
               {item.creator || "Estudio nao informado"}
             </p>
 
-            <div className="mt-5 grid grid-cols-2 gap-2">
+            <div className="mt-5 grid grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] gap-2">
               <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
                 <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/35">
-                  Play time
+                  Tempo de jogo
                 </p>
                 <div className="mt-1 flex items-center gap-1">
                   <input
@@ -86,22 +87,18 @@ export function GameSaveCard({
               </div>
               <div className="rounded-md border border-white/10 bg-black/20 px-3 py-2">
                 <p className="font-mono text-[8px] uppercase tracking-[0.18em] text-white/35">
-                  Clear type
+                  Conclusão
                 </p>
-                <select
+                <HorizonSelect
+                  ariaLabel="Tipo de conclusão"
                   value={completionType}
-                  onChange={(event) => {
-                    onCompletionTypeChange(event.target.value);
-                    void onSave({ completionType: event.target.value });
+                  options={completionTypeOptions.map((option) => ({ label: option, value: option }))}
+                  onChange={(value) => {
+                    onCompletionTypeChange(value);
+                    void onSave({ completionType: value });
                   }}
-                  className="mt-1 w-full truncate bg-transparent font-mono text-sm font-bold text-white outline-none"
-                >
-                  {completionTypeOptions.map((option) => (
-                    <option key={option} value={option} className="bg-[#202126] text-white">
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                  className="mt-1 [&>button]:min-h-0 [&>button]:border-0 [&>button]:bg-transparent [&>button]:px-0 [&>button]:py-0 [&>button]:font-mono [&>button]:text-sm [&>button]:font-bold [&_[role=listbox]]:left-1/2 [&_[role=listbox]]:right-auto [&_[role=listbox]]:min-w-[150px] [&_[role=listbox]]:-translate-x-1/2"
+                />
               </div>
             </div>
 

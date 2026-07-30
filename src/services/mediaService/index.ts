@@ -439,12 +439,13 @@ async function createRemoteMedia(data: CreateMediaDTO, id?: string) {
   if (error) throw error;
 
   const completionRating = data.rating ?? "";
+  const hasCompletionDetails = data.status === "complete" || data.status === "dropped" || (data.type === "games" && data.status === "incomplete");
 
-  if ((data.type === "movies" || data.type === "animes") && data.status === "complete" && createdMedia?.id) {
+  if ((data.type === "movies" || data.type === "animes") && hasCompletionDetails && createdMedia?.id) {
     await saveAudiovisualCompletion(createdMedia.id, { watchedAt: data.watched_at ?? "", rating: completionRating });
   }
 
-  if (data.type === "books" && data.status === "complete" && createdMedia?.id) {
+  if (data.type === "books" && hasCompletionDetails && createdMedia?.id) {
     await saveBookCompletion(createdMedia.id, {
       finishedAt: data.completed_year ?? "",
       rating: completionRating,
@@ -452,7 +453,7 @@ async function createRemoteMedia(data: CreateMediaDTO, id?: string) {
     });
   }
 
-  if (data.type === "games" && data.status === "complete" && createdMedia?.id) {
+  if (data.type === "games" && hasCompletionDetails && createdMedia?.id) {
     await saveGameCompletion(createdMedia.id, {
       finishedAt: data.completed_year ?? "",
       rating: completionRating,
@@ -664,7 +665,8 @@ async function saveRemoteGameCompletion(itemId: string, completion: GameCompleti
 
 function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = crypto.randomUUID()): MediaItem {
   const isComplete = data.status === "complete";
-  const completedAt = isComplete ? String(data.completed_year ?? new Date().getFullYear()) : undefined;
+  const hasCompletionDetails = isComplete || data.status === "dropped" || (data.type === "games" && data.status === "incomplete");
+  const completedAt = hasCompletionDetails ? String(data.completed_year ?? "") : undefined;
 
   return {
     id,
@@ -684,7 +686,7 @@ function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = cry
     description: data.description ?? "",
     created_at: new Date().toISOString(),
     added_at: new Date().toISOString(),
-    completed_year: isComplete ? data.completed_year ?? new Date().getFullYear() : undefined,
+    completed_year: hasCompletionDetails ? data.completed_year : undefined,
     watched_at: data.type === "movies" || data.type === "animes" ? data.watched_at : undefined,
     completed_at: data.type === "books" || data.type === "games" ? completedAt : undefined,
     page_count: data.page_count,
@@ -692,9 +694,9 @@ function createLocalMedia(data: CreateMediaDTO, userId: string, id: string = cry
     season_count: data.season_count,
     episode_count: data.episode_count,
     campaign_hours: data.campaign_hours,
-    hours_played: data.type === "games" && isComplete ? data.hours_played : undefined,
-    pages: data.type === "books" && isComplete ? data.page_count : undefined,
-    completion_type: data.type === "games" && isComplete ? "Campanha" : undefined,
+    hours_played: data.type === "games" && hasCompletionDetails ? data.hours_played : undefined,
+    pages: data.type === "books" && hasCompletionDetails ? data.page_count : undefined,
+    completion_type: data.type === "games" && hasCompletionDetails ? "Campanha" : undefined,
   };
 }
 

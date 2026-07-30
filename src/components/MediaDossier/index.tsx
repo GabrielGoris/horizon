@@ -11,7 +11,7 @@ import { MediaObjectPreview } from "./MediaObjectPreview";
 import { SeasonCompletionTimeline } from "./SeasonCompletionTimeline";
 import { typeLabels } from "./consts";
 import type { MediaDossierProps } from "./types";
-import { formatAuthorLine, getNumericRating } from "./utils";
+import { formatAuthorLine, formatDateInput, getInitialWatchedDate, getNumericRating } from "./utils";
 
 export function MediaDossier({
   item,
@@ -29,6 +29,7 @@ export function MediaDossier({
 }: MediaDossierProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const [droppedGameDate, setDroppedGameDate] = useState(() => getInitialWatchedDate(item));
   const hasSeriesStructure = item.media_format === "series"
     || Number(item.season_count) > 0
     || Number(item.episode_count) > 0;
@@ -55,6 +56,19 @@ export function MediaDossier({
     ? hasSeriesStructure ? "series" : "movie"
     : item.media_format;
   const statusOptions = getMediaStatusOptions(item.type, statusMediaFormat);
+  const shouldShowGamePlayedDate = item.type === "games" && (item.status === "dropped" || item.status === "incomplete");
+
+  const saveDroppedGameDate = async () => {
+    const finishedAt = formatDateInput(droppedGameDate);
+    setDroppedGameDate(finishedAt);
+
+    await onSaveGameCompletion(item, {
+      finishedAt,
+      rating: getNumericRating(item.rating) > 0 ? getNumericRating(item.rating).toFixed(1) : "",
+      hoursPlayed: String(item.hours_played ?? ""),
+      completionType: item.completion_type || "Campanha",
+    });
+  };
 
   return (
     <div className="animate-dossier-overlay-in fixed inset-0 z-50 flex justify-end bg-black/80 md:bg-black/75 md:backdrop-blur-[6px]">
@@ -130,7 +144,7 @@ export function MediaDossier({
                       aria-label="Alterar status da obra"
                       aria-expanded={isStatusMenuOpen}
                       onClick={() => setIsStatusMenuOpen((current) => !current)}
-                      className="flex h-full w-full items-center justify-center truncate rounded-full pl-3 pr-6 font-mono text-[10px] leading-none text-neutral-400 transition-colors hover:text-noir-champagne"
+                      className="flex h-full w-full items-center justify-center truncate rounded-full pl-2 pr-5 font-mono text-[9px] leading-none text-neutral-400 transition-colors hover:text-noir-champagne md:pl-3 md:pr-6 md:text-[10px]"
                     >
                       {getMediaStatusLabel(item.status, item.type)}
                     </button>
@@ -162,6 +176,19 @@ export function MediaDossier({
 
               {canRate && (
                 <section className="mt-6 rounded-xl border border-white/10 bg-white/[0.025] p-5">
+                  {shouldShowGamePlayedDate && (
+                    <label className="mb-5 flex flex-col gap-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">
+                      Data em que jogou
+                      <input
+                        value={droppedGameDate}
+                        onChange={(event) => setDroppedGameDate(formatDateInput(event.target.value))}
+                        onBlur={() => void saveDroppedGameDate()}
+                        placeholder="Ex: 2026 ou 06/07/2026"
+                        inputMode="numeric"
+                        className="h-11 rounded-lg border border-white/10 bg-black/20 px-3 text-sm font-bold normal-case tracking-normal text-white outline-none transition focus:border-noir-gold"
+                      />
+                    </label>
+                  )}
                   <div className="mb-3 flex items-center justify-between gap-4">
                     <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-500">
                       Sua nota

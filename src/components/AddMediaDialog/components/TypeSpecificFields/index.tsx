@@ -6,8 +6,8 @@ import { CompletionRatingField } from "../CompletionRatingField";
 import { GamePlatformField } from "../GamePlatformField";
 import type { TypeSpecificFieldsProps } from "../../types";
 
-function getCompletionLabel(selectedType: TypeSpecificFieldsProps["selectedType"]) {
-  if (selectedType === "games") return "Data em que zerou";
+function getCompletionLabel(selectedType: TypeSpecificFieldsProps["selectedType"], statusValue: string) {
+  if (selectedType === "games") return statusValue === "complete" ? "Data em que zerou" : "Data em que jogou";
   if (selectedType === "movies" || selectedType === "animes") return "Data assistida";
 
   return "Data em que leu";
@@ -32,9 +32,12 @@ export function TypeSpecificFields({
   const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
   const isFinished = statusValue === "complete";
   const canRate = isFinished || statusValue === "dropped" || statusValue === "incomplete";
-  const ratingSectionClass = isFinished
+  const shouldShowCompletionDate = isFinished || statusValue === "dropped" || (selectedType === "games" && statusValue === "incomplete");
+  const ratingSectionClass = shouldShowCompletionDate
     ? selectedType === "games"
-      ? "grid gap-4 md:grid-cols-3"
+      ? isFinished
+        ? "grid gap-4 md:grid-cols-3"
+        : "grid gap-4 md:grid-cols-2"
       : "grid gap-4 md:grid-cols-2"
     : "";
   const statusOptions = getMediaStatusOptions(selectedType, mediaFormat);
@@ -188,9 +191,9 @@ export function TypeSpecificFields({
 
       {canRate && (
         <div className={ratingSectionClass}>
-          {isFinished && (
+          {shouldShowCompletionDate && (
             <label className={labelClass}>
-              {getCompletionLabel(selectedType)}
+              {getCompletionLabel(selectedType, statusValue)}
               <input
                 placeholder="Ex: 2026 ou 06/07/2026"
                 inputMode="numeric"

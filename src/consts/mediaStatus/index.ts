@@ -58,8 +58,12 @@ export function getMediaStatusLabel(status: MediaStatus, type?: MediaType) {
 }
 
 export function getMediaStatusOptions(type?: MediaType, mediaFormat?: MediaFormat): MediaStatus[] {
-  if (type === "books") return ["want_to_buy", "unplanned", ...BASE_MEDIA_STATUS_OPTIONS] satisfies MediaStatus[];
-  if (type === "games") return ["unplanned", ...BASE_MEDIA_STATUS_OPTIONS] satisfies MediaStatus[];
+  if (type === "books") {
+    return ["want_to_buy", "unplanned", "queue", "in_progress", "incomplete", "dropped", "complete"] satisfies MediaStatus[];
+  }
+  if (type === "games") {
+    return ["unplanned", "queue", "in_progress", "incomplete", "dropped", "complete"] satisfies MediaStatus[];
+  }
 
   const supportsIncomplete = type === "animes" || (type === "movies" && mediaFormat !== "movie");
   if (!supportsIncomplete) return BASE_MEDIA_STATUS_OPTIONS;
