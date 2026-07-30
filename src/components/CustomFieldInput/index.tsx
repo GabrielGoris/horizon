@@ -1,4 +1,5 @@
 import type { CustomCategoryField, CustomFieldValue } from "../../types/customLibrary";
+import { formatDateInput } from "../../utils/date";
 
 interface CustomFieldInputProps {
   field: CustomCategoryField;
@@ -71,9 +72,7 @@ export function CustomFieldInput({ field, value, onChange, variant = "default" }
     );
   }
 
-  const inputType = field.field_type === "date"
-    ? "date"
-    : field.field_type === "url"
+  const inputType = field.field_type === "url"
       ? "url"
       : field.field_type === "number" || field.field_type === "currency"
         ? "number"
@@ -87,9 +86,11 @@ export function CustomFieldInput({ field, value, onChange, variant = "default" }
         <input
           type={inputType}
           step={field.field_type === "currency" ? "0.01" : undefined}
+          inputMode={field.field_type === "date" ? "numeric" : undefined}
+          placeholder={field.field_type === "date" ? "Ex: 2026 ou 06/07/2026" : undefined}
           className={`${inputClass} ${field.field_type === "currency" ? "pl-10" : ""}`}
           value={stringValue}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => onChange(field.field_type === "date" ? formatDateInput(event.target.value) : event.target.value)}
         />
       </span>
     </label>

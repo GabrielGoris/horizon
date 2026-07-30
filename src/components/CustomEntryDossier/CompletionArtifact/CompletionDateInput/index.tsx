@@ -13,7 +13,7 @@ export function CompletionDateInput({ className = "", onChange, onCommit, value 
       aria-label="Data da conclusão"
       type="text"
       value={value}
-      placeholder="DD/MM/AAAA"
+      placeholder="2026 ou 06/07/2026"
       inputMode="numeric"
       onChange={(event) => onChange(formatDateInput(event.target.value))}
       onBlur={(event) => {
