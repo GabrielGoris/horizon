@@ -18,7 +18,7 @@ import type { BookCompletionDTO } from "../../schemas/media/dto/book-completion.
 import type { CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import type { GameCompletionDTO } from "../../schemas/media/dto/game-completion.dto";
 import type { UpdateMediaDetailsDTO } from "../../schemas/media/dto/update-media.dto";
-import type { BaseMediaStatus, MediaItem, MediaItemRow, MediaStatus, MediaStatusDetail } from "../../types";
+import type { BaseMediaStatus, MediaItem, MediaItemRow, MediaStatus, MediaStatusDetail, MediaType } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
 import { isSameMedia } from "./helpers";
 import type { ExistingMediaIdentity, MediaPage, MediaPageCursor, MediaPageQuery } from "./types";
@@ -83,6 +83,21 @@ function toNullableText(value: string | undefined) {
   const trimmedValue = value?.trim();
 
   return trimmedValue ? trimmedValue : null;
+}
+
+function getCompletionYearFromDate(value: string | undefined) {
+  const normalizedDate = toSupabaseDate(value);
+
+  return normalizedDate ? Number(normalizedDate.slice(0, 4)) : null;
+}
+
+function getMediaSelect(type: MediaType, requiresCompletion: boolean) {
+  if (!requiresCompletion) return MEDIA_SELECT;
+
+  if (type === "games") return "*, audiovisual_completions(*), book_completions(*), game_completions!inner(*)";
+  if (type === "books") return "*, audiovisual_completions(*), book_completions!inner(*), game_completions(*)";
+
+  return "*, audiovisual_completions!inner(*), book_completions(*), game_completions(*)";
 }
 
 function getPersistedMediaStatus(status: MediaStatus): {
@@ -291,9 +306,11 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   const userId = await getCurrentUserId();
   const pageSize = request.pageSize ?? MEDIA_PAGE_SIZE;
   const { column, ascending } = getSortDefinition(request.sortMode);
+  const completedYear = request.completedYear?.trim();
+  const requiresCompletion = Boolean(completedYear);
   let query = supabase
     .from("media_items")
-    .select(MEDIA_SELECT, { count: "exact" })
+    .select(getMediaSelect(request.type, requiresCompletion), { count: "exact" })
     .eq("user_id", userId)
     .eq("type", request.type)
     .is("hidden_at", null);
@@ -306,7 +323,18 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
     query = query.eq("status", request.status).is("status_detail", null);
   }
   if (request.mediaFormat && request.mediaFormat !== "all") query = query.eq("media_format", request.mediaFormat);
-  if (request.completedYear?.trim()) query = query.eq("completed_year", Number(request.completedYear));
+  if (completedYear) {
+    const year = Number(completedYear);
+    const startOfYear = `${year}-01-01`;
+    const startOfNextYear = `${year + 1}-01-01`;
+    const completionColumn = request.type === "games"
+      ? "game_completions.finished_at"
+      : request.type === "books"
+        ? "book_completions.finished_at"
+        : "audiovisual_completions.watched_at";
+
+    query = query.gte(completionColumn, startOfYear).lt(completionColumn, startOfNextYear);
+  }
   if (request.searchQuery?.trim()) query = query.ilike("title", `%${request.searchQuery.trim()}%`);
 
   if (request.gamePlatform && request.gamePlatform !== "all") {
@@ -571,7 +599,10 @@ async function saveRemoteAudiovisualCompletion(itemId: string, completion: Audio
 
   const { error: mediaError } = await supabase
     .from("media_items")
-    .update({ rating: toNullableNumber(completion.rating) })
+    .update({
+      completed_year: getCompletionYearFromDate(completion.watchedAt),
+      rating: toNullableNumber(completion.rating),
+    })
     .eq("id", itemId)
     .eq("user_id", userId);
 
@@ -594,7 +625,10 @@ async function saveRemoteBookCompletion(itemId: string, completion: BookCompleti
 
   const { error: mediaError } = await supabase
     .from("media_items")
-    .update({ rating: toNullableNumber(completion.rating) })
+    .update({
+      completed_year: getCompletionYearFromDate(completion.finishedAt),
+      rating: toNullableNumber(completion.rating),
+    })
     .eq("id", itemId)
     .eq("user_id", userId);
 
@@ -618,7 +652,10 @@ async function saveRemoteGameCompletion(itemId: string, completion: GameCompleti
 
   const { error: mediaError } = await supabase
     .from("media_items")
-    .update({ rating: toNullableNumber(completion.rating) })
+    .update({
+      completed_year: getCompletionYearFromDate(completion.finishedAt),
+      rating: toNullableNumber(completion.rating),
+    })
     .eq("id", itemId)
     .eq("user_id", userId);
 
@@ -899,6 +936,7 @@ export function markMediaAsComplete(item: MediaItem): MediaItem {
 export function applyAudiovisualCompletion(item: MediaItem, completion: AudiovisualCompletionDTO): MediaItem {
   return {
     ...item,
+    completed_year: getCompletionYearFromDate(completion.watchedAt) ?? item.completed_year,
     rating: completion.rating,
     watched_at: completion.watchedAt,
   };
@@ -907,6 +945,7 @@ export function applyAudiovisualCompletion(item: MediaItem, completion: Audiovis
 export function applyBookCompletion(item: MediaItem, completion: BookCompletionDTO): MediaItem {
   return {
     ...item,
+    completed_year: getCompletionYearFromDate(completion.finishedAt) ?? item.completed_year,
     rating: completion.rating,
     completed_at: completion.finishedAt,
     pages: completion.pages,
@@ -916,6 +955,7 @@ export function applyBookCompletion(item: MediaItem, completion: BookCompletionD
 export function applyGameCompletion(item: MediaItem, completion: GameCompletionDTO): MediaItem {
   return {
     ...item,
+    completed_year: getCompletionYearFromDate(completion.finishedAt) ?? item.completed_year,
     rating: completion.rating,
     completed_at: completion.finishedAt,
     hours_played: completion.hoursPlayed,

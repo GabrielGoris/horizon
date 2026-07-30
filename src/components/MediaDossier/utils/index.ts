@@ -11,7 +11,7 @@ export function formatAuthorLine(item: MediaItem) {
 }
 
 export function getInitialWatchedDate(item: MediaItem) {
-  return getDateInputValue(item.watched_at || item.completed_at);
+  return getDateInputValue(item.watched_at || item.completed_at, "");
 }
 
 export function getNumericRating(rating: string) {

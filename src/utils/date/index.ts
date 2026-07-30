@@ -56,7 +56,7 @@ export function formatTicketDate(date: string) {
   return `${day}/${month}/${year}`;
 }
 
-export function getDateInputValue(storedDate?: string) {
+export function getDateInputValue(storedDate?: string, fallback = new Date().toLocaleDateString("pt-BR")) {
   if (storedDate) {
     const normalizedDate = storedDate.slice(0, 10);
     const yearOnlyDateMatch = normalizedDate.match(/^(\d{4})-01-01$/);
@@ -68,7 +68,7 @@ export function getDateInputValue(storedDate?: string) {
     return normalizedDate;
   }
 
-  return new Date().toLocaleDateString("pt-BR");
+  return fallback;
 }
 
 export function toSupabaseDate(value: string | undefined) {
