@@ -11,7 +11,7 @@ export function getYear(value?: string | number) {
 }
 
 export function getCompletionYear(item: MediaItem) {
-  return String(getYear(item.watched_at) || getYear(item.completed_at) || item.completed_year || "");
+  return String(item.completed_year || getYear(item.watched_at) || getYear(item.completed_at) || "");
 }
 
 export function isSeriesItem(item: MediaItem) {

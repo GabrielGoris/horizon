@@ -18,7 +18,7 @@ import type { BookCompletionDTO } from "../../schemas/media/dto/book-completion.
 import type { CreateMediaDTO } from "../../schemas/media/dto/create-media.dto";
 import type { GameCompletionDTO } from "../../schemas/media/dto/game-completion.dto";
 import type { UpdateMediaDetailsDTO } from "../../schemas/media/dto/update-media.dto";
-import type { BaseMediaStatus, MediaItem, MediaItemRow, MediaStatus, MediaStatusDetail, MediaType } from "../../types";
+import type { BaseMediaStatus, MediaItem, MediaItemRow, MediaStatus, MediaStatusDetail } from "../../types";
 import { toSupabaseDate } from "../../utils/date";
 import { isSameMedia } from "./helpers";
 import type { ExistingMediaIdentity, MediaPage, MediaPageCursor, MediaPageQuery } from "./types";
@@ -89,15 +89,6 @@ function getCompletionYearFromDate(value: string | undefined) {
   const normalizedDate = toSupabaseDate(value);
 
   return normalizedDate ? Number(normalizedDate.slice(0, 4)) : null;
-}
-
-function getMediaSelect(type: MediaType, requiresCompletion: boolean) {
-  if (!requiresCompletion) return MEDIA_SELECT;
-
-  if (type === "games") return "*, audiovisual_completions(*), book_completions(*), game_completions!inner(*)";
-  if (type === "books") return "*, audiovisual_completions(*), book_completions!inner(*), game_completions(*)";
-
-  return "*, audiovisual_completions!inner(*), book_completions(*), game_completions(*)";
 }
 
 function getPersistedMediaStatus(status: MediaStatus): {
@@ -307,10 +298,9 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   const pageSize = request.pageSize ?? MEDIA_PAGE_SIZE;
   const { column, ascending } = getSortDefinition(request.sortMode);
   const completedYear = request.completedYear?.trim();
-  const requiresCompletion = Boolean(completedYear);
   let query = supabase
     .from("media_items")
-    .select(getMediaSelect(request.type, requiresCompletion), { count: "exact" })
+    .select(MEDIA_SELECT, { count: "exact" })
     .eq("user_id", userId)
     .eq("type", request.type)
     .is("hidden_at", null);
@@ -325,15 +315,7 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   if (request.mediaFormat && request.mediaFormat !== "all") query = query.eq("media_format", request.mediaFormat);
   if (completedYear) {
     const year = Number(completedYear);
-    const startOfYear = `${year}-01-01`;
-    const startOfNextYear = `${year + 1}-01-01`;
-    const completionColumn = request.type === "games"
-      ? "game_completions.finished_at"
-      : request.type === "books"
-        ? "book_completions.finished_at"
-        : "audiovisual_completions.watched_at";
-
-    query = query.gte(completionColumn, startOfYear).lt(completionColumn, startOfNextYear);
+    query = query.eq("completed_year", year);
   }
   if (request.searchQuery?.trim()) query = query.ilike("title", `%${request.searchQuery.trim()}%`);
 
