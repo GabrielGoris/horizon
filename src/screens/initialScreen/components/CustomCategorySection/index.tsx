@@ -72,7 +72,7 @@ export function CustomCategorySection({
           </div>
           {category.description && <p className="max-w-2xl text-sm leading-6 text-neutral-500">{category.description}</p>}
         </div>
-        <div className="flex flex-wrap items-center gap-3 self-start">
+        <div className="flex w-full flex-wrap items-center gap-3 self-start sm:w-auto">
           <button type="button" onClick={onAddEntry} aria-label={`Adicionar em ${category.name_plural}`} className="flex h-8 w-8 items-center justify-center rounded-md bg-white/[0.04] text-noir-gold transition hover:bg-noir-gold/15 hover:text-noir-champagne md:hidden"><Plus size={16} /></button>
           <button type="button" onClick={onEditCategory} className="flex h-8 items-center gap-2 rounded border border-white/10 bg-white/5 px-3 font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 transition-colors hover:border-white/20 hover:text-white">
             <Pencil size={13} /> Configurar

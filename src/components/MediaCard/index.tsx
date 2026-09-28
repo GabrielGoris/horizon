@@ -96,7 +96,7 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
         </button>
       )}
 
-      {onQuickActions && <button type="button" data-card-action aria-label={`Ações rápidas: ${item.title}`} onClick={(event) => { event.stopPropagation(); openActions(); }} className="absolute bottom-2 right-2 z-30 rounded-lg border border-white/20 bg-black/80 p-2 text-white opacity-90 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"><MoreHorizontal size={16} /></button>}
+      {onQuickActions && <button type="button" data-card-action aria-label={`Ações rápidas: ${item.title}`} onClick={(event) => { event.stopPropagation(); openActions(); }} className="absolute bottom-2 right-2 z-30 hidden rounded-lg border border-white/20 bg-black/80 p-2 text-white transition md:block md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"><MoreHorizontal size={16} /></button>}
 
       <div className="absolute inset-0 z-20 flex flex-col justify-end rounded-[inherit] bg-gradient-to-t from-[#0a0a0c] via-black/50 to-transparent p-5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="text-[9px] font-bold uppercase tracking-widest text-[#d4af37] mb-1 drop-shadow-md">
