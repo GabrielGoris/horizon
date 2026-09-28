@@ -63,7 +63,7 @@ export function CustomEntryDialog({
     const thumbnail = typeof value === "string" ? getYouTubeThumbnailUrl(value) : undefined;
     return thumbnail && thumbnail === entry?.cover_url ? thumbnail : "";
   }, ""));
-  const requestedYouTubeUrlRef = useRef("");
+  const resolvedYouTubeUrlRef = useRef("");
   const dirty = useDraftSnapshot({ title, coverUrl, description, status, values, photos: photos.map((photo) => [photo.name, photo.size, photo.lastModified]) });
   const onClose = useUnsavedChanges(dirty, isSaving, discard);
 
@@ -78,12 +78,11 @@ export function CustomEntryDialog({
 
     if (!isOpen || !youtubeUrl || !canFillTitle) {
       setIsFetchingYouTubeTitle(false);
-      if (!youtubeUrl) requestedYouTubeUrlRef.current = "";
+      if (!youtubeUrl) resolvedYouTubeUrlRef.current = "";
       return;
     }
 
-    if (requestedYouTubeUrlRef.current === youtubeUrl) return;
-    requestedYouTubeUrlRef.current = youtubeUrl;
+    if (resolvedYouTubeUrlRef.current === youtubeUrl) return;
 
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
@@ -91,6 +90,7 @@ export function CustomEntryDialog({
       void fetchYouTubeTitle(youtubeUrl, controller.signal)
         .then((nextTitle) => {
           if (!nextTitle) return;
+          resolvedYouTubeUrlRef.current = youtubeUrl;
           setTitle((current) => {
             if (current.trim() && current !== automaticTitleRef.current) return current;
             automaticTitleRef.current = nextTitle;

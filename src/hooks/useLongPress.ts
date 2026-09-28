@@ -12,7 +12,6 @@ export function useLongPress(onHold: () => void) {
       cancel();
       held.current = false;
       start.current = { x: event.clientX, y: event.clientY };
-      event.currentTarget.setPointerCapture?.(event.pointerId);
       timer.current = setTimeout(() => {
         held.current = true;
         navigator.vibrate?.(12);
@@ -22,9 +21,9 @@ export function useLongPress(onHold: () => void) {
     onPointerMove: (event: PointerEvent<HTMLElement>) => {
       if (Math.hypot(event.clientX - start.current.x, event.clientY - start.current.y) > 10) cancel();
     },
-    onPointerUp: (event: PointerEvent<HTMLElement>) => {
-      cancel();
-      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    onPointerUp: cancel,
+    onPointerLeave: (event: PointerEvent<HTMLElement>) => {
+      if (event.pointerType === "mouse") cancel();
     },
     onPointerCancel: cancel,
     onClickCapture: (event: MouseEvent<HTMLElement>) => {
