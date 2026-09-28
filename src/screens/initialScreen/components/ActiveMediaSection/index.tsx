@@ -10,7 +10,7 @@ const ACTIVE_SECTION_LABELS = {
   books: "Lendo",
 };
 
-export function ActiveMediaSection({ items, mediaType, onPrioritizeMedia, onSelectMedia }: ActiveMediaSectionProps) {
+export function ActiveMediaSection({ items, mediaType, onPrioritizeMedia, onQuickActions, onSelectMedia }: ActiveMediaSectionProps) {
   const { hasMore, sentinelRef, visibleItems } = useInfiniteList(items);
   if (!items.length || !mediaType) {
     return null;
@@ -32,6 +32,7 @@ export function ActiveMediaSection({ items, mediaType, onPrioritizeMedia, onSele
             item={item}
             onClick={onSelectMedia}
             onPrioritize={onPrioritizeMedia}
+            onQuickActions={onQuickActions}
           />
         )}
       />

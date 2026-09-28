@@ -28,6 +28,7 @@ export function CustomLibraryOverlays({ category, workspace }: CustomLibraryOver
 
       {category && workspace.isEntryDialogOpen && (
         <CustomEntryDialog
+          entries={workspace.entries}
           key={workspace.entryBeingEdited?.id ?? "new-entry"}
           category={category}
           entry={workspace.entryBeingEdited}

@@ -1,5 +1,6 @@
 import type { CustomLibraryCategory } from "../../../../types/customLibrary";
 import type { CustomFieldFilters, FieldFilter } from "../../../../utils/customLibrary/filters";
+import { getCustomFilterFields } from "./chips";
 
 const inputClass = "min-w-0 w-full rounded-lg border border-white/10 bg-[#131315] px-3 py-2 text-sm text-white outline-none focus:border-noir-gold";
 const months = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -9,7 +10,7 @@ export function FieldFilters({ category, filters, onChange }: {
   filters: CustomFieldFilters;
   onChange: (filters: CustomFieldFilters) => void;
 }) {
-  const fields = [{ id: "completed_at", label: "Data de conclusão", field_type: "date", options: [] }, ...category.fields.filter((field) => ["date", "number", "currency", "boolean", "multiselect"].includes(field.field_type))];
+  const fields = getCustomFilterFields(category);
   return fields.map((field) => {
     const filter = filters[field.id] ?? {};
     const update = (patch: Partial<FieldFilter>) => onChange({ ...filters, [field.id]: { ...filter, ...patch } });

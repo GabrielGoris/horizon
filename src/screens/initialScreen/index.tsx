@@ -1,5 +1,5 @@
 import { lazy, Suspense, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState, type TouchEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { Header } from "../../components/Header";
 import { Sidebar } from "../../components/Sidebar";
@@ -18,6 +18,9 @@ import { useLibraryFilters } from "./hooks/useLibraryFilters";
 import { useMediaCollection } from "./hooks/useMediaCollection";
 import { useWishlistPriority } from "./hooks/useWishlistPriority";
 import type { InitialScreenProps } from "./types";
+import type { MediaItem } from "../../types";
+import { getMediaStatusLabel, getMediaStatusOptions } from "../../consts/mediaStatus";
+import { QuickActions } from "../../components/QuickActions";
 
 const AddMediaDialog = lazy(() => import("../../components/AddMediaDialog").then((module) => ({ default: module.AddMediaDialog })));
 const DeleteMediaDialog = lazy(() => import("../../components/DeleteMediaDialog").then((module) => ({ default: module.DeleteMediaDialog })));
@@ -29,6 +32,12 @@ const SWIPE_MIN_DISTANCE = 84;
 
 export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, userEmail }: InitialScreenProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const dossierReturnPath = location.state?.returnTo === "/games" ? "/games" : "/";
+  const [quickMedia, setQuickMedia] = useState<MediaItem | null>(null);
+  const quickMediaFormat = quickMedia?.type === "movies"
+    ? quickMedia.media_format === "series" || Number(quickMedia.season_count) > 0 || Number(quickMedia.episode_count) > 0 ? "series" : "movie"
+    : quickMedia?.media_format;
   const [searchQuery, setSearchQuery] = useState("");
   const [customGlobalSearch, setCustomGlobalSearch] = useState<{ entries: CustomEntry[]; query: string }>({ entries: [], query: "" });
   const [isAddMediaModalOpen, setIsAddMediaModalOpen] = useState(false);
@@ -130,7 +139,7 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
       if (mediaCollection.selectedMedia) {
         event.preventDefault();
         mediaCollection.setSelectedMedia(null);
-        if (dossierMediaId) navigate("/", { replace: true });
+        if (dossierMediaId) navigate(dossierReturnPath, { replace: true });
         return;
       }
 
@@ -184,7 +193,7 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
 
     window.addEventListener("horizon:back", handleNativeBack);
     return () => window.removeEventListener("horizon:back", handleNativeBack);
-  }, [customLibrary, dossierMediaId, isAddMediaModalOpen, mediaCollection, navigate, wishlistPriority]);
+  }, [customLibrary, dossierMediaId, dossierReturnPath, isAddMediaModalOpen, mediaCollection, navigate, wishlistPriority]);
   const activeLabel = activeTab === "overview" ? "Visão Geral" : activeCategory?.plural ?? "Nova Categoria";
   const addMediaInitialType = activeTab === "overview" ? null : activeCategory?.id;
   const overviewPriorityItems = useMemo(() => {
@@ -319,6 +328,13 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
                   onAddEntry={customLibrary.openNewEntry}
                   onEditCategory={() => customLibrary.openCategoryEditor(customCategory)}
                   onSelectEntry={customLibrary.selectEntry}
+                  onStatusChange={async (entry, status) => {
+                    if (status === "completed" && customCategory.fields.some((field) => field.required && (entry.values[field.id] === undefined || entry.values[field.id] === null || entry.values[field.id] === "" || (Array.isArray(entry.values[field.id]) && (entry.values[field.id] as string[]).length === 0)))) {
+                      customLibrary.openEntryEditor({ ...entry, status });
+                      return;
+                    }
+                    await customLibrary.changeEntryStatus(entry, status, false);
+                  }}
                   onRetry={() => void customLibrary.refreshEntries()}
                 />
               ) : (
@@ -336,6 +352,7 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
                 onAddClick={() => setIsAddMediaModalOpen(true)}
                 onManageWishlist={wishlistPriority.setManagedWishlistType}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
+                onQuickActions={setQuickMedia}
                 priorityItemsByCategory={overviewPriorityItems}
                 searchQuery={debouncedSearchQuery}
                 searchResults={libraryPage.items}
@@ -359,6 +376,7 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
                 onAddClick={() => setIsAddMediaModalOpen(true)}
                 onLoadMore={() => void libraryPage.loadMore()}
                 onPrioritizeMedia={wishlistPriority.setMediaToPrioritize}
+                onQuickActions={setQuickMedia}
                 onSelectMedia={mediaCollection.setSelectedMedia}
               />
             )}
@@ -383,6 +401,10 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
         )
       )}
 
+      {quickMedia && <QuickActions title={quickMedia.title} onClose={() => setQuickMedia(null)} onOpen={() => { mediaCollection.setSelectedMedia(quickMedia); setQuickMedia(null); }} options={getMediaStatusOptions(quickMedia.type, quickMediaFormat).map((status) => ({ label: getMediaStatusLabel(status, quickMedia.type), selected: status === quickMedia.status, run: async () => {
+        await runDossierUpdate(() => mediaCollection.handleUpdateMediaStatus(quickMedia, status, false));
+      } }))} />}
+
       {(customLibrary.isCategoryDialogOpen || customLibrary.isEntryDialogOpen || customLibrary.selectedEntry || customLibrary.entryToDelete || customLibrary.categoryToDelete) && (
         <Suspense fallback={null}>
           <CustomLibraryOverlays category={customCategory} workspace={customLibrary} />
@@ -395,7 +417,7 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
             item={mediaCollection.selectedMedia}
             onClose={() => {
               mediaCollection.setSelectedMedia(null);
-              if (dossierMediaId) navigate("/", { replace: true });
+              if (dossierMediaId) navigate(dossierReturnPath, { replace: true });
             }}
             onComplete={async (item) => {
               await runDossierUpdate(() => mediaCollection.handleCompleteMedia(item));

@@ -4,9 +4,11 @@ import { Plus } from "lucide-react";
 import { useInfiniteList } from "../../../../hooks/useInfiniteList";
 import { ActiveMediaSection } from "../ActiveMediaSection";
 import { LibraryFilters } from "../LibraryFilters/index";
+import { ActiveFilterChips } from "../../../../components/ActiveFilterChips";
+import { getLibraryFilterChips } from "../LibraryFilters/chips";
 import type { CategorySectionProps } from "../types";
 
-export function CategorySection({ activeItems, activeLabel, activeTab, filters, hasMore, isLoadingMore, itemCount, items, mediaType, onAddClick, onLoadMore, onPrioritizeMedia, onSelectMedia }: CategorySectionProps) {
+export function CategorySection({ activeItems, activeLabel, activeTab, filters, hasMore, isLoadingMore, itemCount, items, mediaType, onAddClick, onLoadMore, onPrioritizeMedia, onQuickActions, onSelectMedia }: CategorySectionProps) {
   const { sentinelRef, visibleItems } = useInfiniteList(items, 30, { hasMore, onLoadMore });
 
   return (
@@ -15,6 +17,7 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
         items={activeItems}
         mediaType={mediaType}
         onPrioritizeMedia={onPrioritizeMedia}
+        onQuickActions={onQuickActions}
         onSelectMedia={onSelectMedia}
       />
 
@@ -48,6 +51,21 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
           />
         </div>
 
+        <ActiveFilterChips onClear={filters.clearFilters} chips={getLibraryFilterChips({
+          activeTab,
+          completedYear: filters.completedYearFilter,
+          mediaFormat: filters.mediaFormatFilter,
+          mediaType,
+          platform: filters.gamePlatformFilter,
+          sortMode: filters.sortMode,
+          status: filters.statusFilter,
+        }).map((chip) => ({ ...chip, remove: () => {
+          if (chip.id === "status") filters.setStatusFilter("all");
+          else if (chip.id === "year") filters.setCompletedYearFilter("");
+          else if (chip.id === "platform") filters.setGamePlatformFilter("all");
+          else if (chip.id === "format") filters.setMediaFormatFilter("all");
+          else filters.setSortMode("title_asc");
+        } }))} />
         <VirtualMediaGrid
           items={visibleItems}
           renderItem={(item) => (
@@ -56,6 +74,7 @@ export function CategorySection({ activeItems, activeLabel, activeTab, filters, 
               item={item}
               onClick={onSelectMedia}
               onPrioritize={onPrioritizeMedia}
+              onQuickActions={onQuickActions}
             />
           )}
         />

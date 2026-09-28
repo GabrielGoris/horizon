@@ -1,5 +1,8 @@
 import { Image, Pencil, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { CardActions } from "../../../../components/QuickActions/CardActions";
+import { QuickActions } from "../../../../components/QuickActions";
+import { ActiveFilterChips } from "../../../../components/ActiveFilterChips";
 import { compareCustomEntries, isFieldFilterActive, matchesCustomFilters, type CustomFieldFilters } from "../../../../utils/customLibrary/filters";
 import { CustomCategoryIcon } from "../../../../components/CustomCategoryIcon";
 import { VirtualMediaGrid } from "../../../../components/VirtualMediaGrid";
@@ -7,8 +10,10 @@ import { useInfiniteList } from "../../../../hooks/useInfiniteList";
 import type { CustomEntry, CustomLibraryCategory } from "../../../../types/customLibrary";
 import { formatCustomFieldValue } from "../../../../utils/customLibrary";
 import { CustomLibraryFilters, type CustomSortMode, type CustomStatusFilter } from "../CustomLibraryFilters";
+import { getCustomFilterChips } from "../CustomLibraryFilters/chips";
 
 interface CustomCategorySectionProps {
+  onStatusChange: (entry: CustomEntry, status: CustomEntry["status"]) => Promise<void>;
   category: CustomLibraryCategory;
   entries: CustomEntry[];
   error: string;
@@ -21,6 +26,7 @@ interface CustomCategorySectionProps {
 }
 
 export function CustomCategorySection({
+  onStatusChange,
   category,
   entries,
   error,
@@ -32,6 +38,7 @@ export function CustomCategorySection({
   onRetry,
 }: CustomCategorySectionProps) {
   const [statusFilter, setStatusFilter] = useState<CustomStatusFilter>("all");
+  const [quickEntry, setQuickEntry] = useState<CustomEntry | null>(null);
   const [sortMode, setSortMode] = useState<CustomSortMode>("title_asc");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [fieldFilters, setFieldFilters] = useState<CustomFieldFilters>({});
@@ -54,6 +61,7 @@ export function CustomCategorySection({
 
   return (
     <section>
+      {quickEntry && <QuickActions title={quickEntry.title} onClose={() => setQuickEntry(null)} onOpen={() => { onSelectEntry(quickEntry); setQuickEntry(null); }} options={(["planned", "completed"] as const).map((status) => ({ label: status === "planned" ? category.planned_label : category.completed_label, selected: quickEntry.status === status, run: () => onStatusChange(quickEntry, status) }))} />}
       <header className="mb-7 flex flex-col gap-5 border-b border-white/5 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="mb-3 flex items-center gap-3">
@@ -98,6 +106,18 @@ export function CustomCategorySection({
         </div>
       )}
 
+      <ActiveFilterChips onClear={() => { setStatusFilter("all"); setSortMode("title_asc"); setFieldFilters({}); }} chips={getCustomFilterChips(category, statusFilter, sortMode, fieldFilters).map((chip) => ({ ...chip, remove: () => {
+        if (chip.type === "status") setStatusFilter("all");
+        else if (chip.type === "sort") setSortMode("title_asc");
+        else if (chip.fieldId && chip.filterKey) setFieldFilters((current) => ({
+          ...current,
+          [chip.fieldId!]: {
+            ...current[chip.fieldId!],
+            [chip.filterKey!]: chip.filterKey === "options" ? [] : "",
+          },
+        }));
+      } }))} />
+
       {isLoading ? (
         <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
           {Array.from({ length: 5 }, (_, index) => <div key={index} className="aspect-[2/3] animate-pulse bg-white/[0.04]" />)}
@@ -114,6 +134,7 @@ export function CustomCategorySection({
             const cover = entry.cover_url || entry.photos[0]?.signed_url;
 
             return (
+              <CardActions title={entry.title} onOpen={() => setQuickEntry(entry)}>
               <button
                 key={entry.id}
                 type="button"
@@ -121,7 +142,7 @@ export function CustomCategorySection({
                 className="group relative aspect-[2/3] overflow-hidden border border-transparent bg-[#1a1a1e] text-left shadow-[0_3px_6px_rgba(0,0,0,0.55),0_8px_16px_rgba(0,0,0,0.25)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_10px_24px_rgba(0,0,0,0.65)]"
               >
                 {cover ? (
-                  <img src={cover} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70 transition duration-500 group-hover:scale-105 group-hover:opacity-85" />
+                  <img src={cover} alt="" draggable={false} className="pointer-events-none absolute inset-0 h-full w-full select-none object-cover opacity-70 transition duration-500 group-hover:scale-105 group-hover:opacity-85" />
                 ) : (
                   <span className="absolute inset-0 flex items-center justify-center bg-white/[0.025] text-neutral-700"><Image size={28} /></span>
                 )}
@@ -139,6 +160,7 @@ export function CustomCategorySection({
                   {entry.photos.length > 1 && <span className="mt-2 flex items-center gap-1 font-mono text-[9px] text-neutral-500"><Image size={11} /> {entry.photos.length} fotos</span>}
                 </span>
               </button>
+              </CardActions>
             );
             }}
           />

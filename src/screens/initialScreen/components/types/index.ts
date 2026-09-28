@@ -30,6 +30,7 @@ export type CategorySectionProps = {
   isLoadingMore: boolean;
   mediaType?: MediaType;
   onPrioritizeMedia: (item: MediaItem) => void;
+  onQuickActions: (item: MediaItem) => void;
   onLoadMore: () => void;
   onSelectMedia: (item: MediaItem) => void;
   onAddClick: () => void;
@@ -39,6 +40,7 @@ export type ActiveMediaSectionProps = {
   items: MediaItem[];
   mediaType?: MediaType;
   onPrioritizeMedia: (item: MediaItem) => void;
+  onQuickActions: (item: MediaItem) => void;
   onSelectMedia: (item: MediaItem) => void;
 };
 
@@ -83,6 +85,7 @@ export type OverviewSectionProps = {
   onAddClick: () => void;
   onManageWishlist: (mediaType: MediaType) => void;
   onPrioritizeMedia: (item: MediaItem) => void;
+  onQuickActions: (item: MediaItem) => void;
   priorityItemsByCategory: Map<string, MediaItem[]>;
   searchQuery: string;
   searchResults: MediaItem[];

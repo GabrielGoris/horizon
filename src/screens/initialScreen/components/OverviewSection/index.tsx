@@ -10,10 +10,11 @@ import type { OverviewSectionProps } from "../types";
 type PriorityCarouselProps = {
   items: MediaItem[];
   onPrioritizeMedia: (item: MediaItem) => void;
+  onQuickActions: (item: MediaItem) => void;
   onSelectMedia: (item: MediaItem) => void;
 };
 
-function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityCarouselProps) {
+function PriorityCarousel({ items, onPrioritizeMedia, onQuickActions, onSelectMedia }: PriorityCarouselProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -87,6 +88,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
               rank={index + 1}
               onClick={onSelectMedia}
               onPrioritize={onPrioritizeMedia}
+              onQuickActions={onQuickActions}
             />
           </div>
         ))}
@@ -95,7 +97,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onSelectMedia }: PriorityC
   );
 }
 
-export function OverviewSection({ customCategories, customSearchResults, isSearching, priorityItemsByCategory, onAddClick, onManageWishlist, onPrioritizeMedia, onSelectCustomEntry, onSelectMedia, searchQuery, searchResults }: OverviewSectionProps) {
+export function OverviewSection({ customCategories, customSearchResults, isSearching, priorityItemsByCategory, onAddClick, onManageWishlist, onPrioritizeMedia, onQuickActions, onSelectCustomEntry, onSelectMedia, searchQuery, searchResults }: OverviewSectionProps) {
   const hasPriorityItems = Array.from(priorityItemsByCategory.values()).some((items) => items.length > 0);
   const normalizedSearchQuery = searchQuery.trim();
   const isGlobalSearch = Boolean(normalizedSearchQuery);
@@ -137,7 +139,7 @@ export function OverviewSection({ customCategories, customSearchResults, isSearc
                 </div>
                 <div className="grid grid-cols-3 gap-2.5 sm:gap-6 md:grid-cols-4 lg:grid-cols-5">
                   {categoryResults.map((item) => (
-                    <MediaCard key={item.id} item={item} onClick={onSelectMedia} onPrioritize={onPrioritizeMedia} />
+                    <MediaCard key={item.id} item={item} onClick={onSelectMedia} onPrioritize={onPrioritizeMedia} onQuickActions={onQuickActions} />
                   ))}
                 </div>
               </section>
@@ -224,6 +226,7 @@ export function OverviewSection({ customCategories, customSearchResults, isSearc
             <PriorityCarousel
               items={categoryItems}
               onPrioritizeMedia={onPrioritizeMedia}
+              onQuickActions={onQuickActions}
               onSelectMedia={onSelectMedia}
             />
           </section>
