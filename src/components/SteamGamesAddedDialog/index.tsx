@@ -56,7 +56,7 @@ export function SteamGamesAddedDialog({
                 Novidades no Horizon
               </h2>
               <p className="mt-2 text-sm leading-6 text-neutral-400">
-                {games.length} {gameLabel} à sua fila.
+                {games.length} {gameLabel} à sua biblioteca. Novidades acumuladas desde seu último acesso e avisos ainda não dispensados.
               </p>
             </div>
           </div>

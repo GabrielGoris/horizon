@@ -39,6 +39,7 @@ export type SteamEnrichmentFailure = {
 };
 
 export type SteamIntegrationState = {
+  libraryGames?: SteamDiscoveredGame[];
   connection: SteamConnection | null;
   incompleteGames: SteamEnrichmentFailure[];
 };

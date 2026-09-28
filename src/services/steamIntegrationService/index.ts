@@ -50,11 +50,12 @@ async function requestSteamApi<T>(session: Session, path: string, init?: Request
   return result;
 }
 
-export async function getSteamIntegrationState(session: Session) {
-  const result = await requestSteamApi<SteamIntegrationState>(session, "/api/steam-library");
+export async function getSteamIntegrationState(session: Session, includeNews = false) {
+  const result = await requestSteamApi<SteamIntegrationState>(session, `/api/steam-library${includeNews ? "?news=1" : ""}`);
 
   return {
     connection: result.connection,
+    libraryGames: result.libraryGames,
     incompleteGames: result.incompleteGames ?? [],
   };
 }

@@ -74,7 +74,7 @@ function App() {
 
   return (
     <>
-      {session && <Suspense fallback={null}><SteamAutoSync session={session} /></Suspense>}
+      {session && <Suspense fallback={null}><SteamAutoSync key={session.user.id} session={session} /></Suspense>}
       <ConnectionStatus />
       <AppUpdateDialog />
       <Suspense fallback={<AppSplash />}>

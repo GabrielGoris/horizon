@@ -15,6 +15,7 @@ import {
   STEAM_GAMES_ADDED_EVENT,
 } from "../../utils/libraryEvents";
 import { SteamGamesAddedDialog } from "../SteamGamesAddedDialog";
+import { mergeSteamGames, readSteamNews, reconcileSteamNews, saveSteamNews, type SteamNews } from "../../utils/steamNews";
 
 type SteamAutoSyncProps = {
   session: Session;
@@ -24,10 +25,16 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
   const location = useLocation();
   const isActive = useRef(false);
   const isSynchronizing = useRef(false);
-  const [addedGames, setAddedGames] = useState<SteamDiscoveredGame[]>([]);
+  const [news, setNews] = useState<SteamNews | null>(() => readSteamNews(session.user.id));
+  const hasBaseline = useRef(news !== null);
+  const addedGames = news?.pending ?? [];
   const [isDetailing, setIsDetailing] = useState(false);
   const [detailError, setDetailError] = useState("");
   const [detailProgress, setDetailProgress] = useState({ completed: 0, total: 0 });
+
+  useEffect(() => {
+    if (news) saveSteamNews(session.user.id, news);
+  }, [news, session.user.id]);
 
   useEffect(() => {
     const handleGamesAdded = (event: Event) => {
@@ -35,7 +42,10 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
 
       if (!games?.length) return;
 
-      setAddedGames(games);
+      setNews((previous) => ({
+        knownAppIds: [...new Set([...(previous?.knownAppIds ?? []), ...games.map((game) => game.appId)])],
+        pending: mergeSteamGames(previous?.pending ?? [], games),
+      }));
     };
 
     window.addEventListener(STEAM_GAMES_ADDED_EVENT, handleGamesAdded);
@@ -53,7 +63,17 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
       isSynchronizing.current = true;
 
       try {
-        const state = await getSteamIntegrationState(session);
+        const state = await getSteamIntegrationState(session, true);
+        if (!isActive.current) return;
+        if (state.connection && state.libraryGames) {
+          const baselineReady = hasBaseline.current;
+          hasBaseline.current = true;
+          setNews((previous) => {
+            if (baselineReady) return reconcileSteamNews(previous, state.libraryGames!);
+            const baseline = reconcileSteamNews(null, state.libraryGames!);
+            return { knownAppIds: [...new Set([...baseline.knownAppIds, ...(previous?.knownAppIds ?? [])])], pending: previous?.pending ?? [] };
+          });
+        }
 
         if (!state.connection || !isSteamAutoSyncDue(state.connection.last_synced_at)) return;
 
@@ -73,6 +93,7 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
         if (!result.enrichmentAppIds.length) return;
 
         setIsDetailing(true);
+        setDetailError("");
         setDetailProgress({ completed: 0, total: result.enrichmentAppIds.length });
 
         try {
@@ -132,8 +153,7 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
       games={addedGames}
       isDetailing={isDetailing}
       onClose={() => {
-        setAddedGames([]);
-        setIsDetailing(false);
+        setNews((previous) => previous ? { ...previous, pending: [] } : previous);
       }}
     />
   );

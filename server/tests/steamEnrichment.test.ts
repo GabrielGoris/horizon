@@ -6,6 +6,19 @@ import {
   type SteamGameInformation,
 } from "../steamEnrichment.ts";
 import { isSteamAutoSyncDue, STEAM_AUTO_SYNC_INTERVAL_MS } from "../../src/utils/steamAutoSync.ts";
+import { mergeSteamGames, reconcileSteamNews } from "../../src/utils/steamNews.ts";
+
+test("acumula novidades Steam entre sincronizações sem duplicar jogos", () => {
+  const game = (appId: number) => ({ appId, title: `Game ${appId}`, cover: "", playtimeHours: 0 });
+  assert.deepEqual(mergeSteamGames([game(1)], [game(1), game(2)]).map((item) => item.appId), [1, 2]);
+  const first = reconcileSteamNews(null, [game(1)]);
+  assert.deepEqual(first.pending, []);
+  const next = reconcileSteamNews(first, [game(1), game(2), game(3)]);
+  assert.deepEqual(next.pending.map((item) => item.appId), [2, 3]);
+  assert.deepEqual(reconcileSteamNews(next, [game(1), game(2), game(3)]).pending, next.pending);
+  assert.deepEqual(reconcileSteamNews({ ...next, pending: [] }, [game(1), game(2), game(3)]).pending, []);
+  assert.deepEqual(reconcileSteamNews(next, [game(1), game(3)]).pending.map((item) => item.appId), [3]);
+});
 
 const completeGame: SteamGameInformation = {
   campaign_hours: 8.5,

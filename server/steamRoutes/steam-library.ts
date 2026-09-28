@@ -303,7 +303,25 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
         ? await getIncompleteGames(user.id, clients.adminClient)
         : [];
 
-      sendJson(res, 200, { ok: true, connection, incompleteGames });
+      const libraryGames = [];
+      if (connection && new URL(req.url ?? "/", "http://localhost").searchParams.get("news") === "1") {
+        for (let offset = 0; ; offset += 500) {
+          const { data, error } = await clients.adminClient.from("media_items")
+            .select("id, external_id, title, cover, game_completions(hours_played)")
+            .eq("user_id", user.id).eq("type", "games").eq("source", "steam")
+            .is("hidden_at", null).order("id").range(offset, offset + 499);
+          if (error) throw error;
+          for (const game of data ?? []) {
+            const appId = Number(game.external_id);
+            if (!Number.isSafeInteger(appId) || appId <= 0) continue;
+            const completions = game.game_completions as unknown as { hours_played?: number } | { hours_played?: number }[] | null;
+            const completion = Array.isArray(completions) ? completions[0] : completions;
+            libraryGames.push({ appId, title: game.title, cover: game.cover || getSteamLibraryCover(appId), playtimeHours: Number(completion?.hours_played ?? 0) });
+          }
+          if (!data || data.length < 500) break;
+        }
+      }
+      sendJson(res, 200, { ok: true, connection, incompleteGames, libraryGames });
       return;
     }
 
