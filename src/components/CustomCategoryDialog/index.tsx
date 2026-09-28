@@ -1,5 +1,6 @@
 import { Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { useDraftSnapshot, useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { CustomCategoryIconSelect } from "../CustomCategoryIconSelect";
 import type {
   CustomCategoryField,
@@ -49,7 +50,7 @@ export function CustomCategoryDialog({
   category,
   isOpen,
   isSaving,
-  onClose,
+  onClose: discard,
   onDelete,
   onSave,
 }: CustomCategoryDialogProps) {
@@ -62,6 +63,8 @@ export function CustomCategoryDialog({
   const [completedLabel, setCompletedLabel] = useState(category?.completed_label ?? "Concluído");
   const [fields, setFields] = useState<DraftField[]>(() => getInitialFields(category));
   const [error, setError] = useState("");
+  const dirty = useDraftSnapshot({ nameSingular, namePlural, description, icon, accentColor, plannedLabel, completedLabel, fields });
+  const onClose = useUnsavedChanges(dirty, isSaving, discard);
 
   if (!isOpen) return null;
 

@@ -1,8 +1,10 @@
 import { Check, ChevronDown, ExternalLink, Images, Pencil, Trash2, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useConfirmUnsavedChanges, useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import type { CustomEntry, CustomEntryPhoto, CustomEntryStatus, CustomFieldValue, CustomLibraryCategory } from "../../types/customLibrary";
 import { formatCustomFieldValue } from "../../utils/customLibrary";
 import { toSupabaseDate } from "../../utils/date";
+import { getCompletionDateField, getCompletionDateValue } from "../../utils/customLibrary/completionDate";
 import { CustomCategoryIcon } from "../CustomCategoryIcon";
 import { CompletionArtifact } from "./CompletionArtifact";
 import { toCompletionDateInput } from "./CompletionArtifact/utils";
@@ -23,7 +25,7 @@ interface CustomEntryDossierProps {
 export function CustomEntryDossier({
   category,
   entry,
-  onClose,
+  onClose: discard,
   onDelete,
   onDeletePhoto,
   onEdit,
@@ -31,19 +33,26 @@ export function CustomEntryDossier({
   onSaveCompletion,
   onStatusChange,
 }: CustomEntryDossierProps) {
+  const completionDateField = getCompletionDateField(category);
+  const initialCompletionDate = getCompletionDateValue(category, entry.values, toCompletionDateInput(entry.completed_at));
+  const requestDiscard = useConfirmUnsavedChanges();
   const [draftValues, setDraftValues] = useState<Record<string, CustomFieldValue>>(() => ({ ...entry.values }));
-  const [completedAt, setCompletedAt] = useState(() => toCompletionDateInput(entry.completed_at));
-  const [, setIsSavingCompletion] = useState(false);
+  const [completedAt, setCompletedAt] = useState(initialCompletionDate);
+  const [isSavingCompletion, setIsSavingCompletion] = useState(false);
   const [isSavingPhotos, setIsSavingPhotos] = useState(false);
   const [expandedImageUrl, setExpandedImageUrl] = useState("");
   const [actionError, setActionError] = useState("");
   const completionSaveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [savedCompletion, setSavedCompletion] = useState(() => JSON.stringify({ values: entry.values, date: initialCompletionDate }));
+  const dirty = savedCompletion !== JSON.stringify({ values: draftValues, date: completedAt });
+  const onClose = useUnsavedChanges(dirty, isSavingCompletion || isSavingPhotos, () => { clearTimeout(completionSaveTimerRef.current); discard(); });
+  useEffect(() => () => clearTimeout(completionSaveTimerRef.current), []);
   const coverUrl = entry.cover_url || entry.photos[0]?.signed_url;
   const planningFacts = category.fields
     .filter((field) => field.phase === "planning")
     .map((field) => ({ field, value: formatCustomFieldValue(field, entry.values[field.id]) }))
     .filter((fact) => fact.value);
-  const completionFields = category.fields.filter((field) => field.phase === "completion");
+  const completionFields = category.fields.filter((field) => field.phase === "completion" && field.id !== completionDateField?.id);
   const isCompleted = entry.status === "completed";
   const chipClass = "relative inline-flex h-7 min-w-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-3 font-mono text-[10px] leading-none text-neutral-400";
 
@@ -67,6 +76,7 @@ export function CustomEntryDossier({
 
     try {
       await onSaveCompletion(entry, values, date);
+      setSavedCompletion(JSON.stringify({ values, date }));
     } catch (saveError) {
       setActionError(saveError instanceof Error ? saveError.message : "Não foi possível salvar a conclusão.");
     } finally {
@@ -79,6 +89,19 @@ export function CustomEntryDossier({
 
     if (completionSaveTimerRef.current) clearTimeout(completionSaveTimerRef.current);
     completionSaveTimerRef.current = setTimeout(() => void saveCompletion(values, date), 450);
+  };
+
+  const changeCompletionDate = (value: string) => {
+    setCompletedAt(value);
+    if (completionDateField) setDraftValues((current) => ({ ...current, [completionDateField.id]: value }));
+  };
+
+  const commitCompletionDate = (value: string) => {
+    const nextValues = completionDateField
+      ? { ...draftValues, [completionDateField.id]: value }
+      : draftValues;
+    setDraftValues(nextValues);
+    scheduleCompletionSave(nextValues, value);
   };
 
   const addPhotos = async (files: File[]) => {
@@ -123,7 +146,7 @@ export function CustomEntryDossier({
           </div>
 
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => onEdit(entry)} aria-label="Editar informações" title="Editar informações" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-neutral-400 transition-colors hover:border-noir-gold/30 hover:text-noir-champagne">
+            <button type="button" onClick={() => requestDiscard(() => { clearTimeout(completionSaveTimerRef.current); onEdit(entry); })} aria-label="Editar informações" title="Editar informações" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-neutral-400 transition-colors hover:border-noir-gold/30 hover:text-noir-champagne">
               <Pencil size={15} />
             </button>
             <button type="button" onClick={onClose} aria-label="Fechar" className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-neutral-400 transition-colors hover:border-white/20 hover:text-white">
@@ -193,8 +216,8 @@ export function CustomEntryDossier({
                 setDraftValues(nextValues);
                 scheduleCompletionSave(nextValues, completedAt);
               }}
-              onCompletedAtChange={setCompletedAt}
-              onCompletedAtCommit={(value) => scheduleCompletionSave(draftValues, value)}
+              onCompletedAtChange={changeCompletionDate}
+              onCompletedAtCommit={commitCompletionDate}
             />
           )}
 

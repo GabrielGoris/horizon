@@ -1,6 +1,10 @@
 import type { Session } from "@supabase/supabase-js";
 import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { fetchMediaItem, deleteMedia } from "../../services/mediaService";
+import { DeleteMediaDialog } from "../DeleteMediaDialog";
+import type { MediaItem } from "../../types";
+import { useConfirmUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import {
   enrichSteamGames,
   getSteamIntegrationState,
@@ -23,6 +27,26 @@ type SteamAutoSyncProps = {
 
 export function SteamAutoSync({ session }: SteamAutoSyncProps) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const requestDiscard = useConfirmUnsavedChanges();
+  const [itemToDelete, setItemToDelete] = useState<MediaItem | null>(null);
+  const [isActing, setIsActing] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const actOnGame = (game: SteamDiscoveredGame, action: "open" | "delete") => {
+    if (isActing) return;
+    requestDiscard(() => {
+      void (async () => {
+        setIsActing(true); setActionError("");
+        try {
+          const item = await fetchMediaItem({ source: "steam", externalId: String(game.appId) });
+          if (!item) throw new Error("Este jogo não está mais na biblioteca.");
+          if (action === "delete") setItemToDelete(item);
+          else navigate(`/dossier/${item.id}`, { state: { returnTo: "/games" } });
+        } catch (error) { setActionError(error instanceof Error ? error.message : "Não foi possível abrir o item."); }
+        finally { setIsActing(false); }
+      })();
+    });
+  };
   const isActive = useRef(false);
   const isSynchronizing = useRef(false);
   const [news, setNews] = useState<SteamNews | null>(() => readSteamNews(session.user.id));
@@ -58,23 +82,32 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
   useEffect(() => {
     isActive.current = true;
 
+    const loadNewsSnapshot = async () => {
+      try {
+        const state = await getSteamIntegrationState(session, true);
+        if (!isActive.current || !state.connection || !state.libraryGames) return;
+        const baselineReady = hasBaseline.current;
+        hasBaseline.current = true;
+        setNews((previous) => {
+          if (baselineReady) return reconcileSteamNews(previous, state.libraryGames!);
+          const baseline = reconcileSteamNews(null, state.libraryGames!);
+          return {
+            knownAppIds: [...new Set([...baseline.knownAppIds, ...(previous?.knownAppIds ?? [])])],
+            pending: previous?.pending ?? [],
+          };
+        });
+      } catch (error) {
+        console.warn("[steam-auto-sync] Não foi possível conferir as novidades anteriores:", error);
+      }
+    };
+
     const synchronize = async () => {
       if (isSynchronizing.current) return;
       isSynchronizing.current = true;
 
       try {
-        const state = await getSteamIntegrationState(session, true);
+        const state = await getSteamIntegrationState(session);
         if (!isActive.current) return;
-        if (state.connection && state.libraryGames) {
-          const baselineReady = hasBaseline.current;
-          hasBaseline.current = true;
-          setNews((previous) => {
-            if (baselineReady) return reconcileSteamNews(previous, state.libraryGames!);
-            const baseline = reconcileSteamNews(null, state.libraryGames!);
-            return { knownAppIds: [...new Set([...baseline.knownAppIds, ...(previous?.knownAppIds ?? [])])], pending: previous?.pending ?? [] };
-          });
-        }
-
         if (!state.connection || !isSteamAutoSyncDue(state.connection.last_synced_at)) return;
 
         const result = await syncSteamLibrary(session);
@@ -130,6 +163,8 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
       }
     };
 
+    void loadNewsSnapshot();
+
     const syncTimer = window.setTimeout(() => {
       void synchronize();
     }, 10_000);
@@ -147,14 +182,32 @@ export function SteamAutoSync({ session }: SteamAutoSyncProps) {
   if (location.pathname !== "/games" || !addedGames.length) return null;
 
   return (
+    <>
+    {itemToDelete ? <DeleteMediaDialog item={itemToDelete} isDeleting={isActing} onCancel={() => !isActing && setItemToDelete(null)} onConfirm={async () => {
+      if (isActing) return;
+      setIsActing(true); setActionError("");
+      try {
+        await deleteMedia(itemToDelete);
+        setNews((previous) => previous ? { ...previous, pending: previous.pending.filter((game) => String(game.appId) !== itemToDelete.external_id) } : previous);
+        notifyLibraryUpdated();
+        setItemToDelete(null);
+      } catch { setActionError("Não foi possível excluir o jogo. Tente novamente."); setItemToDelete(null); }
+      finally { setIsActing(false); }
+    }} /> :
     <SteamGamesAddedDialog
+      onOpenItem={(game) => void actOnGame(game, "open")}
+      onDeleteItem={(game) => void actOnGame(game, "delete")}
+      isActing={isActing}
+      actionError={actionError}
       detailError={detailError}
       detailProgress={detailProgress}
       games={addedGames}
       isDetailing={isDetailing}
       onClose={() => {
+        if (isActing) return;
         setNews((previous) => previous ? { ...previous, pending: [] } : previous);
       }}
-    />
+    />}
+    </>
   );
 }

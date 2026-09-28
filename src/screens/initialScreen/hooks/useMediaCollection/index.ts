@@ -129,11 +129,11 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
     return () => window.removeEventListener("online", handleReconnect);
   }, [notify, refreshMedia, skipInitialLoad]);
 
-  const updateMedia = useCallback((updatedMedia: MediaItem) => {
+  const updateMedia = useCallback((updatedMedia: MediaItem, openDossier = true) => {
     setCollection((currentCollection) =>
       currentCollection.map((media) => (media.id === updatedMedia.id ? updatedMedia : media))
     );
-    setSelectedMedia(updatedMedia);
+    if (openDossier) setSelectedMedia(updatedMedia);
   }, []);
 
   const openMediaById = useCallback(async (mediaId: string) => {
@@ -142,7 +142,7 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
     return item;
   }, []);
 
-  const handleUpdateMediaStatus = useCallback(async (item: MediaItem, status: MediaStatus) => {
+  const handleUpdateMediaStatus = useCallback(async (item: MediaItem, status: MediaStatus, openDossier = true) => {
     try {
       if (status === "complete") {
         await completeMedia(item);
@@ -152,6 +152,7 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
     } catch (error) {
       console.error(error);
       notify({ tone: "error", title: "Status não atualizado", message: "Não foi possível atualizar o estado da obra." });
+      if (!openDossier) throw error;
       return;
     }
 
@@ -167,7 +168,8 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
     updateMedia(
       status === "complete"
         ? { ...markMediaAsComplete(item), wishlist_position: undefined, wishlist_added_at: undefined }
-        : { ...item, status, completed_year: undefined }
+        : { ...item, status, completed_year: undefined },
+      openDossier,
     );
     notify({ tone: "success", title: "Status atualizado", message: `O estado de “${item.title}” foi atualizado.` });
   }, [notify, updateMedia]);

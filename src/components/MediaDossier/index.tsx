@@ -1,5 +1,6 @@
 import { Check, ChevronDown, Pencil, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { useConfirmUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { RatingStars } from "../RatingStars";
 import { getMediaStatusLabel, getMediaStatusOptions } from "../../consts/mediaStatus";
@@ -15,7 +16,7 @@ import { formatAuthorLine, formatDateInput, getInitialWatchedDate, getNumericRat
 
 export function MediaDossier({
   item,
-  onClose,
+  onClose: discard,
   onComplete,
   onDelete,
   onDetailsChange,
@@ -27,6 +28,8 @@ export function MediaDossier({
   onSaveGameCompletion,
   showDeleteAction = true,
 }: MediaDossierProps) {
+  const requestDiscard = useConfirmUnsavedChanges();
+  const onClose = () => requestDiscard(discard);
   const [isEditing, setIsEditing] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [droppedGameDate, setDroppedGameDate] = useState(() => getInitialWatchedDate(item));
@@ -92,7 +95,7 @@ export function MediaDossier({
             {!isEditing && (
               <button
                 type="button"
-                onClick={() => setIsEditing(true)}
+                onClick={() => requestDiscard(() => setIsEditing(true))}
                 aria-label="Editar informações"
                 title="Editar informações"
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-neutral-400 transition-colors hover:border-noir-gold/30 hover:text-noir-champagne"

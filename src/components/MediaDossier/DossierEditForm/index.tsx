@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Save } from "lucide-react";
 import { useState } from "react";
+import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 import type { ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -32,7 +33,7 @@ function getDefaultValues(item: MediaItem): UpdateMediaDetailsDTO {
 export function DossierEditForm({ item, onCancel, onSave }: DossierEditFormProps) {
   const [saveError, setSaveError] = useState("");
   const {
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     handleSubmit,
     register,
   } = useForm<UpdateMediaDetailsDTO>({
@@ -49,6 +50,7 @@ export function DossierEditForm({ item, onCancel, onSave }: DossierEditFormProps
       setSaveError("Não foi possível salvar as alterações.");
     }
   });
+  const cancel = useUnsavedChanges(isDirty, isSubmitting, onCancel);
 
   return (
     <form noValidate className="contents" onSubmit={submit}>
@@ -136,7 +138,7 @@ export function DossierEditForm({ item, onCancel, onSave }: DossierEditFormProps
       <footer className="flex items-center gap-3 border-t border-white/10 p-5">
         <button
           type="button"
-          onClick={onCancel}
+          onClick={cancel}
           disabled={isSubmitting}
           className="flex h-11 flex-1 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] px-4 font-mono text-xs font-bold uppercase tracking-wide text-neutral-300 transition-colors hover:bg-white/[0.06] disabled:opacity-50"
         >

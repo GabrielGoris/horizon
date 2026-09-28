@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirmUnsavedChanges, useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { X } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +19,7 @@ import type { AddMediaDialogProps, PendingDuplicateMedia } from "./types";
 
 export function AddMediaDialog({ isOpen, onClose, onOpenDossier, onSuccess, onPriorityCreate, initialType }: AddMediaDialogProps) {
   const { notify } = useToast();
+  const requestDiscard = useConfirmUnsavedChanges();
   const [manualSelectedType, setManualSelectedType] = useState<MediaType | null>(null);
   const [mediaFormat, setMediaFormat] = useState<"movie" | "series">("movie");
   const [pendingDuplicate, setPendingDuplicate] = useState<PendingDuplicateMedia | null>(null);
@@ -25,7 +27,7 @@ export function AddMediaDialog({ isOpen, onClose, onOpenDossier, onSuccess, onPr
   const [isUploadingAsset, setIsUploadingAsset] = useState(false);
   const {
     control,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isDirty },
     getValues,
     handleSubmit,
     register,
@@ -58,18 +60,20 @@ export function AddMediaDialog({ isOpen, onClose, onOpenDossier, onSuccess, onPr
   };
 
   const selectType = (type: MediaType) => {
-    setManualSelectedType(type);
-    setMediaFormat("movie");
-    reset(getDefaultValues(type));
-    setValue("type", type);
-    setValue("media_format", "movie");
-    catalogSearch.clearCatalogSearch();
+    requestDiscard(() => {
+      setManualSelectedType(type);
+      setMediaFormat("movie");
+      reset(getDefaultValues(type));
+      setValue("type", type);
+      setValue("media_format", "movie");
+      catalogSearch.clearCatalogSearch();
+    });
   };
 
-  const closeDialog = () => {
+  const closeDialog = useUnsavedChanges(isDirty, isSubmitting || isConfirmingDuplicate || isUploadingAsset, () => {
     clearDialogState();
     onClose();
-  };
+  });
 
   const updateMediaFormat = (nextMediaFormat: "movie" | "series") => {
     setMediaFormat(nextMediaFormat);

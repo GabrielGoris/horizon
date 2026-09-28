@@ -10,6 +10,7 @@ import type {
   CustomLibraryCategory,
 } from "../../types/customLibrary";
 import { getUniqueCustomCategorySlug } from "./helpers";
+import { getCompletionDateValue } from "../../utils/customLibrary/completionDate";
 
 const PHOTO_BUCKET = "custom-library-photos";
 const PHOTO_URL_TTL_SECONDS = 60 * 60;
@@ -251,18 +252,32 @@ export async function deleteCustomCategory(categoryId: string) {
   if (error) throw error;
 }
 
-export async function fetchCustomEntries(categoryId: string) {
+export async function fetchCustomEntries(category: CustomLibraryCategory) {
   const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from("custom_entries")
     .select("*, custom_entry_photos(*)")
-    .eq("category_id", categoryId)
+    .eq("category_id", category.id)
     .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
   if (error) throw error;
 
-  return Promise.all((data ?? []).map((row) => normalizeEntry(row as EntryRow)));
+  const entries = await Promise.all((data ?? []).map((row) => normalizeEntry(row as EntryRow)));
+  return Promise.all(entries.map(async (entry) => {
+    if (entry.status !== "completed") return entry;
+    const completionDate = getCompletionDateValue(category, entry.values);
+    if (!completionDate) return entry;
+    const completedAt = toCompletedAt(completionDate, entry.completed_at);
+    if (completedAt.slice(0, 10) === entry.completed_at?.slice(0, 10)) return entry;
+    const { error: repairError } = await supabase
+      .from("custom_entries")
+      .update({ completed_at: completedAt })
+      .eq("id", entry.id)
+      .eq("user_id", userId);
+    if (repairError) console.warn("Não foi possível alinhar a data de conclusão do item.", repairError);
+    return { ...entry, completed_at: completedAt };
+  }));
 }
 
 export async function searchCustomEntries(searchQuery: string, categoryId?: string, limit = 30) {

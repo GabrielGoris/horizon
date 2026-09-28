@@ -1,5 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { findDuplicateEntry } from "../../src/utils/customLibrary/duplicates.ts";
+import { getCompletionDateField, getCompletionDateValue } from "../../src/utils/customLibrary/completionDate.ts";
+import { getCustomFilterFields } from "../../src/screens/initialScreen/components/CustomLibraryFilters/chips.ts";
+import type { CustomLibraryCategory } from "../../src/types/customLibrary.ts";
+
+test("usa um campo de data da conclusão como data canônica e não cria filtro duplicado", () => {
+  const category = {
+    fields: [
+      { id: "planned-date", field_type: "date", phase: "planning", label: "Data prevista", options: [] },
+      { id: "watched-date", field_type: "date", phase: "completion", label: "Data em que assistiu", options: [] },
+    ],
+  } as unknown as CustomLibraryCategory;
+  assert.equal(getCompletionDateField(category)?.id, "watched-date");
+  assert.equal(getCompletionDateValue(category, { "watched-date": "01/07/2026" }, "28/09/2026"), "01/07/2026");
+  assert.deepEqual(getCustomFilterFields(category).map((field) => field.id), ["planned-date", "watched-date"]);
+  assert.equal(getCustomFilterFields({ ...category, fields: category.fields.slice(0, 1) })[0].id, "completed_at");
+});
+
+test("avisa títulos equivalentes sem confundir a própria edição ou nomes distintos", () => {
+  const entries = [{ id: "1", title: "Café — Central" }, { id: "2", title: "Café Central 2" }];
+  assert.equal(findDuplicateEntry(entries, "  CAFE central ")?.id, "1");
+  assert.equal(findDuplicateEntry(entries, "Café — Central", "1"), undefined);
+  assert.equal(findDuplicateEntry(entries, "Café Central 2", "1")?.id, "2");
+  assert.equal(findDuplicateEntry(entries, "Outro café"), undefined);
+  assert.equal(findDuplicateEntry(entries, "---"), undefined);
+});
 import { matchesFieldFilter, compareCustomEntries } from "../../src/utils/customLibrary/filters.ts";
 import type { CustomEntry } from "../../src/types/customLibrary.ts";
 

@@ -7,9 +7,9 @@ test("oferece incompleto para séries e animes", () => {
   assert.ok(getMediaStatusOptions("animes", "movie").includes("incomplete"));
 });
 
-test("não oferece incompleto para filmes ou jogos", () => {
+test("não oferece incompleto para filmes, mas oferece para jogos", () => {
   assert.ok(!getMediaStatusOptions("movies", "movie").includes("incomplete"));
-  assert.ok(!getMediaStatusOptions("games").includes("incomplete"));
+  assert.ok(getMediaStatusOptions("games").includes("incomplete"));
 });
 
 test("oferece quero comprar apenas para livros", () => {

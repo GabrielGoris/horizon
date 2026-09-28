@@ -3,6 +3,9 @@ import type { DuplicateMediaDialogProps } from "./types";
 
 export function DuplicateMediaDialog({
   cover,
+  confirmLabel = "Adicionar novamente",
+  description,
+  heading = "Adicionar novamente?",
   isConfirming = false,
   onCancel,
   onConfirm,
@@ -12,7 +15,7 @@ export function DuplicateMediaDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/75 px-5 backdrop-blur-[6px]"
+      className="fixed inset-0 z-[220] flex items-center justify-center bg-black/75 px-5 backdrop-blur-[6px]"
       onClick={(event) => event.stopPropagation()}
     >
       <button
@@ -39,7 +42,7 @@ export function DuplicateMediaDialog({
                 Item duplicado
               </p>
               <h2 id="duplicate-media-title" className="mt-1 font-serif text-xl font-extrabold text-white">
-                Adicionar novamente?
+                {heading}
               </h2>
             </div>
           </div>
@@ -70,7 +73,7 @@ export function DuplicateMediaDialog({
             )}
 
             <p id="duplicate-media-description" className="self-center text-sm leading-6 text-neutral-300">
-              <strong className="font-semibold text-white">{title}</strong> já está na sua biblioteca. Deseja adicioná-lo novamente?
+              {description ?? <><strong className="font-semibold text-white">{title}</strong> já está na sua biblioteca. Deseja adicioná-lo novamente?</>}
             </p>
           </div>
         </div>
@@ -92,7 +95,7 @@ export function DuplicateMediaDialog({
             className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-noir-gold/35 bg-noir-gold/15 px-4 font-mono text-xs font-bold uppercase tracking-wide text-noir-champagne transition-colors hover:border-noir-gold/55 hover:bg-noir-gold/25 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <CopyPlus size={16} />
-            {isConfirming ? "Adicionando" : "Adicionar novamente"}
+            {isConfirming ? "Salvando" : confirmLabel}
           </button>
         </footer>
       </section>

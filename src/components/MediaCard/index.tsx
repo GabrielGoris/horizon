@@ -1,5 +1,6 @@
 import { memo, useEffect } from "react";
-import { ListPlus } from "lucide-react";
+import { ListPlus, MoreHorizontal } from "lucide-react";
+import { useLongPress } from "../../hooks/useLongPress";
 import { getGamePlatformOption } from "../../consts/gamePlatforms";
 import { GamePlatformLogo } from "../GamePlatformLogo";
 import type { MediaCardProps } from "./types";
@@ -14,12 +15,14 @@ function getTypeLabel(item: MediaCardProps["item"]) {
   return "Livro";
 }
 
-export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, rank }: MediaCardProps) {
+export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, onQuickActions, rank }: MediaCardProps) {
   const isBook = item.type === 'books';
   const typeLabel = getTypeLabel(item);
   const platform = item.type === "games" ? getGamePlatformOption(item.meta) : null;
   const coverUrl = item.cover?.trim();
   const backdropUrl = item.backdrop?.trim() || coverUrl;
+  const openActions = () => onQuickActions?.(item);
+  const hold = useLongPress(openActions);
 
   useEffect(() => {
     const preloadTimer = window.setTimeout(() => preloadDossierBackdrop(backdropUrl), 450);
@@ -28,10 +31,16 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
   
   return (
     <div 
+      {...hold}
+      role="button"
+      tabIndex={0}
+      aria-label={`Abrir ${item.title}`}
       onClick={() => onClick && onClick(item)}
-      onPointerDown={() => preloadDossierBackdrop(backdropUrl)}
+      onDragStart={(event) => event.preventDefault()}
+      onPointerDown={(event) => { hold.onPointerDown(event); preloadDossierBackdrop(backdropUrl); }}
+      onKeyDown={(event) => { hold.onKeyDown(event); if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onClick?.(item); } }}
       onPointerEnter={() => preloadDossierBackdrop(backdropUrl)}
-      className={`media-card group relative isolate overflow-hidden bg-[#1a1a1e] border cursor-pointer transition-none md:transform-gpu md:transition-all md:duration-500 md:will-change-transform md:[backface-visibility:hidden] md:hover:-translate-y-2 aspect-[2/3] ${
+      className={`media-card group relative isolate select-none overflow-hidden bg-[#1a1a1e] border cursor-pointer touch-pan-y [-webkit-touch-callout:none] transition-none md:transform-gpu md:transition-all md:duration-500 md:will-change-transform md:[backface-visibility:hidden] md:hover:-translate-y-2 aspect-[2/3] ${
         isBook
           ? 'rounded-none border-white/5 shadow-[0_4px_8px_rgba(0,0,0,0.55),0_10px_20px_rgba(0,0,0,0.3)] hover:border-[#d4af37]/30 hover:shadow-[0_15px_30px_rgba(0,0,0,0.65)]'
           : 'rounded-none border-transparent shadow-[0_3px_6px_rgba(0,0,0,0.55),0_8px_16px_rgba(0,0,0,0.25)] hover:shadow-[0_10px_24px_rgba(0,0,0,0.65)]'
@@ -42,6 +51,7 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
           src={coverUrl}
           alt={item.title}
           loading="lazy"
+          draggable={false}
           decoding="async"
           className="block h-full w-full rounded-[inherit] object-cover md:filter md:saturate-[0.65] md:sepia-[0.18] md:contrast-[1.08] md:brightness-[0.82] md:transition-all md:duration-600 md:transform-gpu md:[backface-visibility:hidden] md:group-hover:saturate-100 md:group-hover:sepia-0 md:group-hover:contrast-100 md:group-hover:brightness-100 md:group-hover:scale-105"
         />
@@ -74,6 +84,7 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
       {onPrioritize && (
         <button
           type="button"
+          data-card-action
           aria-label="Editar lista de prioridade"
           onClick={(event) => {
             event.stopPropagation();
@@ -84,6 +95,8 @@ export const MediaCard = memo(function MediaCard({ item, onClick, onPrioritize, 
           <ListPlus size={15} />
         </button>
       )}
+
+      {onQuickActions && <button type="button" data-card-action aria-label={`Ações rápidas: ${item.title}`} onClick={(event) => { event.stopPropagation(); openActions(); }} className="absolute bottom-2 right-2 z-30 rounded-lg border border-white/20 bg-black/80 p-2 text-white opacity-90 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"><MoreHorizontal size={16} /></button>}
 
       <div className="absolute inset-0 z-20 flex flex-col justify-end rounded-[inherit] bg-gradient-to-t from-[#0a0a0c] via-black/50 to-transparent p-5 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <span className="text-[9px] font-bold uppercase tracking-widest text-[#d4af37] mb-1 drop-shadow-md">

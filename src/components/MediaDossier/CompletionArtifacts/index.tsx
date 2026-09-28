@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUnsavedChanges } from "../../../hooks/useUnsavedChanges";
 import { getInitialWatchedDate, getNumericRating } from "../utils";
 import { BookBookmark } from "./BookBookmark";
 import { GameSaveCard } from "./GameSaveCard";
@@ -15,6 +16,10 @@ export function CompletionArtifacts({
   const [rating, setRating] = useState(() => getNumericRating(item.rating));
   const [hoursPlayed, setHoursPlayed] = useState(() => String(item.hours_played ?? ""));
   const [completionType, setCompletionType] = useState(() => item.completion_type || "Campanha");
+  const dirty = item.status === "complete" && (finishedAt !== getInitialWatchedDate(item) || rating !== getNumericRating(item.rating) || (item.type === "games" && (hoursPlayed !== String(item.hours_played ?? "") || completionType !== (item.completion_type || "Campanha"))));
+  useUnsavedChanges(dirty, false, () => {
+    setFinishedAt(getInitialWatchedDate(item)); setRating(getNumericRating(item.rating)); setHoursPlayed(String(item.hours_played ?? "")); setCompletionType(item.completion_type || "Campanha");
+  });
 
   if (item.status !== "complete") return null;
 

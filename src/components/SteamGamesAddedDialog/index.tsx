@@ -2,6 +2,10 @@ import { CheckCircle2, Gamepad2, LoaderCircle, X } from "lucide-react";
 import type { SteamDiscoveredGame } from "../../services/steamIntegrationService";
 
 type SteamGamesAddedDialogProps = {
+  onOpenItem: (game: SteamDiscoveredGame) => void;
+  onDeleteItem: (game: SteamDiscoveredGame) => void;
+  isActing?: boolean;
+  actionError?: string;
   detailError?: string;
   detailProgress: { completed: number; total: number };
   games: SteamDiscoveredGame[];
@@ -22,6 +26,10 @@ function formatPlaytime(hours: number) {
 }
 
 export function SteamGamesAddedDialog({
+  onOpenItem,
+  onDeleteItem,
+  isActing,
+  actionError,
   detailError,
   detailProgress,
   games,
@@ -84,6 +92,7 @@ export function SteamGamesAddedDialog({
                 <p className="mt-1 font-mono text-[9px] uppercase tracking-[0.12em] text-neutral-500">
                   {formatPlaytime(game.playtimeHours)}
                 </p>
+                <div className="mt-2 flex flex-wrap gap-4"><button type="button" disabled={isActing} onClick={() => onOpenItem(game)} className="text-xs text-[#66c0f4] disabled:opacity-50">Abrir item</button><button type="button" disabled={isActing} onClick={() => onDeleteItem(game)} className="text-xs text-red-300 disabled:opacity-50">Excluir item</button></div>
               </div>
               <CheckCircle2 size={16} className="shrink-0 text-emerald-400" />
             </li>
@@ -112,6 +121,7 @@ export function SteamGamesAddedDialog({
         )}
 
         <footer className="border-t border-white/10 p-5">
+          {actionError && <p role="alert" className="mb-3 text-sm text-red-300">{actionError}</p>}
           <button
             type="button"
             onClick={onClose}

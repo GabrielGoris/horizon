@@ -1,5 +1,9 @@
 import { ImagePlus, Trash2, X } from "lucide-react";
 import { useState } from "react";
+import { useDraftSnapshot, useUnsavedChanges } from "../../hooks/useUnsavedChanges";
+import { DuplicateMediaDialog } from "../DuplicateMediaDialog";
+import { findDuplicateEntry } from "../../utils/customLibrary/duplicates";
+import { getCompletionDateValue } from "../../utils/customLibrary/completionDate";
 import { CustomFieldInput } from "../CustomFieldInput";
 import { useToast } from "../ToastProvider/hooks/useToast";
 import { getYouTubeThumbnailUrl } from "../../utils/youtube";
@@ -13,6 +17,7 @@ import type {
 } from "../../types/customLibrary";
 
 interface CustomEntryDialogProps {
+  entries: CustomEntry[];
   category: CustomLibraryCategory;
   entry?: CustomEntry | null;
   isOpen: boolean;
@@ -30,11 +35,12 @@ function getInitialValues(category: CustomLibraryCategory, entry?: CustomEntry |
 }
 
 export function CustomEntryDialog({
+  entries,
   category,
   entry,
   isOpen,
   isSaving,
-  onClose,
+  onClose: discard,
   onDeletePhoto,
   onSave,
 }: CustomEntryDialogProps) {
@@ -47,6 +53,9 @@ export function CustomEntryDialog({
   const [photos, setPhotos] = useState<File[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<CustomEntryPhoto[]>(entry?.photos ?? []);
   const [error, setError] = useState("");
+  const [duplicate, setDuplicate] = useState<CustomEntry | null>(null);
+  const dirty = useDraftSnapshot({ title, coverUrl, description, status, values, photos: photos.map((photo) => [photo.name, photo.size, photo.lastModified]) });
+  const onClose = useUnsavedChanges(dirty, isSaving, discard);
 
   if (!isOpen) return null;
 
@@ -79,7 +88,7 @@ export function CustomEntryDialog({
     if (thumbnailUrl) setCoverUrl((current) => current.trim() || thumbnailUrl);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (allowDuplicate = false) => {
     if (!title.trim()) {
       setError(`Informe o nome do ${category.name_singular.toLowerCase()}.`);
       return;
@@ -112,8 +121,18 @@ export function CustomEntryDialog({
 
     setError("");
 
+    const match = findDuplicateEntry(entries, title, entry?.id);
+    if (!allowDuplicate && match) { setDuplicate(match); return; }
+
     try {
-      await onSave({ title, cover_url: normalizedCoverUrl, description, status, values }, photos);
+      await onSave({
+        title,
+        cover_url: normalizedCoverUrl,
+        description,
+        status,
+        values,
+        completedAt: status === "completed" ? getCompletionDateValue(category, values) : undefined,
+      }, photos);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar o item.");
     }
@@ -137,6 +156,7 @@ export function CustomEntryDialog({
 
   return (
     <div className={`fixed inset-0 z-[120] flex bg-black/80 backdrop-blur-sm ${isEditing ? "animate-dossier-overlay-in justify-end" : "items-center justify-center p-4"}`}>
+      {duplicate && <DuplicateMediaDialog cover={duplicate.cover_url} title={duplicate.title} heading="Salvar mesmo assim?" description={<>Já existe <strong className="font-semibold text-white">{duplicate.title}</strong> nesta categoria. Confira se é o mesmo item antes de continuar.</>} confirmLabel="Salvar mesmo assim" isConfirming={isSaving} onCancel={() => !isSaving && setDuplicate(null)} onConfirm={() => { setDuplicate(null); void handleSubmit(true); }} />}
       {isEditing && <button type="button" aria-label="Fechar edição" className="absolute inset-0 cursor-default" onMouseDown={onClose} />}
       <section className={`relative z-10 flex w-full flex-col overflow-hidden border-white/10 bg-[#19191c] ${isEditing ? "animate-dossier-panel-in h-full max-w-[430px] border-l shadow-[-28px_0_80px_rgba(0,0,0,0.65)]" : "max-h-[92vh] max-w-3xl rounded-2xl border shadow-[0_30px_100px_rgba(0,0,0,0.8)]"}`}>
         <header className={`flex justify-between border-b border-white/10 px-7 ${isEditing ? "h-[70px] items-center" : "items-start py-6"}`}>

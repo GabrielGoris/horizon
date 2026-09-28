@@ -6,6 +6,7 @@ import type { InitialScreenProps } from './screens/initialScreen/types'
 import { ConnectionStatus } from './components/ConnectionStatus'
 import { AppSplash } from './components/AppSplash'
 import { AppUpdateDialog } from './components/AppUpdateDialog'
+import { UnsavedChangesProvider } from './components/UnsavedChangesProvider'
 import { initializePushNotifications, unregisterPushNotifications } from './services/pushNotificationService'
 
 const AuthScreen = lazy(() => import('./screens/authScreen').then((module) => ({ default: module.AuthScreen })))
@@ -73,7 +74,7 @@ function App() {
   }
 
   return (
-    <>
+    <UnsavedChangesProvider>
       {session && <Suspense fallback={null}><SteamAutoSync key={session.user.id} session={session} /></Suspense>}
       <ConnectionStatus />
       <AppUpdateDialog />
@@ -109,7 +110,7 @@ function App() {
           <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/auth"} replace />} />
         </Routes>
       </Suspense>
-    </>
+    </UnsavedChangesProvider>
   )
 }
 

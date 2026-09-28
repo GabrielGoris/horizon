@@ -14,6 +14,7 @@ import type {
   CustomFieldValue,
   CustomLibraryCategory,
 } from "../../../../types/customLibrary";
+import { getCompletionDateValue } from "../../../../utils/customLibrary/completionDate";
 
 interface UseCustomEntriesWorkspaceOptions {
   category?: CustomLibraryCategory;
@@ -47,7 +48,7 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
     setEntriesError("");
 
     try {
-      const nextEntries = await fetchCustomEntries(categoryId);
+      const nextEntries = await fetchCustomEntries(category);
       if (entriesRequestId.current !== requestId) return;
       setEntries(nextEntries);
       setLoadedCategoryId(categoryId);
@@ -59,7 +60,7 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
     } finally {
       if (entriesRequestId.current === requestId) setIsLoadingEntries(false);
     }
-  }, [category?.id]);
+  }, [category]);
 
   useEffect(() => {
     if (!isActive || !category) {
@@ -70,7 +71,7 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
     const categoryId = category.id;
     const requestId = ++entriesRequestId.current;
 
-    fetchCustomEntries(categoryId)
+    fetchCustomEntries(category)
       .then((nextEntries) => {
         if (entriesRequestId.current !== requestId) return;
         setEntries(nextEntries);
@@ -167,29 +168,35 @@ export function useCustomEntriesWorkspace({ category, isActive }: UseCustomEntri
   const updateEntry = async (
     entry: CustomEntry,
     changes: Partial<Pick<CustomEntryInput, "completedAt" | "status" | "values">>,
-    photos: File[] = []
+    photos: File[] = [],
+    openDossier = true,
   ) => {
+    const nextStatus = changes.status ?? entry.status;
+    const nextValues = changes.values ?? entry.values;
     const updatedEntry = await updateCustomEntry(entry, {
       title: entry.title,
       cover_url: entry.cover_url,
       description: entry.description,
-      status: changes.status ?? entry.status,
-      values: changes.values ?? entry.values,
-      completedAt: changes.completedAt,
+      status: nextStatus,
+      values: nextValues,
+      completedAt: changes.completedAt ?? (nextStatus === "completed" && category
+        ? getCompletionDateValue(category, nextValues, entry.completed_at)
+        : undefined),
     }, photos);
 
-    setSelectedEntry(updatedEntry);
+    if (openDossier) setSelectedEntry(updatedEntry);
     await refreshEntries();
   };
 
-  const changeEntryStatus = async (entry: CustomEntry, status: CustomEntry["status"]) => {
+  const changeEntryStatus = async (entry: CustomEntry, status: CustomEntry["status"], openDossier = true) => {
     try {
-      await updateEntry(entry, { status });
+      await updateEntry(entry, { status }, [], openDossier);
       notify({ tone: "success", title: "Estado atualizado", message: `O estado de “${entry.title}” foi alterado.` });
     } catch (statusError) {
       console.error(statusError);
       setEntriesError(statusError instanceof Error ? statusError.message : "Não foi possível alterar o estado do item.");
       notify({ tone: "error", title: "Estado não atualizado", message: "Não foi possível alterar o estado deste item." });
+      if (!openDossier) throw statusError;
     }
   };
 
