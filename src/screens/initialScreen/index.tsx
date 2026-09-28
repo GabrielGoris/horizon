@@ -310,6 +310,7 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
                 <div className="flex min-h-80 items-center justify-center font-mono text-[10px] uppercase tracking-widest text-neutral-600">Carregando categoria</div>
               ) : customCategory ? (
                 <CustomCategorySection
+                  key={customCategory.id}
                   category={customCategory}
                   entries={customLibrary.entries}
                   error={customLibrary.entriesError}

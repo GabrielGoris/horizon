@@ -1,11 +1,15 @@
 import { SlidersHorizontal } from "lucide-react";
+import { FieldFilters } from "./FieldFilters";
+import type { CustomFieldFilters, CustomSortMode } from "../../../../utils/customLibrary/filters";
+export type { CustomSortMode } from "../../../../utils/customLibrary/filters";
 import { HorizonSelect } from "../../../../components/HorizonSelect";
 import type { CustomEntryStatus, CustomLibraryCategory } from "../../../../types/customLibrary";
 
 export type CustomStatusFilter = "all" | CustomEntryStatus;
-export type CustomSortMode = "title_asc" | "title_desc";
 
 interface CustomLibraryFiltersProps {
+  fieldFilters: CustomFieldFilters;
+  onFieldFiltersChange: (filters: CustomFieldFilters) => void;
   category: CustomLibraryCategory;
   hasActiveFilters: boolean;
   isOpen: boolean;
@@ -20,6 +24,8 @@ interface CustomLibraryFiltersProps {
 }
 
 export function CustomLibraryFilters({
+  fieldFilters,
+  onFieldFiltersChange,
   category,
   hasActiveFilters,
   isOpen,
@@ -56,7 +62,7 @@ export function CustomLibraryFilters({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-[70]" onClick={onClose} />
-          <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[80] flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-5 rounded-xl border border-white/10 bg-[#17171a] p-4 shadow-2xl shadow-black/50">
+          <div className="absolute right-0 top-[calc(100%+0.75rem)] z-[80] flex max-h-[65vh] overflow-y-auto w-[min(28rem,calc(100vw-2rem))] flex-col gap-5 rounded-xl border border-white/10 bg-[#17171a] p-4 shadow-2xl shadow-black/50">
             <div className="flex items-center justify-between">
               <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500">Filtrar biblioteca</span>
               <button type="button" onClick={onClear} className="font-mono text-[10px] font-bold uppercase tracking-widest text-neutral-500 transition-colors hover:text-white">Limpar</button>
@@ -80,10 +86,14 @@ export function CustomLibraryFilters({
                 options={[
                   { value: "title_asc", label: "Título: A–Z" },
                   { value: "title_desc", label: "Título: Z–A" },
+                  { value: "created_desc", label: "Adicionados por último" },
+                  { value: "created_asc", label: "Adicionados há mais tempo" },
+                  { value: "updated_desc", label: "Atualizados recentemente" },
                 ]}
                 onChange={(value) => onSortChange(value as CustomSortMode)}
               />
             </label>
+            <FieldFilters category={category} filters={fieldFilters} onChange={onFieldFiltersChange} />
           </div>
         </>
       )}

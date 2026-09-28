@@ -1,5 +1,37 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { matchesFieldFilter, compareCustomEntries } from "../../src/utils/customLibrary/filters.ts";
+import type { CustomEntry } from "../../src/types/customLibrary.ts";
+
+test("filtra datas brasileiras e ISO por mês, ano e dia sem inventar mês para ano isolado", () => {
+  assert.equal(matchesFieldFilter("15/09/2026", { month: "09", year: "2026" }), true);
+  assert.equal(matchesFieldFilter("2026-09-15T00:00:00Z", { date: "2026-09-15" }), true);
+  assert.equal(matchesFieldFilter("2025-09-15", { month: "09", year: "2026" }), false);
+  assert.equal(matchesFieldFilter("2026", { year: "2026" }), true);
+  assert.equal(matchesFieldFilter("2026", { month: "01" }), false);
+  assert.equal(matchesFieldFilter(undefined, { year: "2026" }), false);
+});
+
+test("combina limites inclusivos e distingue zero, não e campos vazios", () => {
+  assert.equal(matchesFieldFilter("0", { min: "0", max: "10" }), true);
+  assert.equal(matchesFieldFilter("10.50", { min: "10.50", max: "10.50" }), true);
+  assert.equal(matchesFieldFilter("11", { max: "10" }), false);
+  assert.equal(matchesFieldFilter("", { max: "10" }), false);
+  assert.equal(matchesFieldFilter(false, { boolean: "false" }), true);
+  assert.equal(matchesFieldFilter(null, { boolean: "false" }), false);
+  assert.equal(matchesFieldFilter(["Centro", "Barato"], { options: ["Centro", "Outro"] }), true);
+  assert.equal(matchesFieldFilter(["Caro"], { options: ["Barato"] }), false);
+});
+
+test("ordena por adição e mantém datas ausentes no fim em ambas as direções", () => {
+  const entries = [
+    { title: "Sem data" },
+    { title: "Antigo", created_at: "2025-01-01" },
+    { title: "Novo", created_at: "2026-01-01" },
+  ] as CustomEntry[];
+  assert.deepEqual([...entries].sort((a, b) => compareCustomEntries(a, b, "created_desc")).map((entry) => entry.title), ["Novo", "Antigo", "Sem data"]);
+  assert.deepEqual([...entries].sort((a, b) => compareCustomEntries(a, b, "created_asc")).map((entry) => entry.title), ["Antigo", "Novo", "Sem data"]);
+});
 import {
   getUniqueCustomCategorySlug,
   normalizeCustomCategorySlug,

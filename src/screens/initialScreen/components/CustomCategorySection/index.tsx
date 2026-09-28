@@ -1,5 +1,6 @@
 import { Image, Pencil, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
+import { compareCustomEntries, isFieldFilterActive, matchesCustomFilters, type CustomFieldFilters } from "../../../../utils/customLibrary/filters";
 import { CustomCategoryIcon } from "../../../../components/CustomCategoryIcon";
 import { VirtualMediaGrid } from "../../../../components/VirtualMediaGrid";
 import { useInfiniteList } from "../../../../hooks/useInfiniteList";
@@ -33,6 +34,7 @@ export function CustomCategorySection({
   const [statusFilter, setStatusFilter] = useState<CustomStatusFilter>("all");
   const [sortMode, setSortMode] = useState<CustomSortMode>("title_asc");
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [fieldFilters, setFieldFilters] = useState<CustomFieldFilters>({});
   const filteredEntries = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase("pt-BR");
 
@@ -42,13 +44,12 @@ export function CustomCategorySection({
         || entry.title.toLocaleLowerCase("pt-BR").includes(query)
         || entry.description.toLocaleLowerCase("pt-BR").includes(query);
 
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesSearch && matchesCustomFilters(entry, category, fieldFilters);
     }).sort((left, right) => {
-      const comparison = left.title.localeCompare(right.title, "pt-BR", { sensitivity: "base" });
-      return sortMode === "title_asc" ? comparison : -comparison;
+      return compareCustomEntries(left, right, sortMode);
     });
-  }, [entries, searchQuery, sortMode, statusFilter]);
-  const hasActiveFilters = statusFilter !== "all" || sortMode !== "title_asc";
+  }, [entries, searchQuery, sortMode, statusFilter, category, fieldFilters]);
+  const hasActiveFilters = statusFilter !== "all" || sortMode !== "title_asc" || Object.values(fieldFilters).some(isFieldFilterActive);
   const { hasMore, sentinelRef, visibleItems } = useInfiniteList(filteredEntries);
 
   return (
@@ -69,6 +70,8 @@ export function CustomCategorySection({
             <Pencil size={13} /> Configurar
           </button>
           <CustomLibraryFilters
+            fieldFilters={fieldFilters}
+            onFieldFiltersChange={setFieldFilters}
             category={category}
             hasActiveFilters={hasActiveFilters}
             isOpen={isFiltersOpen}
@@ -78,6 +81,7 @@ export function CustomCategorySection({
             onClear={() => {
               setStatusFilter("all");
               setSortMode("title_asc");
+              setFieldFilters({});
             }}
             onClose={() => setIsFiltersOpen(false)}
             onSortChange={setSortMode}
@@ -142,7 +146,7 @@ export function CustomCategorySection({
         </>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-neutral-600">
-          <p className="text-sm">Nenhum item nesta categoria.</p>
+          <p className="text-sm">{entries.length ? "Nenhum item corresponde aos filtros." : "Nenhum item nesta categoria."}</p>
         </div>
       )}
     </section>

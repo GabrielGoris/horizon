@@ -101,6 +101,23 @@ export function CustomCategoryDialog({
       return;
     }
 
+    for (const field of validFields) {
+      if (field.field_type !== "select" && field.field_type !== "multiselect") continue;
+
+      const optionNames = new Set<string>();
+      for (const option of field.options) {
+        const name = option.trim();
+        if (!name) continue;
+
+        const normalizedName = name.normalize("NFC").toLocaleLowerCase("pt-BR");
+        if (optionNames.has(normalizedName)) {
+          setError(`A opção “${name}” está repetida no campo “${field.label.trim()}”. Use nomes diferentes para cada opção.`);
+          return;
+        }
+        optionNames.add(normalizedName);
+      }
+    }
+
     setError("");
 
     try {
@@ -112,7 +129,7 @@ export function CustomCategoryDialog({
         accent_color: accentColor,
         planned_label: plannedLabel,
         completed_label: completedLabel,
-        fields: validFields,
+        fields: validFields.map((field) => ({ ...field, options: field.options.map((option) => option.trim()).filter(Boolean) })),
       });
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Não foi possível salvar a categoria.");
@@ -225,10 +242,16 @@ export function CustomCategoryDialog({
                 </button>
 
                 {(field.field_type === "select" || field.field_type === "multiselect") && (
-                  <label className={`${labelClass} md:col-span-3`}>
-                    Opções separadas por vírgula
-                    <input className={inputClass} value={field.options.join(", ")} onChange={(event) => updateField(field.id, { options: event.target.value.split(",").map((option) => option.trim()).filter(Boolean) })} placeholder="Ex.: Barato, Médio, Caro" />
-                  </label>
+                  <fieldset className="flex flex-col gap-2 md:col-span-3">
+                    <legend className={labelClass}>Opções</legend>
+                    {field.options.map((option, optionIndex) => (
+                      <div key={optionIndex} className="flex items-center gap-2">
+                        <input aria-label={`Opção ${optionIndex + 1} de ${field.label || 'campo'}`} className={inputClass} value={option} onChange={(event) => updateField(field.id, { options: field.options.map((item, index) => index === optionIndex ? event.target.value : item) })} placeholder={`Opção ${optionIndex + 1}`} />
+                        <button type="button" aria-label={`Remover opção ${optionIndex + 1}`} onClick={() => updateField(field.id, { options: field.options.filter((_, index) => index !== optionIndex) })} className="p-2 text-neutral-500 hover:text-red-300"><Trash2 size={16} /></button>
+                      </div>
+                    ))}
+                    <button type="button" onClick={() => updateField(field.id, { options: [...field.options, ""] })} className="flex items-center gap-2 self-start py-2 text-xs text-noir-gold"><Plus size={14} /> Adicionar opção</button>
+                  </fieldset>
                 )}
                 <label className="flex items-center gap-2 self-end pb-3 text-xs text-neutral-400">
                   <input type="checkbox" checked={field.required} onChange={(event) => updateField(field.id, { required: event.target.checked })} className="accent-[#d4af37]" />
