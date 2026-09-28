@@ -1,6 +1,5 @@
 import type { CustomEntryStatus, CustomLibraryCategory } from "../../../../types/customLibrary";
 import type { CustomFieldFilters, CustomSortMode, FieldFilter } from "../../../../utils/customLibrary/filters";
-import { getCompletionDateField } from "../../../../utils/customLibrary/completionDate.ts";
 
 type CustomStatusFilter = "all" | CustomEntryStatus;
 
@@ -12,10 +11,7 @@ const SORT_LABELS: Record<Exclude<CustomSortMode, "title_asc">, string> = {
 };
 
 export function getCustomFilterFields(category: CustomLibraryCategory) {
-  const filterableFields = category.fields.filter((field) => ["date", "number", "currency", "boolean", "multiselect"].includes(field.field_type));
-  return getCompletionDateField(category)
-    ? filterableFields
-    : [{ id: "completed_at", label: "Data de conclusão", field_type: "date" as const, options: [] }, ...filterableFields];
+  return category.fields.filter((field) => ["date", "number", "currency", "boolean", "multiselect"].includes(field.field_type));
 }
 
 export interface CustomFilterChipDescriptor {

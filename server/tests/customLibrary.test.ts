@@ -15,7 +15,7 @@ test("reconhece links comuns do YouTube para preencher título e capa", () => {
   assert.equal(getYouTubeThumbnailUrl(`https://youtube.com/watch?v=${videoId}`), `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`);
 });
 
-test("usa um campo de data da conclusão como data canônica e não cria filtro duplicado", () => {
+test("usa um campo de data da conclusão como data canônica e só filtra datas configuradas na categoria", () => {
   const category = {
     fields: [
       { id: "planned-date", field_type: "date", phase: "planning", label: "Data prevista", options: [] },
@@ -25,7 +25,8 @@ test("usa um campo de data da conclusão como data canônica e não cria filtro 
   assert.equal(getCompletionDateField(category)?.id, "watched-date");
   assert.equal(getCompletionDateValue(category, { "watched-date": "01/07/2026" }, "28/09/2026"), "01/07/2026");
   assert.deepEqual(getCustomFilterFields(category).map((field) => field.id), ["planned-date", "watched-date"]);
-  assert.equal(getCustomFilterFields({ ...category, fields: category.fields.slice(0, 1) })[0].id, "completed_at");
+  assert.deepEqual(getCustomFilterFields({ ...category, fields: category.fields.slice(0, 1) }).map((field) => field.id), ["planned-date"]);
+  assert.deepEqual(getCustomFilterFields({ ...category, fields: [] }), []);
 });
 
 test("avisa títulos equivalentes sem confundir a própria edição ou nomes distintos", () => {
