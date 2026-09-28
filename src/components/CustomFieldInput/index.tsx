@@ -87,7 +87,7 @@ export function CustomFieldInput({ field, value, onChange, variant = "default" }
           type={inputType}
           step={field.field_type === "currency" ? "0.01" : undefined}
           inputMode={field.field_type === "date" ? "numeric" : undefined}
-          placeholder={field.field_type === "date" ? "Ex: 2026 ou 06/07/2026" : undefined}
+          placeholder={field.field_type === "date" ? "Ex: 2026 ou 06/07/2026" : field.field_type === "url" ? "https://..." : undefined}
           className={`${inputClass} ${field.field_type === "currency" ? "pl-10" : ""}`}
           value={stringValue}
           onChange={(event) => onChange(field.field_type === "date" ? formatDateInput(event.target.value) : event.target.value)}

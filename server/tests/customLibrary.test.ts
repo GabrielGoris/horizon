@@ -4,6 +4,16 @@ import { findDuplicateEntry } from "../../src/utils/customLibrary/duplicates.ts"
 import { getCompletionDateField, getCompletionDateValue } from "../../src/utils/customLibrary/completionDate.ts";
 import { getCustomFilterFields } from "../../src/screens/initialScreen/components/CustomLibraryFilters/chips.ts";
 import type { CustomLibraryCategory } from "../../src/types/customLibrary.ts";
+import { getYouTubeThumbnailUrl, getYouTubeVideoId } from "../../src/utils/youtube.ts";
+
+test("reconhece links comuns do YouTube para preencher título e capa", () => {
+  const videoId = "dQw4w9WgXcQ";
+  assert.equal(getYouTubeVideoId(`https://www.youtube.com/watch?v=${videoId}&t=15`), videoId);
+  assert.equal(getYouTubeVideoId(`https://youtu.be/${videoId}`), videoId);
+  assert.equal(getYouTubeVideoId(`https://youtube.com/shorts/${videoId}`), videoId);
+  assert.equal(getYouTubeVideoId("https://example.com/video"), undefined);
+  assert.equal(getYouTubeThumbnailUrl(`https://youtube.com/watch?v=${videoId}`), `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`);
+});
 
 test("usa um campo de data da conclusão como data canônica e não cria filtro duplicado", () => {
   const category = {

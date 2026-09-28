@@ -1,7 +1,7 @@
 import { getApiUrl } from "../apiUrl";
 import { supabase } from "../../lib/supabase";
 
-export type CatalogProxyService = "books" | "brasil-api" | "google-books" | "hltb" | "igdb" | "steam" | "tmdb";
+export type CatalogProxyService = "books" | "brasil-api" | "google-books" | "hltb" | "igdb" | "steam" | "tmdb" | "youtube";
 
 type CatalogRequestOptions = Omit<RequestInit, "signal"> & {
   searchParams?: URLSearchParams;

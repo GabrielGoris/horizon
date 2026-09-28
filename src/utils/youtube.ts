@@ -1,6 +1,6 @@
 const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
 
-function getYouTubeVideoId(url: URL) {
+function parseYouTubeVideoId(url: URL) {
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
 
   if (host === "youtu.be") return url.pathname.split("/").filter(Boolean)[0];
@@ -15,13 +15,16 @@ function getYouTubeVideoId(url: URL) {
   return undefined;
 }
 
-export function getYouTubeThumbnailUrl(value: string) {
+export function getYouTubeVideoId(value: string) {
   try {
-    const videoId = getYouTubeVideoId(new URL(value.trim()));
-    return videoId && YOUTUBE_VIDEO_ID.test(videoId)
-      ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`
-      : undefined;
+    const videoId = parseYouTubeVideoId(new URL(value.trim()));
+    return videoId && YOUTUBE_VIDEO_ID.test(videoId) ? videoId : undefined;
   } catch {
     return undefined;
   }
+}
+
+export function getYouTubeThumbnailUrl(value: string) {
+  const videoId = getYouTubeVideoId(value);
+  return videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : undefined;
 }

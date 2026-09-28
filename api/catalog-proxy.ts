@@ -14,7 +14,7 @@ type ApiRequest = IncomingMessage & {
   body?: unknown;
 };
 type ApiResponse = ServerResponse;
-type CatalogProxyService = "books" | "brasil-api" | "google-books" | "hltb" | "igdb" | "steam" | "tmdb";
+type CatalogProxyService = "books" | "brasil-api" | "google-books" | "hltb" | "igdb" | "steam" | "tmdb" | "youtube";
 
 type TwitchTokenResponse = {
   access_token: string;
@@ -103,7 +103,7 @@ async function pipeFetchResponse(res: ApiResponse, response: Response, cacheable
 }
 
 function isCatalogProxyService(value: string | null): value is CatalogProxyService {
-  return value === "books" || value === "brasil-api" || value === "google-books" || value === "hltb" || value === "igdb" || value === "steam" || value === "tmdb";
+  return value === "books" || value === "brasil-api" || value === "google-books" || value === "hltb" || value === "igdb" || value === "steam" || value === "tmdb" || value === "youtube";
 }
 
 function getRequestParams(req: ApiRequest) {
@@ -140,6 +140,10 @@ function isAllowedEndpoint(service: CatalogProxyService, endpoint: string) {
 
   if (service === "google-books") {
     return path === "volumes";
+  }
+
+  if (service === "youtube") {
+    return path === "metadata";
   }
 
   if (service === "brasil-api") {
@@ -415,6 +419,28 @@ async function fetchGoogleBooks(req: ApiRequest, endpoint: string): Promise<Prox
   return { response, error: "", statusCode: response.status };
 }
 
+async function fetchYoutube(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
+  if (req.method !== "GET") {
+    return { response: null, error: `Metodo ${req.method} não permitido para YouTube. Use GET.`, statusCode: 405 };
+  }
+
+  const url = new URL(endpoint, "https://horizon.local");
+  const videoId = url.searchParams.get("videoId")?.trim() ?? "";
+
+  if (!/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+    return { response: null, error: "Link do YouTube inválido.", statusCode: 400 };
+  }
+
+  const metadataUrl = new URL("https://www.youtube.com/oembed");
+  metadataUrl.searchParams.set("url", `https://www.youtube.com/watch?v=${videoId}`);
+  metadataUrl.searchParams.set("format", "json");
+  const response = await fetchWithRetry(metadataUrl, {
+    headers: { Accept: "application/json" },
+  });
+
+  return { response, error: "", statusCode: response.status };
+}
+
 async function fetchBrasilApi(req: ApiRequest, endpoint: string): Promise<ProxyFetchResult> {
   if (req.method !== "GET") {
     return { response: null, error: `Metodo ${req.method} não permitido para BrasilAPI. Use GET.`, statusCode: 405 };
@@ -467,6 +493,7 @@ async function fetchCatalogService(service: CatalogProxyService, req: ApiRequest
   if (service === "hltb") return fetchHltb(req, endpoint);
   if (service === "tmdb") return fetchTmdb(req, endpoint);
   if (service === "google-books") return fetchGoogleBooks(req, endpoint);
+  if (service === "youtube") return fetchYoutube(req, endpoint);
   if (service === "brasil-api") return fetchBrasilApi(req, endpoint);
 
   return fetchBooks(req, endpoint);

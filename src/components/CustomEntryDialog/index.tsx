@@ -1,12 +1,13 @@
 import { ImagePlus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDraftSnapshot, useUnsavedChanges } from "../../hooks/useUnsavedChanges";
 import { DuplicateMediaDialog } from "../DuplicateMediaDialog";
 import { findDuplicateEntry } from "../../utils/customLibrary/duplicates";
 import { getCompletionDateValue } from "../../utils/customLibrary/completionDate";
 import { CustomFieldInput } from "../CustomFieldInput";
 import { useToast } from "../ToastProvider/hooks/useToast";
-import { getYouTubeThumbnailUrl } from "../../utils/youtube";
+import { getYouTubeThumbnailUrl, getYouTubeVideoId } from "../../utils/youtube";
+import { fetchYouTubeTitle } from "../../services/youtubeMetadataService";
 import type {
   CustomEntry,
   CustomEntryInput,
@@ -54,13 +55,64 @@ export function CustomEntryDialog({
   const [existingPhotos, setExistingPhotos] = useState<CustomEntryPhoto[]>(entry?.photos ?? []);
   const [error, setError] = useState("");
   const [duplicate, setDuplicate] = useState<CustomEntry | null>(null);
+  const [isFetchingYouTubeTitle, setIsFetchingYouTubeTitle] = useState(false);
+  const automaticTitleRef = useRef("");
+  const automaticCoverRef = useRef(category.fields.reduce<string>((cover, field) => {
+    if (cover || field.field_type !== "url") return cover;
+    const value = entry?.values[field.id];
+    const thumbnail = typeof value === "string" ? getYouTubeThumbnailUrl(value) : undefined;
+    return thumbnail && thumbnail === entry?.cover_url ? thumbnail : "";
+  }, ""));
+  const requestedYouTubeUrlRef = useRef("");
   const dirty = useDraftSnapshot({ title, coverUrl, description, status, values, photos: photos.map((photo) => [photo.name, photo.size, photo.lastModified]) });
   const onClose = useUnsavedChanges(dirty, isSaving, discard);
+
+  const youtubeUrl = category.fields.reduce<string>((found, field) => {
+    if (found || field.field_type !== "url") return found;
+    const value = values[field.id];
+    return typeof value === "string" && getYouTubeVideoId(value) ? value.trim() : "";
+  }, "");
+
+  useEffect(() => {
+    const canFillTitle = !title.trim() || title === automaticTitleRef.current;
+
+    if (!isOpen || !youtubeUrl || !canFillTitle) {
+      setIsFetchingYouTubeTitle(false);
+      if (!youtubeUrl) requestedYouTubeUrlRef.current = "";
+      return;
+    }
+
+    if (requestedYouTubeUrlRef.current === youtubeUrl) return;
+    requestedYouTubeUrlRef.current = youtubeUrl;
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      setIsFetchingYouTubeTitle(true);
+      void fetchYouTubeTitle(youtubeUrl, controller.signal)
+        .then((nextTitle) => {
+          if (!nextTitle) return;
+          setTitle((current) => {
+            if (current.trim() && current !== automaticTitleRef.current) return current;
+            automaticTitleRef.current = nextTitle;
+            return nextTitle;
+          });
+        })
+        .catch(() => undefined)
+        .finally(() => setIsFetchingYouTubeTitle(false));
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [isOpen, title, youtubeUrl]);
 
   if (!isOpen) return null;
 
   const isEditing = Boolean(entry);
   const planningFields = category.fields.filter((field) => field.phase === "planning");
+  const primaryLinkFields = planningFields.filter((field) => field.field_type === "url");
+  const remainingPlanningFields = planningFields.filter((field) => field.field_type !== "url");
   const completionFields = category.fields.filter((field) => field.phase === "completion");
 
   const getAutomaticCoverUrl = () => {
@@ -85,7 +137,13 @@ export function CustomEntryDialog({
     if (field.field_type !== "url" || typeof value !== "string") return;
 
     const thumbnailUrl = getYouTubeThumbnailUrl(value);
-    if (thumbnailUrl) setCoverUrl((current) => current.trim() || thumbnailUrl);
+    if (thumbnailUrl) {
+      setCoverUrl((current) => {
+        if (current.trim() && current !== automaticCoverRef.current) return current;
+        automaticCoverRef.current = thumbnailUrl;
+        return thumbnailUrl;
+      });
+    }
   };
 
   const handleSubmit = async (allowDuplicate = false) => {
@@ -188,7 +246,8 @@ export function CustomEntryDialog({
           <div className="grid gap-5 md:grid-cols-2">
             <label className={labelClass}>
               Nome *
-              <input autoFocus className={inputClass} value={title} onChange={(event) => setTitle(event.target.value)} />
+              <input autoFocus className={inputClass} value={title} onChange={(event) => { automaticTitleRef.current = ""; setTitle(event.target.value); }} />
+              {isFetchingYouTubeTitle && <span className="text-[9px] font-normal normal-case tracking-normal text-noir-gold">Buscando título do YouTube...</span>}
             </label>
             <label className={labelClass}>
               Estado
@@ -199,9 +258,15 @@ export function CustomEntryDialog({
             </label>
           </div>
 
+          {primaryLinkFields.length > 0 && (
+            <div className="mt-5 grid gap-4">
+              {primaryLinkFields.map((field) => <CustomFieldInput key={field.id} field={field} value={values[field.id]} onChange={(value) => handleFieldChange(field, value)} />)}
+            </div>
+          )}
+
           <label className={`${labelClass} mt-5`}>
             Imagem de capa
-            <input type="url" className={inputClass} value={coverUrl} onChange={(event) => setCoverUrl(getYouTubeThumbnailUrl(event.target.value) ?? event.target.value)} placeholder="https://..." />
+            <input type="url" className={inputClass} value={coverUrl} onChange={(event) => { const automaticCover = getYouTubeThumbnailUrl(event.target.value); automaticCoverRef.current = automaticCover ?? ""; setCoverUrl(automaticCover ?? event.target.value); }} placeholder="https://..." />
             <span className="text-[9px] font-normal normal-case tracking-normal text-neutral-600">Usada no card e no topo do dossiê.</span>
           </label>
 
@@ -210,11 +275,11 @@ export function CustomEntryDialog({
             <textarea className="min-h-24 rounded-lg border border-white/10 bg-[#111114] p-3 text-sm normal-case tracking-normal text-white outline-none focus:border-noir-gold/70" value={description} onChange={(event) => setDescription(event.target.value)} />
           </label>
 
-          {planningFields.length > 0 && (
+          {remainingPlanningFields.length > 0 && (
             <section className="mt-7">
               <h3 className="mb-4 border-b border-white/10 pb-3 font-serif text-lg font-bold text-white">Planejamento</h3>
               <div className="grid gap-4 md:grid-cols-2">
-                {planningFields.map((field) => <CustomFieldInput key={field.id} field={field} value={values[field.id]} onChange={(value) => handleFieldChange(field, value)} />)}
+                {remainingPlanningFields.map((field) => <CustomFieldInput key={field.id} field={field} value={values[field.id]} onChange={(value) => handleFieldChange(field, value)} />)}
               </div>
             </section>
           )}
