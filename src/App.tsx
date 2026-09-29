@@ -8,7 +8,7 @@ import { AppSplash } from './components/AppSplash'
 import { AppUpdateDialog } from './components/AppUpdateDialog'
 import { UnsavedChangesProvider } from './components/UnsavedChangesProvider'
 import { initializePushNotifications, unregisterPushNotifications } from './services/pushNotificationService'
-import { playStartupSound, stopStartupSound } from './utils/startupSound'
+import { playStartupSound, prepareStartupSound, stopStartupSound } from './utils/startupSound'
 
 const AuthScreen = lazy(() => import('./screens/authScreen').then((module) => ({ default: module.AuthScreen })))
 const InitialScreen = lazy(() => import('./screens/initialScreen/index.tsx').then((module) => ({ default: module.InitialScreen })))
@@ -34,7 +34,6 @@ function App() {
   const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
   const [isSplashVisible, setIsSplashVisible] = useState(true)
   const [isAuthenticatedIntroComplete, setIsAuthenticatedIntroComplete] = useState(false)
-  const [isStartupSoundBlocked, setIsStartupSoundBlocked] = useState(false)
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setIsSplashVisible(false), 800)
@@ -42,16 +41,31 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (session) return;
+
+    let prepared = false;
+    const prepare = () => {
+      if (prepared) return;
+      prepared = true;
+      window.removeEventListener("pointerdown", prepare, true);
+      window.removeEventListener("keydown", prepare, true);
+      void prepareStartupSound();
+    };
+
+    window.addEventListener("pointerdown", prepare, true);
+    window.addEventListener("keydown", prepare, true);
+    return () => {
+      window.removeEventListener("pointerdown", prepare, true);
+      window.removeEventListener("keydown", prepare, true);
+    };
+  }, [session]);
+
+  useEffect(() => {
     if (isLoadingSession || isCheckingMfa || isMfaRequired || !session) return;
 
     let active = true;
-    void playStartupSound().then((result) => {
-      if (!active) return;
-      if (result === "blocked") {
-        setIsStartupSoundBlocked(true);
-        return;
-      }
-      setIsAuthenticatedIntroComplete(true);
+    void playStartupSound().finally(() => {
+      if (active) setIsAuthenticatedIntroComplete(true);
     });
 
     return () => {
@@ -64,17 +78,6 @@ function App() {
     stopStartupSound();
   }, [session]);
 
-  const handleStartAuthenticatedIntro = () => {
-    setIsStartupSoundBlocked(false);
-    void playStartupSound().then((result) => {
-      if (result === "blocked") {
-        setIsStartupSoundBlocked(true);
-        return;
-      }
-      setIsAuthenticatedIntroComplete(true);
-    });
-  };
-
   useEffect(() => {
     if (isSplashVisible || isLoadingSession || isCheckingMfa || !session) return;
 
@@ -84,7 +87,7 @@ function App() {
   }, [isCheckingMfa, isLoadingSession, isSplashVisible, session]);
 
   if (isSplashVisible || isLoadingSession || isCheckingMfa || (session && !isMfaRequired && !isAuthenticatedIntroComplete)) {
-    return <AppSplash onStart={isStartupSoundBlocked ? handleStartAuthenticatedIntro : undefined} />
+    return <AppSplash />
   }
 
   const isAuthenticated = Boolean(session)
