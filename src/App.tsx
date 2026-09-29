@@ -8,6 +8,7 @@ import { AppSplash } from './components/AppSplash'
 import { AppUpdateDialog } from './components/AppUpdateDialog'
 import { UnsavedChangesProvider } from './components/UnsavedChangesProvider'
 import { initializePushNotifications, unregisterPushNotifications } from './services/pushNotificationService'
+import { playStartupSound, stopStartupSound } from './utils/startupSound'
 
 const AuthScreen = lazy(() => import('./screens/authScreen').then((module) => ({ default: module.AuthScreen })))
 const InitialScreen = lazy(() => import('./screens/initialScreen/index.tsx').then((module) => ({ default: module.InitialScreen })))
@@ -32,11 +33,30 @@ function App() {
   const { isLoadingSession, session, signOut } = useAuthSession()
   const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
   const [isSplashVisible, setIsSplashVisible] = useState(true)
+  const [isAuthenticatedIntroComplete, setIsAuthenticatedIntroComplete] = useState(false)
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setIsSplashVisible(false), 800)
     return () => window.clearTimeout(timeout)
   }, [])
+
+  useEffect(() => {
+    if (isLoadingSession || isCheckingMfa || isMfaRequired || !session) return;
+
+    let active = true;
+    void playStartupSound().finally(() => {
+      if (active) setIsAuthenticatedIntroComplete(true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [isCheckingMfa, isLoadingSession, isMfaRequired, session]);
+
+  useEffect(() => {
+    if (session) return;
+    stopStartupSound();
+  }, [session]);
 
   useEffect(() => {
     if (isSplashVisible || isLoadingSession || isCheckingMfa || !session) return;
@@ -46,7 +66,7 @@ function App() {
     });
   }, [isCheckingMfa, isLoadingSession, isSplashVisible, session]);
 
-  if (isSplashVisible || isLoadingSession || isCheckingMfa) return <AppSplash />
+  if (isSplashVisible || isLoadingSession || isCheckingMfa || (session && !isMfaRequired && !isAuthenticatedIntroComplete)) return <AppSplash />
 
   const isAuthenticated = Boolean(session)
   const handleSignOut = async () => {
