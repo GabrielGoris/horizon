@@ -93,7 +93,7 @@ export function playStartupSound() {
       audio.currentTime = START_TIME_SECONDS;
       void audio.play().then(scheduleStop).catch((error: unknown) => {
         const wasBlocked = isAutoplayBlocked(error);
-        finishPlayback(wasBlocked ? "blocked" : "failed", wasBlocked);
+        finishPlayback(wasBlocked ? "blocked" : "failed");
       });
       audio.addEventListener("ended", handleEnded, { once: true });
     });

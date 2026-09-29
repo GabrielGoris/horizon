@@ -33,7 +33,8 @@ function App() {
   const { isLoadingSession, session, signOut } = useAuthSession()
   const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
   const [isSplashVisible, setIsSplashVisible] = useState(true)
-  const [isAuthenticatedIntroComplete, setIsAuthenticatedIntroComplete] = useState(false)
+  const [introCompletedForUserId, setIntroCompletedForUserId] = useState<string | null>(null)
+  const sessionUserId = session?.user.id ?? null
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setIsSplashVisible(false), 800)
@@ -41,7 +42,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (session) return;
+    if (sessionUserId) return;
 
     let prepared = false;
     const prepare = () => {
@@ -58,25 +59,25 @@ function App() {
       window.removeEventListener("pointerdown", prepare, true);
       window.removeEventListener("keydown", prepare, true);
     };
-  }, [session]);
+  }, [sessionUserId]);
 
   useEffect(() => {
-    if (isLoadingSession || isCheckingMfa || isMfaRequired || !session) return;
+    if (isLoadingSession || isCheckingMfa || isMfaRequired || !sessionUserId || introCompletedForUserId === sessionUserId) return;
 
     let active = true;
     void playStartupSound().finally(() => {
-      if (active) setIsAuthenticatedIntroComplete(true);
+      if (active) setIntroCompletedForUserId(sessionUserId);
     });
 
     return () => {
       active = false;
     };
-  }, [isCheckingMfa, isLoadingSession, isMfaRequired, session]);
+  }, [introCompletedForUserId, isCheckingMfa, isLoadingSession, isMfaRequired, sessionUserId]);
 
   useEffect(() => {
-    if (session) return;
+    if (sessionUserId) return;
     stopStartupSound();
-  }, [session]);
+  }, [sessionUserId]);
 
   useEffect(() => {
     if (isSplashVisible || isLoadingSession || isCheckingMfa || !session) return;
@@ -86,7 +87,7 @@ function App() {
     });
   }, [isCheckingMfa, isLoadingSession, isSplashVisible, session]);
 
-  if (isSplashVisible || isLoadingSession || isCheckingMfa || (session && !isMfaRequired && !isAuthenticatedIntroComplete)) {
+  if (isSplashVisible || isLoadingSession || isCheckingMfa || (sessionUserId && !isMfaRequired && introCompletedForUserId !== sessionUserId)) {
     return <AppSplash />
   }
 
