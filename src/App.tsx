@@ -34,6 +34,7 @@ function App() {
   const { isCheckingMfa, isMfaRequired, resetMfaCheck } = useMfaAssurance(session)
   const [isSplashVisible, setIsSplashVisible] = useState(true)
   const [isAuthenticatedIntroComplete, setIsAuthenticatedIntroComplete] = useState(false)
+  const [isStartupSoundBlocked, setIsStartupSoundBlocked] = useState(false)
 
   useEffect(() => {
     const timeout = window.setTimeout(() => setIsSplashVisible(false), 800)
@@ -44,8 +45,13 @@ function App() {
     if (isLoadingSession || isCheckingMfa || isMfaRequired || !session) return;
 
     let active = true;
-    void playStartupSound().finally(() => {
-      if (active) setIsAuthenticatedIntroComplete(true);
+    void playStartupSound().then((result) => {
+      if (!active) return;
+      if (result === "blocked") {
+        setIsStartupSoundBlocked(true);
+        return;
+      }
+      setIsAuthenticatedIntroComplete(true);
     });
 
     return () => {
@@ -58,6 +64,17 @@ function App() {
     stopStartupSound();
   }, [session]);
 
+  const handleStartAuthenticatedIntro = () => {
+    setIsStartupSoundBlocked(false);
+    void playStartupSound().then((result) => {
+      if (result === "blocked") {
+        setIsStartupSoundBlocked(true);
+        return;
+      }
+      setIsAuthenticatedIntroComplete(true);
+    });
+  };
+
   useEffect(() => {
     if (isSplashVisible || isLoadingSession || isCheckingMfa || !session) return;
 
@@ -66,7 +83,9 @@ function App() {
     });
   }, [isCheckingMfa, isLoadingSession, isSplashVisible, session]);
 
-  if (isSplashVisible || isLoadingSession || isCheckingMfa || (session && !isMfaRequired && !isAuthenticatedIntroComplete)) return <AppSplash />
+  if (isSplashVisible || isLoadingSession || isCheckingMfa || (session && !isMfaRequired && !isAuthenticatedIntroComplete)) {
+    return <AppSplash onStart={isStartupSoundBlocked ? handleStartAuthenticatedIntro : undefined} />
+  }
 
   const isAuthenticated = Boolean(session)
   const handleSignOut = async () => {
