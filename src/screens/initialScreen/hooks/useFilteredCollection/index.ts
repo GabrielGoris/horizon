@@ -27,7 +27,7 @@ export function useFilteredCollection({
         activeTab !== "games" ||
         gamePlatformFilter === "all" ||
         getGamePlatformOption(item.meta)?.label === gamePlatformFilter;
-      const matchesCompletedYear = !completedYearFilter || getCompletionYear(item) === completedYearFilter;
+      const matchesCompletedYear = !/^\d{4}$/.test(completedYearFilter) || getCompletionYear(item) === completedYearFilter;
 
       return matchesTab && matchesSearch && matchesStatus && matchesMediaFormat && matchesGamePlatform && matchesCompletedYear;
     });

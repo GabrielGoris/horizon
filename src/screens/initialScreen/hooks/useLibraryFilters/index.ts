@@ -85,7 +85,7 @@ export function useLibraryFilters(activeTab: string) {
     statusFilter !== "all" ||
     mediaFormatFilter !== "all" ||
     gamePlatformFilter !== "all" ||
-    Boolean(completedYearFilter) ||
+    /^\d{4}$/.test(completedYearFilter) ||
     sortMode !== "title_asc";
 
   return {

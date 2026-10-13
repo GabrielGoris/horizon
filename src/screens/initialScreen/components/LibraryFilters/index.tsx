@@ -166,9 +166,10 @@ export function LibraryFilters({
                 {getCompletionYearLabel(activeTab)}
                 <input
                   value={completedYearFilter}
-                  onChange={(event) => onCompletedYearFilterChange(event.target.value)}
+                  onChange={(event) => onCompletedYearFilterChange(event.target.value.replace(/\D/g, "").slice(0, 4))}
                   placeholder="Ex: 2026"
                   inputMode="numeric"
+                  maxLength={4}
                   className="w-full min-w-0 rounded-lg border border-white/10 bg-[#131315] px-3 py-2 text-sm text-white placeholder-neutral-700 outline-none transition-all focus:border-noir-gold focus:ring-1 focus:ring-noir-gold"
                 />
               </label>

@@ -298,9 +298,18 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
   const pageSize = request.pageSize ?? MEDIA_PAGE_SIZE;
   const { column, ascending } = getSortDefinition(request.sortMode);
   const completedYear = request.completedYear?.trim();
+  const completionRelation = request.type === "games"
+    ? { table: "game_completions", dateColumn: "finished_at" }
+    : request.type === "books"
+      ? { table: "book_completions", dateColumn: "finished_at" }
+      : { table: "audiovisual_completions", dateColumn: "watched_at" };
+  const hasValidYearFilter = Boolean(completedYear && /^\d{4}$/.test(completedYear));
+  const select = hasValidYearFilter
+    ? `${MEDIA_SELECT},matching_completion:${completionRelation.table}(),dated_completion:${completionRelation.table}()`
+    : MEDIA_SELECT;
   let query = supabase
     .from("media_items")
-    .select(MEDIA_SELECT, { count: "exact" })
+    .select(select, { count: "exact" })
     .eq("user_id", userId)
     .eq("type", request.type)
     .is("hidden_at", null);
@@ -313,9 +322,16 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
     query = query.eq("status", request.status).is("status_detail", null);
   }
   if (request.mediaFormat && request.mediaFormat !== "all") query = query.eq("media_format", request.mediaFormat);
-  if (completedYear) {
-    const year = Number(completedYear);
-    query = query.eq("completed_year", year);
+  if (hasValidYearFilter && completedYear) {
+    const startOfYear = `${completedYear}-01-01`;
+    const startOfNextYear = `${Number(completedYear) + 1}-01-01`;
+    // A data no registro de conclusão prevalece. completed_year é usado apenas
+    // para itens antigos que ainda não têm uma data registrada nessa tabela.
+    query = query
+      .gte(`matching_completion.${completionRelation.dateColumn}`, startOfYear)
+      .lt(`matching_completion.${completionRelation.dateColumn}`, startOfNextYear)
+      .not(`dated_completion.${completionRelation.dateColumn}`, "is", null)
+      .or(`matching_completion.not.is.null,and(dated_completion.is.null,completed_year.eq.${completedYear})`);
   }
   if (request.searchQuery?.trim()) query = query.ilike("title", `%${request.searchQuery.trim()}%`);
 
@@ -338,7 +354,7 @@ export async function fetchMediaPage(request: MediaPageQuery): Promise<MediaPage
 
   if (error) throw error;
 
-  const rows = (data ?? []) as MediaItemRow[];
+  const rows = (data ?? []) as unknown as MediaItemRow[];
   const items = rows.map((item) => normalizeMediaItem(item));
   const hasMore = count !== null ? count > rows.length : rows.length === pageSize;
   await upsertCachedMediaBatch(userId, items);

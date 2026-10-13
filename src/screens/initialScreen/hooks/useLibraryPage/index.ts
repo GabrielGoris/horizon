@@ -45,7 +45,7 @@ function filterCachedMedia(items: MediaItem[], params: LibraryPageParams) {
       || (params.mediaFormatFilter === "series" ? isSeriesItem(item) : !isSeriesItem(item));
     if (!matchesFormat) return false;
     if (params.gamePlatformFilter !== "all" && getGamePlatformOption(item.meta)?.label !== params.gamePlatformFilter) return false;
-    if (params.completedYearFilter && getCompletionYear(item) !== params.completedYearFilter) return false;
+    if (/^\d{4}$/.test(params.completedYearFilter) && getCompletionYear(item) !== params.completedYearFilter) return false;
 
     return true;
   }), params.sortMode);

@@ -7,11 +7,14 @@ const ESTIMATED_EPISODES_PER_SEASON = 10;
 export function getYear(value?: string | number) {
   if (value === undefined || value === null || value === "") return "";
 
-  return String(value).slice(0, 4);
+  const normalizedValue = String(value).trim();
+  return normalizedValue.match(/^(\d{4})(?:$|-)/)?.[1]
+    ?? normalizedValue.match(/^\d{1,2}\/\d{1,2}\/(\d{4})$/)?.[1]
+    ?? "";
 }
 
 export function getCompletionYear(item: MediaItem) {
-  return String(item.completed_year || getYear(item.watched_at) || getYear(item.completed_at) || "");
+  return getYear(item.watched_at) || getYear(item.completed_at) || getYear(item.completed_year);
 }
 
 export function isSeriesItem(item: MediaItem) {
