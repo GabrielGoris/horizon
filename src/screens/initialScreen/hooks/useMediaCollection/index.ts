@@ -22,7 +22,7 @@ import {
 } from "../../../../services/mediaService";
 import { removeMediaFromWishlist } from "../../../../services/wishlistService";
 import type { MediaItem, MediaStatus } from "../../../../types";
-import { LIBRARY_UPDATED_EVENT, notifyLibraryUpdated } from "../../../../utils/libraryEvents";
+import { LIBRARY_UPDATED_EVENT, OFFLINE_SYNC_ISSUES_EVENT, notifyLibraryUpdated, type OfflineSyncIssues } from "../../../../utils/libraryEvents";
 
 export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoad?: boolean } = {}) {
   const { notify } = useToast();
@@ -121,13 +121,30 @@ export function useMediaCollection({ skipInitialLoad = false }: { skipInitialLoa
             notify({ tone: "success", title: "Biblioteca sincronizada", message: "As alterações feitas offline foram enviadas." });
           }
         })
-        .catch((error) => console.error("Não foi possí­vel sincronizar a biblioteca:", error));
+        .catch((error) => console.error("Não foi possível sincronizar a biblioteca:", error));
     };
 
     window.addEventListener("online", handleReconnect);
 
     return () => window.removeEventListener("online", handleReconnect);
   }, [notify, refreshMedia, skipInitialLoad]);
+
+  useEffect(() => {
+    const handleSyncIssues = (event: Event) => {
+      const { conflicts, failed, gone } = (event as CustomEvent<OfflineSyncIssues>).detail;
+      const parts: string[] = [];
+
+      if (conflicts) parts.push(`${conflicts} ${conflicts === 1 ? "alteração não foi aplicada porque o item foi modificado" : "alterações não foram aplicadas porque os itens foram modificados"} em outro aparelho (vale a versão mais recente do servidor).`);
+      if (gone) parts.push(`${gone} ${gone === 1 ? "alteração foi ignorada porque o item não existe mais" : "alterações foram ignoradas porque os itens não existem mais"}.`);
+      if (failed) parts.push(`${failed} ${failed === 1 ? "alteração não pôde ser enviada" : "alterações não puderam ser enviadas"}.`);
+
+      if (parts.length) notify({ tone: "warning", title: "Sincronização revisada", message: parts.join(" ") });
+    };
+
+    window.addEventListener(OFFLINE_SYNC_ISSUES_EVENT, handleSyncIssues);
+
+    return () => window.removeEventListener(OFFLINE_SYNC_ISSUES_EVENT, handleSyncIssues);
+  }, [notify]);
 
   const updateMedia = useCallback((updatedMedia: MediaItem, openDossier = true) => {
     setCollection((currentCollection) =>

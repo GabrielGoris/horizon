@@ -229,7 +229,7 @@ export function useLibraryPage(params: LibraryPageParams) {
     } catch (loadError) {
       console.error(loadError);
       if (requestId === requestIdRef.current && !hasCachedItems) {
-        setError("Não foi possí­vel carregar a biblioteca.");
+        setError("Não foi possível carregar a biblioteca.");
       }
       throw loadError;
     } finally {

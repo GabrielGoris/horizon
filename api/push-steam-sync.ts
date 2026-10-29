@@ -54,7 +54,7 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
     }, {
       body: isDiscovery
         ? `${gameCount === 1 ? "Encontramos 1 jogo novo" : `Encontramos ${gameCount} jogos novos`} na sua biblioteca Steam.`
-        : "Não foi possí­vel sincronizar sua biblioteca Steam. Abra o Horizon para tentar novamente.",
+        : "Não foi possível sincronizar sua biblioteca Steam. Abra o Horizon para tentar novamente.",
       channelId: "horizon_library",
       route: isDiscovery ? "/games" : "/settings/integrations",
       tag: `steam-${event}-${user.id}`,

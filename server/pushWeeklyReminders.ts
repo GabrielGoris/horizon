@@ -118,7 +118,7 @@ export async function pushWeeklyReminders(req: ApiRequest, res: ServerResponse) 
 
   if (wishlistError) {
     console.error("[push-weekly-reminders] Failed to load stale wishlist items:", wishlistError.message);
-    sendJson(res, 500, { ok: false, message: "Não foi possí­vel consultar a wishlist." });
+    sendJson(res, 500, { ok: false, message: "Não foi possível consultar a wishlist." });
     return;
   }
 

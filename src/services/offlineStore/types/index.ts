@@ -1,6 +1,8 @@
 import type { MediaItem } from "../../../types";
 
-export type OfflineMediaOperation =
+type OperationBase = { base?: Record<string, unknown> }
+
+export type OfflineMediaOperation = OperationBase & (
   | { kind: 'create'; mediaId: string; payload: unknown }
   | { kind: 'complete'; mediaId: string; payload?: unknown }
   | { kind: 'status'; mediaId: string; payload: unknown }
@@ -11,6 +13,7 @@ export type OfflineMediaOperation =
   | { kind: 'audiovisual-completion'; mediaId: string; payload: unknown }
   | { kind: 'book-completion'; mediaId: string; payload: unknown }
   | { kind: 'game-completion'; mediaId: string; payload: unknown }
+)
 
 export type CachedMediaSnapshot = {
   userId: string
@@ -34,4 +37,8 @@ export type QueuedOperation = OfflineMediaOperation & {
   id?: number
   userId: string
   createdAt: string
+  attempts?: number
+  nextAttemptAt?: number
+  lastError?: string
+  failedAt?: string
 }

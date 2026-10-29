@@ -102,11 +102,11 @@ async function readMediaCacheRows(userId: string) {
     const request = transaction.objectStore(MEDIA_ITEMS_STORE).index('by-user').getAll(userId) as IDBRequest<CachedMediaItem[]>
 
     request.onsuccess = () => resolve(request.result ?? [])
-    request.onerror = () => reject(request.error ?? new Error('Não foi possí­vel ler o armazenamento local.'))
+    request.onerror = () => reject(request.error ?? new Error('Não foi possível ler o armazenamento local.'))
     transaction.oncomplete = () => database.close()
     transaction.onerror = () => {
       database.close()
-      reject(transaction.error ?? new Error('Não foi possí­vel ler o armazenamento local.'))
+      reject(transaction.error ?? new Error('Não foi possível ler o armazenamento local.'))
     }
   })
 }
@@ -117,6 +117,11 @@ async function getMediaCacheMetadata(userId: string) {
 
 export function isNetworkAvailable() {
   return typeof navigator === 'undefined' || navigator.onLine
+}
+
+export async function getCachedMediaItem(userId: string, itemId: string) {
+  const row = await requestResult<CachedMediaItem | undefined>('readonly', MEDIA_ITEMS_STORE, (store) => store.get(getMediaCacheKey(userId, itemId)))
+  return row?.item
 }
 
 export async function readCachedMedia(userId: string) {
@@ -196,7 +201,7 @@ export async function upsertCachedMedia(userId: string, item: MediaItem) {
     }
     transaction.onerror = () => {
       database.close()
-      reject(transaction.error ?? new Error('Não foi possí­vel atualizar o armazenamento local.'))
+      reject(transaction.error ?? new Error('Não foi possível atualizar o armazenamento local.'))
     }
   })
 }
@@ -227,7 +232,7 @@ export async function upsertCachedMediaBatch(userId: string, items: MediaItem[])
     }
     transaction.onerror = () => {
       database.close()
-      reject(transaction.error ?? new Error('Não foi possí­vel atualizar o armazenamento local.'))
+      reject(transaction.error ?? new Error('Não foi possível atualizar o armazenamento local.'))
     }
   })
 }
@@ -251,14 +256,14 @@ export async function updateCachedMediaItem(userId: string, itemId: string, upda
       store.put({ ...current, item: updatedItem, updatedAt })
       transaction.objectStore(MEDIA_METADATA_STORE).put({ userId, updatedAt } satisfies CachedMediaMetadata)
     }
-    request.onerror = () => reject(request.error ?? new Error('Não foi possí­vel atualizar o armazenamento local.'))
+    request.onerror = () => reject(request.error ?? new Error('Não foi possível atualizar o armazenamento local.'))
     transaction.oncomplete = () => {
       database.close()
       resolve(updatedItem)
     }
     transaction.onerror = () => {
       database.close()
-      reject(transaction.error ?? new Error('Não foi possí­vel atualizar o armazenamento local.'))
+      reject(transaction.error ?? new Error('Não foi possível atualizar o armazenamento local.'))
     }
   })
 }
@@ -277,7 +282,7 @@ export async function removeCachedMedia(userId: string, itemId: string) {
     }
     transaction.onerror = () => {
       database.close()
-      reject(transaction.error ?? new Error('Não foi possí­vel atualizar o armazenamento local.'))
+      reject(transaction.error ?? new Error('Não foi possível atualizar o armazenamento local.'))
     }
   })
 }
@@ -301,4 +306,40 @@ export async function getQueuedOperations(userId: string) {
 
 export async function removeQueuedOperation(id: number) {
   await requestResult<undefined>('readwrite', QUEUE_STORE, (store) => store.delete(id))
+}
+
+export async function updateQueuedOperation(id: number, patch: Partial<Pick<QueuedOperation, 'attempts' | 'nextAttemptAt' | 'lastError' | 'failedAt'>>) {
+  const database = await openDatabase()
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = database.transaction(QUEUE_STORE, 'readwrite')
+    const store = transaction.objectStore(QUEUE_STORE)
+    const request = store.get(id) as IDBRequest<QueuedOperation | undefined>
+
+    request.onsuccess = () => {
+      if (request.result) store.put({ ...request.result, ...patch })
+    }
+    request.onerror = () => reject(request.error ?? new Error('Não foi possível atualizar a fila de sincronização.'))
+    transaction.oncomplete = () => {
+      database.close()
+      resolve()
+    }
+    transaction.onerror = () => {
+      database.close()
+      reject(transaction.error ?? new Error('Não foi possível atualizar a fila de sincronização.'))
+    }
+  })
+}
+
+const FAILED_OPERATION_RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+
+export async function purgeStaleFailedOperations(userId: string) {
+  const operations = await getQueuedOperations(userId)
+  const threshold = Date.now() - FAILED_OPERATION_RETENTION_MS
+
+  for (const operation of operations) {
+    if (operation.id !== undefined && operation.failedAt && Date.parse(operation.failedAt) < threshold) {
+      await removeQueuedOperation(operation.id)
+    }
+  }
 }

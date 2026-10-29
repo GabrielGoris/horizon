@@ -79,7 +79,7 @@ export function InitialScreen({ activeTab, customCategorySlug, dossierMediaId, u
       .then((categoryEntries) => {
         if (isCurrent) setCustomGlobalSearch({ entries: categoryEntries.flat(), query });
       })
-      .catch((error) => console.warn("Não foi possí­vel pesquisar nas bibliotecas personalizadas.", error));
+      .catch((error) => console.warn("Não foi possível pesquisar nas bibliotecas personalizadas.", error));
 
     return () => {
       isCurrent = false;

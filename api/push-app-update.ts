@@ -34,7 +34,7 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
 
   const clients = getSupabaseServerClients();
   if (!clients || !isPushMessagingConfigured()) {
-    sendJson(res, 503, { ok: false, message: "Serviço de notificações indisponí­vel." });
+    sendJson(res, 503, { ok: false, message: "Serviço de notificações indisponível." });
     return;
   }
 
@@ -53,6 +53,6 @@ export default async function handler(req: ApiRequest, res: ServerResponse) {
     sendJson(res, 200, { ok: true, sent: result.sentCount });
   } catch (error) {
     console.error("[push-app-update] Failed to send update notification:", error);
-    sendJson(res, 500, { ok: false, message: "Não foi possí­vel enviar a atualização." });
+    sendJson(res, 500, { ok: false, message: "Não foi possível enviar a atualização." });
   }
 }

@@ -76,7 +76,7 @@ function PriorityCarousel({ items, onPrioritizeMedia, onQuickActions, onSelectMe
       <div
         ref={trackRef}
         onScroll={updateNavigation}
-        className="-my-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto px-px py-3 sm:gap-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="-my-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain px-px py-3 sm:gap-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&_.media-card]:[touch-action:pan-x_pan-y]"
       >
         {items.map((item, index) => (
           <div
